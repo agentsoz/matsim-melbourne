@@ -2,12 +2,12 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>io.github.agentso<z/groupId>
+	<groupId>io.github.agentsoz</groupId>
 	<artifactId>matsim-melbourne</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
-	<name>MATSim for Melbourne</name>
-	<description>An open MATSim model for Melbourne</description>
+	<name>MATSim model for Melbourne</name>
+	<description>An open MATSim model for melbourne</description>
 
 	<repositories>
 		<!-- Repository for MATSim releases (MATSim is not on Maven central) -->
