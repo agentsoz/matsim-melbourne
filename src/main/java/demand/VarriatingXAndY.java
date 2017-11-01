@@ -2,9 +2,7 @@ package demand;
 
 import java.util.ArrayList;
 
-import dataPreparation.ZahraClass.SAs;
-import dataPreparation.ZahraUtility;
-import dataPreparation.ZahraClass.Person;
+import demand.ZahraClass.SAs;
 
 public class VarriatingXAndY {
 
