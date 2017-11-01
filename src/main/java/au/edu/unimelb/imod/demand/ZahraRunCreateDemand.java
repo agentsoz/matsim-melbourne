@@ -1,4 +1,4 @@
-package demand;
+package au.edu.unimelb.imod.demand;
 
 import java.io.IOException;
 import java.io.PrintStream;

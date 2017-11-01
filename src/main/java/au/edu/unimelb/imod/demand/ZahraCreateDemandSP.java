@@ -1,4 +1,4 @@
-package demand;
+package au.edu.unimelb.imod.demand;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -20,14 +20,14 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 
-public class ZahraCreateDemand {
+public class ZahraCreateDemandSP {
 	
 	private Scenario scenario;
 	// We need another population, the PUS population
 	private Scenario scenarioPUS;
 	ArrayList<Id<Person>> activePeople = new ArrayList<Id<Person>>();
-	private static final String pusTripsFile =  "C:/Users/znavidikasha/Google Drive/1-PhDProject/CityOfMelbourne/demand/personsTrips.csv";//"C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/personsTripsAllLmtdWSA.csv";
-	private static final String pusPersonsFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/CityOfMelbourne/demand/Person.csv";//"C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/personsAll.csv";
+	private static final String pusTripsFile =  "C:/Users/znavidikasha/Google Drive/1-PhDProject/YarraRanges/demand/zahra's/personsTripsAllLmtdWSA.csv";//CityOfMelbourne/demand/personsTrips.csv
+	private static final String pusPersonsFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/YarraRanges/demand/zahra's/personsAll.csv";//CityOfMelbourne/demand/Person.csv
 	CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
 	
 	public void run(Scenario scenario) throws IOException {
@@ -57,7 +57,7 @@ public class ZahraCreateDemand {
 			BufferedReader bufferedReader = new BufferedReader(new FileReader(pusPersonsFile));
 			bufferedReader.readLine(); //skip header
 			
-			int index_personId = 12;
+			int index_personId = 13;
 
 			String line;
 			while ((line = bufferedReader.readLine()) != null) {
@@ -90,7 +90,7 @@ public class ZahraCreateDemand {
 		PopulationFactory populationFactory = population.getFactory();
 		
 		
-		String[][] parts = ZahraUtility.Data(510, 23, pusTripsFile);
+		String[][] parts = ZahraUtility.Data(172331, 23, pusTripsFile);
 		
 		
 		int index_personId = 0;
@@ -112,7 +112,7 @@ public class ZahraCreateDemand {
 			Id<Person> personId = Id.create(parts[i][index_personId].trim(), Person.class);
 			Person person = population.getPersons().get(personId);
 			//setting a person's subpopulation
-//			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "one");
+//			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "noCar");
 //			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"age", 15);
 			Plan plan = person.getSelectedPlan();
 			/* 
@@ -242,7 +242,7 @@ public class ZahraCreateDemand {
 			BufferedReader bufferedReader = new BufferedReader(new FileReader(pusPersonsFile));
 			bufferedReader.readLine(); //skip header
 			
-			int index_personId = 12;
+			int index_personId = 13;
 
 			String line;
 			while ((line = bufferedReader.readLine()) != null) {
@@ -412,8 +412,16 @@ public class ZahraCreateDemand {
 			{
 				Leg legToCheck = (Leg) eachPlan.getPlanElements().get(j);
 				String legToCheckMode = legToCheck.getMode().toString().trim() ;
-				if (legToCheckMode.equals("1") || legToCheckMode.equals("2") || legToCheckMode.equals("9") || legToCheckMode.equals("3") || legToCheckMode.equals("6")) legToCheck.setMode("car");
-				if (legToCheckMode.equals("7") || legToCheckMode.equals("8") || legToCheckMode.equals("10") || legToCheckMode.equals("12")) legToCheck.setMode("pt");
+				if (legToCheckMode.equals("1") || legToCheckMode.equals("2") || legToCheckMode.equals("9") || legToCheckMode.equals("3") || legToCheckMode.equals("6"))
+				{
+					legToCheck.setMode("car");
+				}
+				if (legToCheckMode.equals("7") || legToCheckMode.equals("8") || legToCheckMode.equals("10") || legToCheckMode.equals("12"))
+				{
+					legToCheck.setMode("pt");
+					eachPerson.getCustomAttributes().put("hasLicense", "no");
+					eachPerson.getCustomAttributes().put("carAvail", "never");
+				}
 			}
 		}
 	}
@@ -435,7 +443,7 @@ public class ZahraCreateDemand {
 	
 	public void populationWriting(){
 		PopulationWriter populationWriter = new PopulationWriter(this.scenarioPUS.getPopulation(), this.scenario.getNetwork());
-		populationWriter.write("C:/Users/znavidikasha/Google Drive/1-PhDProject/CityOfMelbourne/demand/plansCoM.xml.gz");
+		populationWriter.write("C:/Users/znavidikasha/Google Drive/1-PhDProject/YarraRanges/demand/zahra's/plansYRCL.xml.gz");
 //		new ObjectAttributesXmlWriter(this.scenarioPUS.getPopulation().getPersonAttributes()).writeFile("C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/YRsPlansSubAtts.xml");
 		System.out.println("writing done");
 	}//end of writing

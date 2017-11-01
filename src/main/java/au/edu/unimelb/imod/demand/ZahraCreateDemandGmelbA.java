@@ -1,4 +1,4 @@
-package demand;
+package au.edu.unimelb.imod.demand;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -20,17 +20,23 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 
-public class ZahraCreateDemandGmelb {
+/**
+ * This version is just doing trips, not chains.
+ * 
+ * @author (of documentation) kainagel
+ *
+ */
+public class ZahraCreateDemandGmelbA {
 	
 	private Scenario scenario;
 	// We need another population, the PUS population
 	private Scenario scenarioPUS;
 	ArrayList<Id<Person>> activePeople = new ArrayList<Id<Person>>();
 	private static final String pusTripsFile =  "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/GMelbourneTrips_XY.csv";//"C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/personsTripsAllLmtdWSA.csv";
-	private static final String pusPersonsFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/GMelbourneTrips_people.csv";//"C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/personsAll.csv";
+	private static final String pusPersonsFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/GMelbourneTrips_XY.csv";//"C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/personsAll.csv";
 	CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
 	
-	String outputFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/plansGmelb.xml.gz";
+	String outputFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/plansGmelbTrips.xml.gz";
 	
 	public void run(Scenario scenario) throws IOException {
 		this.scenario = scenario;
@@ -38,10 +44,10 @@ public class ZahraCreateDemandGmelb {
 		this.createPUSPersons();// create all the people and add a plan to each
 		this.createPUSPlans();// create the plans according to the trip files (pusTripsFile)
 		this.removeNonActivePeople();//remove the people who has no trip
-		this.matchFirstAndLastAct();// add a trip to the end or beginning of the plan to match the first and last activity to have a tour based plan
-		this.matchHomeCoord(); //since in adding the activities the coordinates have been randomised in for each destination, agents have different home locations, this method is need to set all the home location to a single one. 
+//		this.matchFirstAndLastAct();// add a trip to the end or beginning of the plan to match the first and last activity to have a tour based plan
+//		this.matchHomeCoord(); //since in adding the activities the coordinates have been randomised in for each destination, agents have different home locations, this method is need to set all the home location to a single one. 
 		this.matchNumbersAndNames();// all the destinations' and modes' names are digits, this just make them words (e.g. mode=2 -->mode = car)
-		this.addSubpopulation();
+//		this.addSubpopulation();
 		this.populationWriting();
 	}
 
@@ -59,7 +65,7 @@ public class ZahraCreateDemandGmelb {
 			BufferedReader bufferedReader = new BufferedReader(new FileReader(pusPersonsFile));
 			bufferedReader.readLine(); //skip header
 			
-			int index_personId = 3;
+			int index_personId = 4;
 
 			String line;
 			while ((line = bufferedReader.readLine()) != null) {
@@ -95,7 +101,7 @@ public class ZahraCreateDemandGmelb {
 		String[][] parts = ZahraUtility.Data(79870, 73, pusTripsFile);
 		
 		
-		int index_personId = 3;
+		int index_personId = 4;
 		int index_xCoordOrigin = 68;
 		int index_yCoordOrigin = 69;
 		int index_xCoordDestination = 70;
@@ -108,7 +114,7 @@ public class ZahraCreateDemandGmelb {
 		
 		Id<Person> previousPerson = null;
 
-		for (int i = 1 ; i <parts.length -1;  ++i ) 
+		for (int i = 1 ; i <parts.length-1;  ++i ) 
 		{
 
 			Id<Person> personId = Id.create(parts[i][index_personId].trim(), Person.class);
@@ -139,52 +145,58 @@ public class ZahraCreateDemandGmelb {
 				Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
 				String activityType = parts[i][index_activityType].trim();
 				Activity activity1 = populationFactory.createActivityFromCoord(activityType, coordDestination);
-//				Double duration = Double.parseDouble(parts[i][index_activityDuration]);
-				if (personId.equals(nextPersonId))
-					activity1.setEndTime(Double.parseDouble(parts[i+1][index_activityEndTime]));
+				activity1.setEndTime(Double.parseDouble(parts[i][index_activityEndTime])+3600);
+//				if (personId.equals(nextPersonId))
+//					activity1.setEndTime(Double.parseDouble(parts[i+1][index_activityEndTime]));
 				plan.addActivity(activity1);
-
-			}
-			else // previous person
-			{ 
-				// if it's not the last activity of the person
-				if (personId.equals(nextPersonId))  
-				{
-					/*
-					 * Add a leg from previous location to this location with the given mode
-					 */
-					Leg mode = (Leg) plan.getPlanElements().get(1);
-					plan.addLeg(mode);
-
-					/*
-					 * Add activity given its type.
-					 */
-					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
-					String activityType = parts[i][index_activityType].trim();
-					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-//					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
-					activity.setEndTime(Double.parseDouble(parts[i + 1][index_activityEndTime]));
-					plan.addActivity(activity);
-				}
-				else //if it's the last activity of the person
-				{
-					/*
-					 * Add a leg from previous location to this location with the given mode
-					 */
-					Leg mode = (Leg) plan.getPlanElements().get(1);
-					plan.addLeg(mode);
-
-					/*
-					 * Add activity given its type.
-					 */
-					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
-					String activityType = parts[i][index_activityType].trim();
-					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-//					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
-					plan.addActivity(activity);
-				}
 				
+				//add the return leg
+				plan.addLeg(populationFactory.createLeg(mode));
+				
+				//add return trip destination, which is the origin of previous trip
+				Activity activityReturn = populationFactory.createActivityFromCoord(parts[i][index_Origin] , coordOrigin);
+				plan.addActivity(activityReturn);
 			}
+//			else // previous person
+//			{ 
+//				// if it's not the last activity of the person
+//				if (personId.equals(nextPersonId))  
+//				{
+//					/*
+//					 * Add a leg from previous location to this location with the given mode
+//					 */
+//					Leg mode = (Leg) plan.getPlanElements().get(1);
+//					plan.addLeg(mode);
+//
+//					/*
+//					 * Add activity given its type.
+//					 */
+//					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
+//					String activityType = parts[i][index_activityType].trim();
+//					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
+////					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+//					activity.setEndTime(Double.parseDouble(parts[i + 1][index_activityEndTime]));
+//					plan.addActivity(activity);
+//				}
+//				else //if it's the last activity of the person
+//				{
+//					/*
+//					 * Add a leg from previous location to this location with the given mode
+//					 */
+//					Leg mode = (Leg) plan.getPlanElements().get(1);
+//					plan.addLeg(mode);
+//
+//					/*
+//					 * Add activity given its type.
+//					 */
+//					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
+//					String activityType = parts[i][index_activityType].trim();
+//					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
+////					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+//					plan.addActivity(activity);
+//				}
+//				
+//			}
 			previousPerson = personId;			
 		} // end of for loop
 		
@@ -193,8 +205,8 @@ public class ZahraCreateDemandGmelb {
 		Person person = population.getPersons().get(personId);
 		Plan plan = person.getSelectedPlan();
 		System.out.println(parts.length);
-		
-		//if new person
+//		
+//		//if new person
 		if (!personId.equals(previousPerson))  // a new person
 		{
 			//add the original place  
@@ -217,22 +229,22 @@ public class ZahraCreateDemandGmelb {
 //			Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
 			plan.addActivity(activity1);
 		}
-		
-		//if not new person
-		/*
-		 * Add a leg from previous location to this location with the given mode
-		 */
-		Leg mode = (Leg) plan.getPlanElements().get(1);
-		plan.addLeg(mode);
-
-		/*
-		 * Add activity given its type.
-		 */
-		Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
-		String activityType = parts[parts.length - 1][index_activityType].trim();
-		Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-//		Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
-		plan.addActivity(activity);
+//		
+//		//if not new person
+//		/*
+//		 * Add a leg from previous location to this location with the given mode
+//		 */
+//		Leg mode = (Leg) plan.getPlanElements().get(1);
+//		plan.addLeg(mode);
+//
+//		/*
+//		 * Add activity given its type.
+//		 */
+//		Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
+//		String activityType = parts[parts.length - 1][index_activityType].trim();
+//		Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
+////		Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
+//		plan.addActivity(activity);
 		//===============================================================================
 		
 		System.out.println("plnas done");
@@ -244,7 +256,7 @@ public class ZahraCreateDemandGmelb {
 			BufferedReader bufferedReader = new BufferedReader(new FileReader(pusPersonsFile));
 			bufferedReader.readLine(); //skip header
 			
-			int index_personId = 3;
+			int index_personId = 4;
 
 			String line;
 			while ((line = bufferedReader.readLine()) != null) {

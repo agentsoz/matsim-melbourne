@@ -1,4 +1,4 @@
-package demand;
+package au.edu.unimelb.imod.demand;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -20,15 +20,23 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 
-public class ZahraCreateDemandSP {
+/**
+ * This version is just doing trips, not chains.
+ * 
+ * @author (of documentation) kainagel
+ *
+ */
+public class ZahraCreateDemandGmelb {
 	
 	private Scenario scenario;
 	// We need another population, the PUS population
 	private Scenario scenarioPUS;
 	ArrayList<Id<Person>> activePeople = new ArrayList<Id<Person>>();
-	private static final String pusTripsFile =  "C:/Users/znavidikasha/Google Drive/1-PhDProject/YarraRanges/demand/zahra's/personsTripsAllLmtdWSA.csv";//CityOfMelbourne/demand/personsTrips.csv
-	private static final String pusPersonsFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/YarraRanges/demand/zahra's/personsAll.csv";//CityOfMelbourne/demand/Person.csv
+	private static final String pusTripsFile =  "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/GMelbourneTrips_XY.csv";//"C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/personsTripsAllLmtdWSA.csv";
+	private static final String pusPersonsFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/GMelbourneTrips_people.csv";//"C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/personsAll.csv";
 	CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
+	
+	String outputFile = "C:/Users/znavidikasha/Google Drive/1-PhDProject/GreaterMelbourne/plansGmelb.xml.gz";
 	
 	public void run(Scenario scenario) throws IOException {
 		this.scenario = scenario;
@@ -57,7 +65,7 @@ public class ZahraCreateDemandSP {
 			BufferedReader bufferedReader = new BufferedReader(new FileReader(pusPersonsFile));
 			bufferedReader.readLine(); //skip header
 			
-			int index_personId = 13;
+			int index_personId = 3;
 
 			String line;
 			while ((line = bufferedReader.readLine()) != null) {
@@ -90,19 +98,19 @@ public class ZahraCreateDemandSP {
 		PopulationFactory populationFactory = population.getFactory();
 		
 		
-		String[][] parts = ZahraUtility.Data(172331, 23, pusTripsFile);
+		String[][] parts = ZahraUtility.Data(79870, 73, pusTripsFile);
 		
 		
-		int index_personId = 0;
-		int index_xCoordOrigin = 12;
-		int index_yCoordOrigin = 13;
-		int index_xCoordDestination = 14;
-		int index_yCoordDestination = 15;
-		int index_activityDuration = 20;
-		int index_mode = 19;
-		int index_activityType = 17;
-		int index_activityEndTime = 11;
-		int index_Origin = 16;
+		int index_personId = 3;
+		int index_xCoordOrigin = 68;
+		int index_yCoordOrigin = 69;
+		int index_xCoordDestination = 70;
+		int index_yCoordDestination = 71;
+//		int index_activityDuration = 31;
+		int index_mode = 27;
+		int index_activityType = 20;
+		int index_activityEndTime = 72;
+		int index_Origin = 12;
 		
 		Id<Person> previousPerson = null;
 
@@ -112,7 +120,7 @@ public class ZahraCreateDemandSP {
 			Id<Person> personId = Id.create(parts[i][index_personId].trim(), Person.class);
 			Person person = population.getPersons().get(personId);
 			//setting a person's subpopulation
-//			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "noCar");
+//			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "one");
 //			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"age", 15);
 			Plan plan = person.getSelectedPlan();
 			/* 
@@ -128,7 +136,7 @@ public class ZahraCreateDemandSP {
 				plan.addActivity(activity);
 				
 				// and the first travel leg
-				String mode = parts[i][index_mode];
+				String mode = "car";//parts[i][index_mode];
 				plan.addLeg(populationFactory.createLeg(mode));
 
 				/*
@@ -137,7 +145,7 @@ public class ZahraCreateDemandSP {
 				Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
 				String activityType = parts[i][index_activityType].trim();
 				Activity activity1 = populationFactory.createActivityFromCoord(activityType, coordDestination);
-				Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+//				Double duration = Double.parseDouble(parts[i][index_activityDuration]);
 				if (personId.equals(nextPersonId))
 					activity1.setEndTime(Double.parseDouble(parts[i+1][index_activityEndTime]));
 				plan.addActivity(activity1);
@@ -160,7 +168,7 @@ public class ZahraCreateDemandSP {
 					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
 					String activityType = parts[i][index_activityType].trim();
 					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+//					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
 					activity.setEndTime(Double.parseDouble(parts[i + 1][index_activityEndTime]));
 					plan.addActivity(activity);
 				}
@@ -178,7 +186,7 @@ public class ZahraCreateDemandSP {
 					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
 					String activityType = parts[i][index_activityType].trim();
 					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+//					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
 					plan.addActivity(activity);
 				}
 				
@@ -202,7 +210,7 @@ public class ZahraCreateDemandSP {
 			plan.addActivity(activity);
 			
 			// and the first travel
-			String mode = parts[parts.length - 1][index_mode];
+			String mode = "car";//parts[parts.length - 1][index_mode];
 			plan.addLeg(populationFactory.createLeg(mode));
 
 			/*
@@ -212,7 +220,7 @@ public class ZahraCreateDemandSP {
 			String activityType = parts[parts.length - 1][index_activityType].trim();
 
 			Activity activity1 = populationFactory.createActivityFromCoord(activityType, coordDestination);
-			Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
+//			Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
 			plan.addActivity(activity1);
 		}
 		
@@ -229,7 +237,7 @@ public class ZahraCreateDemandSP {
 		Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
 		String activityType = parts[parts.length - 1][index_activityType].trim();
 		Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-		Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
+//		Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
 		plan.addActivity(activity);
 		//===============================================================================
 		
@@ -242,7 +250,7 @@ public class ZahraCreateDemandSP {
 			BufferedReader bufferedReader = new BufferedReader(new FileReader(pusPersonsFile));
 			bufferedReader.readLine(); //skip header
 			
-			int index_personId = 13;
+			int index_personId = 3;
 
 			String line;
 			while ((line = bufferedReader.readLine()) != null) {
@@ -293,7 +301,7 @@ public class ZahraCreateDemandSP {
 			if (!(currentFirstActType.equals(currentLastActType)))
 			{
 				//if the first act is home make the last act home too
-				if (currentFirstActType.equals("1"))
+				if (currentFirstActType.equals("2"))
 				{
 					actType = currentFirstAct.getType();
 					newActCoord = new Coord(currentFirstAct.getCoord().getX(), currentFirstAct.getCoord().getY());
@@ -302,16 +310,17 @@ public class ZahraCreateDemandSP {
 					Activity secondLast = (Activity) eachPlan.getPlanElements().get(NoOfPlans - 2);
 					String secondLastActType = secondLast.getType().toString().trim();
 					
-					if (currentLastActType.equals("2"))
+					if (currentLastActType.equals("3"))//work
 						currentLastAct.setEndTime(secondLast.getEndTime() + 32400);
-					else if (currentLastActType.equals("3"))
+					else if (currentLastActType.equals("5")) // education
 						currentLastAct.setEndTime(secondLast.getEndTime() + 18000);
-					else if (currentLastActType.equals("4") || currentLastActType.equals("5"))
+					else if (currentLastActType.equals("4") || currentLastActType.equals("8") || currentLastActType.equals("9")) //leisure
+						currentLastAct.setEndTime(secondLast.getEndTime() + 10800);
+					else if (currentLastActType.equals("6")) //shopping
 						currentLastAct.setEndTime(secondLast.getEndTime() + 9000);
-					else if (currentLastActType.equals("6"))
-					{
-						currentLastAct.setEndTime(secondLast.getEndTime() + 1800);
-					}
+					else if (currentLastActType.equals("1") || currentLastActType.equals("7") || currentLastActType.equals("10")) //other
+						currentLastAct.setEndTime(secondLast.getEndTime() + 3600);
+					
 					eachPlan.getPlanElements().add(populationFactory.createLeg(leg.getMode()));
 					eachPlan.getPlanElements().add(newAct);	
 				}
@@ -329,16 +338,17 @@ public class ZahraCreateDemandSP {
 					Activity timeRefAct = (Activity) eachPlan.getPlanElements().get(2);
 					String timeRefActType = timeRefAct.getType().toString().trim();
 					
-					if (timeRefActType.equals("2"))
+					if (timeRefActType.equals("3"))//work
 						newFirstAct.setEndTime(timeRefAct.getEndTime() - 32400);
-					else if (timeRefActType.equals("3"))
+					else if (timeRefActType.equals("5"))//education
 						newFirstAct.setEndTime(timeRefAct.getEndTime() - 18000);
-					else if (timeRefActType.equals("4") || timeRefActType.equals("5"))
+					else if (timeRefActType.equals("4") || timeRefActType.equals("8") || timeRefActType.equals("9"))//leisure
+						newFirstAct.setEndTime(timeRefAct.getEndTime() - 10800);
+					else if (timeRefActType.equals("6"))//shopping
 						newFirstAct.setEndTime(timeRefAct.getEndTime() - 9000);
-					else if (timeRefActType.equals("6"))
-					{
-						newFirstAct.setEndTime(timeRefAct.getEndTime() - 1800);
-					}
+					else if (timeRefActType.equals("1") || timeRefActType.equals("7") || timeRefActType.equals("10"))
+						newFirstAct.setEndTime(timeRefAct.getEndTime() - 3600);
+
 					//if after the process start time of a trip is minus, it will be set to 04:00am which is the earliest travel in vista trips
 					if (newFirstAct.getEndTime() < 0)
 					{
@@ -366,7 +376,7 @@ public class ZahraCreateDemandSP {
 			{
 				Activity activityToCheck = (Activity) eachPlan.getPlanElements().get(j);
 				String activityToCheckType = activityToCheck.getType().toString().trim();
-				if (activityToCheckType.equals("1"))
+				if (activityToCheckType.equals("2"))
 					homeCoord = activityToCheck.getCoord();
 				break;
 			}
@@ -375,7 +385,7 @@ public class ZahraCreateDemandSP {
 			{
 				Activity activityToCheck = (Activity) eachPlan.getPlanElements().get(k);
 				String activityToCheckType = activityToCheck.getType().toString().trim();
-				if (activityToCheckType.equals("1"))
+				if (activityToCheckType.equals("2"))
 				{
 					activityToCheck.setCoord(homeCoord);
 				}
@@ -400,28 +410,20 @@ public class ZahraCreateDemandSP {
 			{
 				Activity activityToCheck = (Activity) eachPlan.getPlanElements().get(j);
 				String activityToCheckType = activityToCheck.getType().toString().trim();
-				if (activityToCheckType.equals("1")) activityToCheck.setType("Home");
-				if (activityToCheckType.equals("2")) activityToCheck.setType("Work");
-				if (activityToCheckType.equals("3")) activityToCheck.setType("Education");
-				if (activityToCheckType.equals("4")) activityToCheck.setType("Shopping");
-				if (activityToCheckType.equals("5")) activityToCheck.setType("Leisure");
-				if (activityToCheckType.equals("6")) activityToCheck.setType("Other");
+				if (activityToCheckType.equals("2")) activityToCheck.setType("Home");
+				if (activityToCheckType.equals("3")) activityToCheck.setType("Work");
+				if (activityToCheckType.equals("5")) activityToCheck.setType("Education");
+				if (activityToCheckType.equals("6")) activityToCheck.setType("Shopping");
+				if (activityToCheckType.equals("4") || activityToCheckType.equals("8") || activityToCheckType.equals("9")) activityToCheck.setType("Leisure");
+				if (activityToCheckType.equals("1") || activityToCheckType.equals("7") || activityToCheckType.equals("10")) activityToCheck.setType("Other");
 			}
 			
 			for (int j = 1 ; j < NoOfPlans ; j+=2)
 			{
 				Leg legToCheck = (Leg) eachPlan.getPlanElements().get(j);
 				String legToCheckMode = legToCheck.getMode().toString().trim() ;
-				if (legToCheckMode.equals("1") || legToCheckMode.equals("2") || legToCheckMode.equals("9") || legToCheckMode.equals("3") || legToCheckMode.equals("6"))
-				{
-					legToCheck.setMode("car");
-				}
-				if (legToCheckMode.equals("7") || legToCheckMode.equals("8") || legToCheckMode.equals("10") || legToCheckMode.equals("12"))
-				{
-					legToCheck.setMode("pt");
-					eachPerson.getCustomAttributes().put("hasLicense", "no");
-					eachPerson.getCustomAttributes().put("carAvail", "never");
-				}
+				if (legToCheckMode.equals("1") || legToCheckMode.equals("2") || legToCheckMode.equals("9") || legToCheckMode.equals("3") || legToCheckMode.equals("6")) legToCheck.setMode("car");
+				if (legToCheckMode.equals("7") || legToCheckMode.equals("8") || legToCheckMode.equals("10") || legToCheckMode.equals("12")) legToCheck.setMode("pt");
 			}
 		}
 	}
@@ -443,7 +445,7 @@ public class ZahraCreateDemandSP {
 	
 	public void populationWriting(){
 		PopulationWriter populationWriter = new PopulationWriter(this.scenarioPUS.getPopulation(), this.scenario.getNetwork());
-		populationWriter.write("C:/Users/znavidikasha/Google Drive/1-PhDProject/YarraRanges/demand/zahra's/plansYRCL.xml.gz");
+		populationWriter.write(outputFile);
 //		new ObjectAttributesXmlWriter(this.scenarioPUS.getPopulation().getPersonAttributes()).writeFile("C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/YRsPlansSubAtts.xml");
 		System.out.println("writing done");
 	}//end of writing
