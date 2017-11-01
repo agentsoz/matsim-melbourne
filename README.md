@@ -49,7 +49,7 @@ you have to do. Other than ensuring that you [install Git LFS](https://help.gith
 * Roberto Sabatini, RMIT University 
 * Sara Moridpour, RMIT University 
 * Stephan Winter, University of Melbourne 
-
+* Zahra Navidi, University of Melbourne
 
 ## License
 
