@@ -16,7 +16,7 @@ public class ZahraRunCreateDemand {
 //		System.setOut(pst);
 //		System.setErr(pst);
 		
-		ZahraCreateDemandGmelbA createDemand = new ZahraCreateDemandGmelbA();
+		ZahraCreateDemandCopy createDemand = new ZahraCreateDemandCopy();
 		Config config = ConfigUtils.createConfig();
 		Scenario scenario = ScenarioUtils.createScenario(config);
 		createDemand.run(scenario);
