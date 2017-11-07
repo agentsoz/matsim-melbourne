@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Random;
 
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -20,6 +22,7 @@ import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
@@ -116,41 +119,16 @@ public class ZahraCreateDemandCopy {
 		SimpleFeatureSource fts = ShapeFileReader.readDataFile(zonesFile); //reads the shape file in
 		Random rnd = new Random();
 
-		SimpleFeature commercial = null;
-		SimpleFeature recreation = null;
+		Map<String,SimpleFeature> featureMap = new LinkedHashMap<>() ;
 
 		//Iterator to iterate over the features from the shape file
 		SimpleFeatureIterator it = fts.getFeatures().features();
 		while (it.hasNext()) {
+			
+			// get feature
 			SimpleFeature ft = it.next(); //A feature contains a geometry (in this case a polygon) and an arbitrary number
 			
-			for ( Object attr : ft.getAttributes() ) {
-				System.err.println( attr );
-			}
-			for ( Object props : ft.getProperties() ) {
-				System.err.println( props );
-			}
-			
-			System.err.println( "attrib=" + ft.getAttribute("CD_CODE06") ) ;
-			
-			System.exit(-1) ;
-			
-//			
-//			//of other attributes
-//			if (ft.getAttribute("type").equals("commercial")) {
-//				commercial = ft;
-//			}
-//			else if (ft.getAttribute("type").equals("recreation")) {
-//				recreation = ft;
-//			}
-//			else if (ft.getAttribute("type").equals("housing")) {
-//				long l = ((Long)ft.getAttribute("inhabitant"));
-////				createPersons(scenario, ft, rnd, (int) l); //creates l new persons and chooses for each person a random link
-//				//within the corresponding polygon. after this method call every new generated person has one plan and one home activity
-//			}
-//			else {
-//				throw new RuntimeException("Unknown zone type:" + ft.getAttribute("type"));
-//			}
+			featureMap.put( (String) ft.getAttribute("CD_CODE06") , ft ) ;
 		}
 		it.close();
 		
@@ -161,11 +139,11 @@ public class ZahraCreateDemandCopy {
 		
 		
 		int index_personId = 1;
-		int index_xCoordOrigin = 12; // missing
-		int index_yCoordOrigin = 13; // missing
+//		int index_xCoordOrigin = 12; // missing
+//		int index_yCoordOrigin = 13; // missing
 		int index_ccdOrigin = 6 ;
-		int index_xCoordDestination = 14; // missing
-		int index_yCoordDestination = 15; // missing
+//		int index_xCoordDestination = 14; // missing
+//		int index_yCoordDestination = 15; // missing
 		int index_ccdDestination = 15 ;
 		int index_activityDuration = 29 ;
 		int index_mode = 25 ;
@@ -194,7 +172,21 @@ public class ZahraCreateDemandCopy {
 			if (!personId.equals(previousPerson))  // a new person
 			{
 				//add the original place
-				Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord( Double.parseDouble(parts[i][index_xCoordOrigin]), Double.parseDouble(parts[i][index_yCoordOrigin]))));
+//				Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord( Double.parseDouble(parts[i][index_xCoordOrigin]), Double.parseDouble(parts[i][index_yCoordOrigin]))));
+				
+				// get zone id
+				String ccdCode = parts[i][index_ccdOrigin] ;
+				
+				// get corresponding feature:
+				SimpleFeature ft = featureMap.get(ccdCode) ;
+				
+				// get random coordinate in feature:
+				Point point = getRandomPointInFeature(rnd, ft) ;
+				
+				Coord coordInOrigCRS = CoordUtils.createCoord( point.getX(), point.getY() ) ;
+				
+				 Coord coordOrigin = ct.transform(coordInOrigCRS) ;
+				
 				Activity activity = populationFactory.createActivityFromCoord(parts[i][index_OriginActivityType] , coordOrigin);
 				activity.setEndTime(Double.parseDouble(parts[i][index_activityEndTime]));
 				plan.addActivity(activity);
