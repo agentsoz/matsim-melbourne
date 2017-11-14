@@ -41,11 +41,11 @@ public class ZahraUtility<T> {
 //				}
 				
 				scanner.useDelimiter("\n");
-				int ii = 0 ;
-			    while(scanner.hasNext())
-			    {
-//			    	for (int ii = 0 ; ii < m ; ii++)
-//			    	{
+//				int ii = 0 ;
+//			    while(scanner.hasNext())
+//			    {
+			    	for (int ii = 0 ; ii < m ; ii++)
+			    	{
 			    		//first we read each line and put it aside
 				    	eachLine = scanner.next();
 				    	//then each line is splitted into two words it has and put into an array

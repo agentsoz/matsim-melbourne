@@ -22,6 +22,7 @@ import org.matsim.api.core.v01.population.Population;
 import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
@@ -136,7 +137,7 @@ public class ZahraCreateDemandCopy {
 		
 		// ===
 		
-		String[][] parts = ZahraUtility.Data(510, 23, pusTripsFile);
+		String[][] parts = ZahraUtility.Data(510, 30, pusTripsFile);
 		
 		
 		int index_personId = 1;
@@ -162,7 +163,13 @@ public class ZahraCreateDemandCopy {
 		{
 
 			final String[] record = parts[i];
-			Id<Person> personId = Id.create(record[index_personId].trim(), Person.class);
+			Gbl.assertNotNull(record);
+			
+			final String string = record[index_personId];
+			System.err.println( string );
+			Gbl.assertNotNull(string);
+			
+			Id<Person> personId = Id.create(string.trim(), Person.class);
 			Person person = population.getPersons().get(personId);
 			//setting a person's subpopulation
 //			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "one");
