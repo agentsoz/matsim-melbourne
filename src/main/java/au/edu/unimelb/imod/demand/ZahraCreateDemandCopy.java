@@ -10,6 +10,7 @@ import java.util.Random;
 
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
+import org.jfree.util.Log;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -245,53 +246,58 @@ public class ZahraCreateDemandCopy {
 		
 		//// ======= the last activity of the last person should be added separately due to the i + 1 in the code=======
 		// yyyy find other solution
-		Id<Person> personId = Id.create(parts[parts.length -1][index_personId], Person.class);
-		Person person = population.getPersons().get(personId);
-		Plan plan = person.getSelectedPlan();
-		System.out.println(parts.length);
 		
-		//if new person
-		if (!personId.equals(previousPerson))  // a new person
-		{
-			//add the original place  
-//			Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordOrigin]), Double.parseDouble(parts[parts.length - 1][index_yCoordOrigin]))));
-			Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
-			Activity activity = populationFactory.createActivityFromCoord(parts[parts.length - 1][index_OriginActivityType] , coordOrigin);
-			activity.setEndTime(Double.parseDouble(parts[parts.length - 1][index_activityEndTime]));
-			plan.addActivity(activity);
-			
-			// and the first travel
-			String mode = parts[parts.length - 1][index_mode];
-			plan.addLeg(populationFactory.createLeg(mode));
-
-			/*
-			 * Add activity given its type.
-			 */
-			Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
-			Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
-			String activityType = parts[parts.length - 1][index_activityType].trim();
-
-			Activity activity1 = populationFactory.createActivityFromCoord(activityType, coordDestination);
-			Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
-			plan.addActivity(activity1);
-		}
+		Log.error("throw away last person");
 		
-		//if not new person
-		/*
-		 * Add a leg from previous location to this location with the given mode
-		 */
-		Leg mode = (Leg) plan.getPlanElements().get(1);
-		plan.addLeg(mode);
-
-		/*
-		 * Add activity given its type.
-		 */
-		Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
-		Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
-		String activityType = parts[parts.length - 1][index_activityType].trim();
-		Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-		Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
-		plan.addActivity(activity);
+//		Id<Person> personId = Id.create(parts[parts.length -1][index_personId], Person.class);
+//		Person person = population.getPersons().get(personId);
+//		Plan plan = person.getSelectedPlan();
+//		System.out.println(parts.length);
+//		
+//		//if new person
+//		if (!personId.equals(previousPerson))  // a new person
+//		{
+//			{
+//			//add the original place  
+////			Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordOrigin]), Double.parseDouble(parts[parts.length - 1][index_yCoordOrigin]))));
+//			Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
+//			Activity activity = populationFactory.createActivityFromCoord(parts[parts.length - 1][index_OriginActivityType] , coordOrigin);
+//			activity.setEndTime(Double.parseDouble(parts[parts.length - 1][index_activityEndTime]));
+//			plan.addActivity(activity);
+//			}
+//			// and the first travel
+//			String mode = parts[parts.length - 1][index_mode];
+//			plan.addLeg(populationFactory.createLeg(mode));
+//			{
+//			/*
+//			 * Add activity given its type.
+//			 */
+//			Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
+//			Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
+//			String activityType = parts[parts.length - 1][index_activityType].trim();
+//
+//			Activity activity1 = populationFactory.createActivityFromCoord(activityType, coordDestination);
+//			Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
+//			plan.addActivity(activity1);
+//			
+//		}
+//		
+//		//if not new person
+//		/*
+//		 * Add a leg from previous location to this location with the given mode
+//		 */
+//		Leg mode = (Leg) plan.getPlanElements().get(1);
+//		plan.addLeg(mode);
+//
+//		/*
+//		 * Add activity given its type.
+//		 */
+//		Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
+//		Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
+//		String activityType = parts[parts.length - 1][index_activityType].trim();
+//		Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
+//		Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
+//		plan.addActivity(activity);
 		//===============================================================================
 		
 		System.out.println("plnas done");
