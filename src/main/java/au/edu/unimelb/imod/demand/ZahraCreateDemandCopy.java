@@ -155,11 +155,13 @@ public class ZahraCreateDemandCopy {
 		
 		
 		Id<Person> previousPerson = null;
+		Coord coordOrigin = null ;
 
 		for (int i = 1 ; i <parts.length -1;  ++i ) 
 		{
 
-			Id<Person> personId = Id.create(parts[i][index_personId].trim(), Person.class);
+			final String[] record = parts[i];
+			Id<Person> personId = Id.create(record[index_personId].trim(), Person.class);
 			Person person = population.getPersons().get(personId);
 			//setting a person's subpopulation
 //			this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "one");
@@ -172,36 +174,25 @@ public class ZahraCreateDemandCopy {
 			if (!personId.equals(previousPerson))  // a new person
 			{
 				//add the original place
-//				Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord( Double.parseDouble(parts[i][index_xCoordOrigin]), Double.parseDouble(parts[i][index_yCoordOrigin]))));
+				//				Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord( Double.parseDouble(parts[i][index_xCoordOrigin]), Double.parseDouble(parts[i][index_yCoordOrigin]))));
+				coordOrigin = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
 				
-				// get zone id
-				String ccdCode = parts[i][index_ccdOrigin] ;
-				
-				// get corresponding feature:
-				SimpleFeature ft = featureMap.get(ccdCode) ;
-				
-				// get random coordinate in feature:
-				Point point = getRandomPointInFeature(rnd, ft) ;
-				
-				Coord coordInOrigCRS = CoordUtils.createCoord( point.getX(), point.getY() ) ;
-				
-				 Coord coordOrigin = ct.transform(coordInOrigCRS) ;
-				
-				Activity activity = populationFactory.createActivityFromCoord(parts[i][index_OriginActivityType] , coordOrigin);
-				activity.setEndTime(Double.parseDouble(parts[i][index_activityEndTime]));
+				Activity activity = populationFactory.createActivityFromCoord(record[index_OriginActivityType] , coordOrigin);
+				activity.setEndTime(Double.parseDouble(record[index_activityEndTime]));
 				plan.addActivity(activity);
 				
 				// and the first travel leg
-				String mode = parts[i][index_mode];
+				String mode = record[index_mode];
 				plan.addLeg(populationFactory.createLeg(mode));
 
 				/*
 				 *add the destination
 				 */
-				Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
-				String activityType = parts[i][index_activityType].trim();
+//				Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(record[index_xCoordDestination]), Double.parseDouble(record[index_yCoordDestination]))));				
+				Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdDestination, record);
+				String activityType = record[index_activityType].trim();
 				Activity activity1 = populationFactory.createActivityFromCoord(activityType, coordDestination);
-				Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+				Double duration = Double.parseDouble(record[index_activityDuration]);
 				if (personId.equals(nextPersonId))
 					activity1.setEndTime(Double.parseDouble(parts[i+1][index_activityEndTime]));
 				plan.addActivity(activity1);
@@ -221,10 +212,11 @@ public class ZahraCreateDemandCopy {
 					/*
 					 * Add activity given its type.
 					 */
-					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
-					String activityType = parts[i][index_activityType].trim();
+//					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(record[index_xCoordDestination]), Double.parseDouble(record[index_yCoordDestination]))));				
+					Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdDestination, record);
+					String activityType = record[index_activityType].trim();
 					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+					Double duration = Double.parseDouble(record[index_activityDuration]);
 					activity.setEndTime(Double.parseDouble(parts[i + 1][index_activityEndTime]));
 					plan.addActivity(activity);
 				}
@@ -239,10 +231,11 @@ public class ZahraCreateDemandCopy {
 					/*
 					 * Add activity given its type.
 					 */
-					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[i][index_xCoordDestination]), Double.parseDouble(parts[i][index_yCoordDestination]))));				
-					String activityType = parts[i][index_activityType].trim();
+//					Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(record[index_xCoordDestination]), Double.parseDouble(record[index_yCoordDestination]))));				
+					Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdDestination, record);
+					String activityType = record[index_activityType].trim();
 					Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
-					Double duration = Double.parseDouble(parts[i][index_activityDuration]);
+					Double duration = Double.parseDouble(record[index_activityDuration]);
 					plan.addActivity(activity);
 				}
 				
@@ -251,6 +244,7 @@ public class ZahraCreateDemandCopy {
 		} // end of for loop
 		
 		//// ======= the last activity of the last person should be added separately due to the i + 1 in the code=======
+		// yyyy find other solution
 		Id<Person> personId = Id.create(parts[parts.length -1][index_personId], Person.class);
 		Person person = population.getPersons().get(personId);
 		Plan plan = person.getSelectedPlan();
@@ -260,7 +254,8 @@ public class ZahraCreateDemandCopy {
 		if (!personId.equals(previousPerson))  // a new person
 		{
 			//add the original place  
-			Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordOrigin]), Double.parseDouble(parts[parts.length - 1][index_yCoordOrigin]))));
+//			Coord coordOrigin = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordOrigin]), Double.parseDouble(parts[parts.length - 1][index_yCoordOrigin]))));
+			Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
 			Activity activity = populationFactory.createActivityFromCoord(parts[parts.length - 1][index_OriginActivityType] , coordOrigin);
 			activity.setEndTime(Double.parseDouble(parts[parts.length - 1][index_activityEndTime]));
 			plan.addActivity(activity);
@@ -273,6 +268,7 @@ public class ZahraCreateDemandCopy {
 			 * Add activity given its type.
 			 */
 			Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
+			Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
 			String activityType = parts[parts.length - 1][index_activityType].trim();
 
 			Activity activity1 = populationFactory.createActivityFromCoord(activityType, coordDestination);
@@ -291,6 +287,7 @@ public class ZahraCreateDemandCopy {
 		 * Add activity given its type.
 		 */
 		Coord coordDestination = ZahraUtility.createRamdonCoord(ct.transform(new Coord(Double.parseDouble(parts[parts.length - 1][index_xCoordDestination]), Double.parseDouble(parts[parts.length - 1][index_yCoordDestination]))));				
+		Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, index_ccdOrigin, record);
 		String activityType = parts[parts.length - 1][index_activityType].trim();
 		Activity activity = populationFactory.createActivityFromCoord(activityType, coordDestination);
 		Double duration = Double.parseDouble(parts[parts.length - 1][index_activityDuration]);
@@ -299,6 +296,24 @@ public class ZahraCreateDemandCopy {
 		
 		System.out.println("plnas done");
 	}// end of createPUSPlans
+
+	private Coord createRandomCoordinateInCcdZone(Random rnd, Map<String, SimpleFeature> featureMap,
+			int index_ccdOrigin, final String[] record) {
+						
+						// get zone id
+						String ccdCode = record[index_ccdOrigin] ;
+						
+						// get corresponding feature:
+						SimpleFeature ft = featureMap.get(ccdCode) ;
+						
+						// get random coordinate in feature:
+						Point point = getRandomPointInFeature(rnd, ft) ;
+						
+						Coord coordInOrigCRS = CoordUtils.createCoord( point.getX(), point.getY() ) ;
+						
+						 Coord coordOrigin = ct.transform(coordInOrigCRS) ;
+		return coordOrigin;
+	}
 	
 	///****************remove people with no plans***************************
 	private void removeNonActivePeople(){
