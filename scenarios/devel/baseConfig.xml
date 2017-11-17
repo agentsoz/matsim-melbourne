@@ -1,0 +1,886 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE config SYSTEM "http://www.matsim.org/files/dtd/config_v2.dtd">
+<config>
+
+<!-- ====================================================================== -->
+
+	<module name="JDEQSim" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="TimeAllocationMutator" >
+	</module>
+
+<!-- ====================================================================== -->
+
+<!-- ====================================================================== -->
+
+	<module name="changeMode" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="controler" >
+
+		<!-- An identifier for the current run which is used as prefix for output files and mentioned in output xml files etc. -->
+		<param name="runId" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="counts" >
+
+		<!-- distance to distanceFilterCenterNode to include counting stations. The unit of distance is the Euclidean distance implied by the coordinate system -->
+		<param name="distanceFilter" value="null" />
+
+		<!-- node id for center node of distance filter -->
+		<param name="distanceFilterCenterNode" value="null" />
+
+		<!-- The Coordinates Reference System in which the coordinates are expressed in the input file. At import, the coordinates will be converted to the coordinate system defined in "global", and willbe converted back at export. If not specified, no conversion happens. -->
+		<param name="inputCRS" value="null" />
+
+		<!-- input file name to counts package -->
+		<param name="inputCountsFile" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="facilities" >
+
+		<!-- The Coordinates Reference System in which the coordinates are expressed in the input file. At import, the coordinates will be converted to the coordinate system defined in "global", and willbe converted back at export. If not specified, no conversion happens. -->
+		<param name="inputCRS" value="null" />
+
+		<param name="inputFacilitiesFile" value="null" />
+		<param name="inputFacilityAttributesFile" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="global" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="households" >
+		<param name="inputFile" value="null" />
+		<param name="inputHouseholdAttributesFile" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="linkStats" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="network" >
+
+		<!-- The Coordinates Reference System in which the coordinates are expressed in the input file. At import, the coordinates will be converted to the coordinate system defined in "global", and willbe converted back at export. If not specified, no conversion happens. -->
+		<param name="inputCRS" value="null" />
+
+		<param name="inputChangeEventsFile" value="null" />
+		<param name="inputNetworkFile" value="null" />
+		<param name="laneDefinitionsFile" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="parallelEventHandling" >
+
+		<!-- Estimated number of events during mobsim run. An optional optimization hint for the framework. -->
+		<param name="estimatedNumberOfEvents" value="null" />
+
+		<!-- Number of threads for parallel events handler. 0 or null means the framework decides by itself. -->
+		<param name="numberOfThreads" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="planCalcScore" >
+
+		<!-- logit model scale parameter. default: 1.  Has name and default value for historical reasons (see Bryan Raney's phd thesis). -->
+		<param name="BrainExpBeta" value="1.0" />
+
+		<param name="PathSizeLogitBeta" value="1.0" />
+
+		<!-- fraction of iterations at which MSA score averaging is started. The matsim theory department suggests to use this together with switching off choice set innovation (where a similar switch exists), but it has not been tested yet. -->
+		<param name="fractionOfIterationsToStartScoreMSA" value="null" />
+
+		<!-- new_score = (1-learningRate)*old_score + learningRate * score_from_mobsim.  learning rates close to zero emulate score averaging, but slow down initial convergence -->
+		<param name="learningRate" value="1.0" />
+
+		<!-- There used to be a plateau between duration=0 and duration=zeroUtilityDuration. This caused durations to evolve to zero once they were below zeroUtilityDuration, causing problems.  Only use this switch if you need to be backwards compatible with some old results.  (changed nov'13) -->
+		<param name="usingOldScoringBelowZeroUtilityDuration" value="false" />
+
+		<!-- write a plans file in each iteration directory which contains what each agent actually did, and the score it received. -->
+		<param name="writeExperiencedPlans" value="false" />
+
+		<parameterset type="scoringParameters" >
+			<param name="earlyDeparture" value="-0.0" />
+			<param name="lateArrival" value="-18.0" />
+			<param name="marginalUtilityOfMoney" value="1.0" />
+			<param name="performing" value="6.0" />
+			<param name="subpopulation" value="null" />
+			<param name="utilityOfLineSwitch" value="-1.0" />
+			<param name="waiting" value="-0.0" />
+			<param name="waitingPt" value="-6.0" />
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="dummy" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="02:00:00" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="car interaction" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="false" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="pt interaction" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="false" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="bike interaction" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="false" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="other interaction" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="false" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="walk interaction" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="false" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Accompany Someone" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="At Home" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Buy Something" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Change Mode" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Education" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Go Home" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Other Purpose" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Personal Business" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Pick-up or Deliver Something" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Pick-up or Drop-off Someone" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Recreational" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Social" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Unknown Purpose (at start of day)" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Work Related" />
+				<param name="closingTime" value="undefined" />
+				<param name="earliestEndTime" value="undefined" />
+				<param name="latestStartTime" value="undefined" />
+				<param name="minimalDuration" value="undefined" />
+				<param name="openingTime" value="undefined" />
+				<param name="priority" value="1.0" />
+				<param name="scoringThisActivityAtAll" value="true" />
+
+				<!-- typical duration of activity.  needs to be defined and non-zero.  in sec. -->
+				<param name="typicalDuration" value="undefined" />
+
+				<!-- method to compute score at typical duration.  Options: | uniform | relative | Use uniform for backwards compatibility (all activities same score; higher proba to drop long acts). -->
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="pt" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="walk" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="bike" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="ride" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="other" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="Bicycle" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="Bus" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="Other" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="Train" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="Tram" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="Vehicle Passenger" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="Walking" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+
+			<parameterset type="modeParams" >
+
+				<!-- [utils] alternative-specific constant.  no guarantee that this is used anywhere. default=0 to be backwards compatible for the time being -->
+				<param name="constant" value="0.0" />
+
+				<!-- [utils/m] utility of walking per m, normally negative.  this is on top of the time (dis)utility. -->
+				<param name="marginalUtilityOfDistance_util_m" value="0.0" />
+
+				<!-- [utils/hr] additional marginal utility of traveling.  normally negative.  this comes on top of the opportunity cost of time -->
+				<param name="marginalUtilityOfTraveling_util_hr" value="-6.0" />
+
+				<param name="mode" value="car" />
+
+				<!-- [unit_of_money/m] conversion of distance into money. Normally negative. -->
+				<param name="monetaryDistanceRate" value="0.0" />
+			</parameterset>
+		</parameterset>
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="plans" >
+
+		<!-- The Coordinates Reference System in which the coordinates are expressed in the input file. At import, the coordinates will be converted to the coordinate system defined in "global", and willbe converted back at export. If not specified, no conversion happens. -->
+		<param name="inputCRS" value="null" />
+
+		<!-- Path to a file containing person attributes (required file format: ObjectAttributes). -->
+		<param name="inputPersonAttributesFile" value="null" />
+
+		<param name="inputPlansFile" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="planscalcroute" >
+
+		<!-- All the modes for which the router is supposed to generate network routes (like car) -->
+		<param name="networkModes" value="car" />
+
+		<parameterset type="teleportedModeParameters" >
+			<param name="beelineDistanceFactor" value="1.3" />
+			<param name="mode" value="Bicycle" />
+
+			<!-- Free-speed factor for a teleported mode. Travel time = teleportedModeFreespeedFactor * <freespeed car travel time>. Insert a line like this for every such mode. Please do not set teleportedModeFreespeedFactor as well as teleportedModeSpeed for the same mode, but if you do, +teleportedModeFreespeedFactor wins over teleportedModeSpeed. -->
+			<param name="teleportedModeFreespeedFactor" value="null" />
+
+			<!-- Speed for a teleported mode. Travel time = (<beeline distance> * beelineDistanceFactor) / teleportedModeSpeed. Insert a line like this for every such mode. -->
+			<param name="teleportedModeSpeed" value="20.0" />
+		</parameterset>
+
+		<parameterset type="teleportedModeParameters" >
+			<param name="beelineDistanceFactor" value="1.3" />
+			<param name="mode" value="Bus" />
+
+			<!-- Free-speed factor for a teleported mode. Travel time = teleportedModeFreespeedFactor * <freespeed car travel time>. Insert a line like this for every such mode. Please do not set teleportedModeFreespeedFactor as well as teleportedModeSpeed for the same mode, but if you do, +teleportedModeFreespeedFactor wins over teleportedModeSpeed. -->
+			<param name="teleportedModeFreespeedFactor" value="null" />
+
+			<!-- Speed for a teleported mode. Travel time = (<beeline distance> * beelineDistanceFactor) / teleportedModeSpeed. Insert a line like this for every such mode. -->
+			<param name="teleportedModeSpeed" value="20.0" />
+		</parameterset>
+
+		<parameterset type="teleportedModeParameters" >
+			<param name="beelineDistanceFactor" value="1.3" />
+			<param name="mode" value="Other" />
+
+			<!-- Free-speed factor for a teleported mode. Travel time = teleportedModeFreespeedFactor * <freespeed car travel time>. Insert a line like this for every such mode. Please do not set teleportedModeFreespeedFactor as well as teleportedModeSpeed for the same mode, but if you do, +teleportedModeFreespeedFactor wins over teleportedModeSpeed. -->
+			<param name="teleportedModeFreespeedFactor" value="null" />
+
+			<!-- Speed for a teleported mode. Travel time = (<beeline distance> * beelineDistanceFactor) / teleportedModeSpeed. Insert a line like this for every such mode. -->
+			<param name="teleportedModeSpeed" value="20.0" />
+		</parameterset>
+
+		<parameterset type="teleportedModeParameters" >
+			<param name="beelineDistanceFactor" value="1.3" />
+			<param name="mode" value="Train" />
+
+			<!-- Free-speed factor for a teleported mode. Travel time = teleportedModeFreespeedFactor * <freespeed car travel time>. Insert a line like this for every such mode. Please do not set teleportedModeFreespeedFactor as well as teleportedModeSpeed for the same mode, but if you do, +teleportedModeFreespeedFactor wins over teleportedModeSpeed. -->
+			<param name="teleportedModeFreespeedFactor" value="null" />
+
+			<!-- Speed for a teleported mode. Travel time = (<beeline distance> * beelineDistanceFactor) / teleportedModeSpeed. Insert a line like this for every such mode. -->
+			<param name="teleportedModeSpeed" value="20.0" />
+		</parameterset>
+
+		<parameterset type="teleportedModeParameters" >
+			<param name="beelineDistanceFactor" value="1.3" />
+			<param name="mode" value="Tram" />
+
+			<!-- Free-speed factor for a teleported mode. Travel time = teleportedModeFreespeedFactor * <freespeed car travel time>. Insert a line like this for every such mode. Please do not set teleportedModeFreespeedFactor as well as teleportedModeSpeed for the same mode, but if you do, +teleportedModeFreespeedFactor wins over teleportedModeSpeed. -->
+			<param name="teleportedModeFreespeedFactor" value="null" />
+
+			<!-- Speed for a teleported mode. Travel time = (<beeline distance> * beelineDistanceFactor) / teleportedModeSpeed. Insert a line like this for every such mode. -->
+			<param name="teleportedModeSpeed" value="20.0" />
+		</parameterset>
+
+		<parameterset type="teleportedModeParameters" >
+			<param name="beelineDistanceFactor" value="1.3" />
+			<param name="mode" value="Vehicle Passenger" />
+
+			<!-- Free-speed factor for a teleported mode. Travel time = teleportedModeFreespeedFactor * <freespeed car travel time>. Insert a line like this for every such mode. Please do not set teleportedModeFreespeedFactor as well as teleportedModeSpeed for the same mode, but if you do, +teleportedModeFreespeedFactor wins over teleportedModeSpeed. -->
+			<param name="teleportedModeFreespeedFactor" value="null" />
+
+			<!-- Speed for a teleported mode. Travel time = (<beeline distance> * beelineDistanceFactor) / teleportedModeSpeed. Insert a line like this for every such mode. -->
+			<param name="teleportedModeSpeed" value="20.0" />
+		</parameterset>
+
+		<parameterset type="teleportedModeParameters" >
+			<param name="beelineDistanceFactor" value="1.3" />
+			<param name="mode" value="Walking" />
+
+			<!-- Free-speed factor for a teleported mode. Travel time = teleportedModeFreespeedFactor * <freespeed car travel time>. Insert a line like this for every such mode. Please do not set teleportedModeFreespeedFactor as well as teleportedModeSpeed for the same mode, but if you do, +teleportedModeFreespeedFactor wins over teleportedModeSpeed. -->
+			<param name="teleportedModeFreespeedFactor" value="null" />
+
+			<!-- Speed for a teleported mode. Travel time = (<beeline distance> * beelineDistanceFactor) / teleportedModeSpeed. Insert a line like this for every such mode. -->
+			<param name="teleportedModeSpeed" value="20.0" />
+		</parameterset>
+
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="ptCounts" >
+
+		<!-- distance to distanceFilterCenterNode to include counting stations. The unit of distance is the Euclidean distance implied by the coordinate system -->
+		<param name="distanceFilter" value="null" />
+
+		<!-- node id for center node of distance filter -->
+		<param name="distanceFilterCenterNode" value="null" />
+
+		<!-- input file containing the alighting (getting off) counts for pt -->
+		<param name="inputAlightCountsFile" value="null" />
+
+		<!-- input file containing the boarding (getting on) counts for pt -->
+		<param name="inputBoardCountsFile" value="null" />
+
+		<!-- input file containing the occupancy counts for pt -->
+		<param name="inputOccupancyCountsFile" value="null" />
+
+		<!-- possible values: `html', `kml', `txt', `all' -->
+		<param name="outputformat" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="qsim" >
+
+		<!-- Possible values: minOfEndtimeAndMobsimFinished, onlyUseEndtime -->
+		<param name="simEndtimeInterpretation" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="scenario" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="strategy" >
+
+		<!-- the external executable will be called with a config file as argument.  This is the pathname to a possible skeleton config, to which additional information will be added.  Can be null. -->
+		<param name="ExternalExeConfigTemplate" value="null" />
+
+		<!-- root directory for temporary files generated by the external executable. Provided as a service; I don't think this is used by MATSim. -->
+		<param name="ExternalExeTmpFileRootDir" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="subtourModeChoice" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="transit" >
+
+		<!-- The Coordinates Reference System in which the coordinates are expressed in the input file. At import, the coordinates will be converted to the coordinate system defined in "global", and willbe converted back at export. If not specified, no conversion happens. -->
+		<param name="inputScheduleCRS" value="null" />
+
+		<!-- Optional input file containing additional attributes for transit lines, stored as ObjectAttributes. -->
+		<param name="transitLinesAttributesFile" value="null" />
+
+		<!-- Input file containing the transit schedule to be simulated. -->
+		<param name="transitScheduleFile" value="null" />
+
+		<!-- Optional input file containing additional attributes for transit stop facilities, stored as ObjectAttributes. -->
+		<param name="transitStopsAttributesFile" value="null" />
+
+		<!-- Input file containing the vehicles used by the departures in the transit schedule. -->
+		<param name="vehiclesFile" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="transitRouter" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="travelTimeCalculator" >
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="vehicles" >
+		<param name="vehiclesFile" value="null" />
+	</module>
+
+<!-- ====================================================================== -->
+
+	<module name="vspExperimental" >
+	</module>
+
+<!-- ====================================================================== -->
+
+</config>
