@@ -28,7 +28,9 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ControlerConfigGroup.RoutingAlgorithmType;
+import org.matsim.core.config.groups.QSimConfigGroup.TrafficDynamics;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
+import org.matsim.core.config.groups.VspExperimentalConfigGroup.VspDefaultsCheckingLevel;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
 import org.matsim.core.network.NetworkUtils;
@@ -40,8 +42,8 @@ import org.matsim.core.scenario.ScenarioUtils;
  * @author nagel
  *
  */
-public class RunMatsim {
-	private static final Logger log = Logger.getLogger(RunMatsim.class) ;
+public class RunMelbourne {
+	private static final Logger log = Logger.getLogger(RunMelbourne.class) ;
 
 	public static void main(String[] args) {
 		// yyyyyy increase memory!
@@ -52,11 +54,14 @@ public class RunMatsim {
 		//		config.network().setInputFile("mergedGmelbNetwork.xml.gz");
 		config.network().setInputFile("net.xml.gz");
 
-		config.plans().setInputFile("pop-routed.xml.gz") ;
+		config.plans().setInputFile("pop.xml.gz") ;
+//		config.plans().setInputFile("pop-routed-accessegress.xml.gz") ;
 
 		config.controler().setLastIteration(100);
 
 		config.controler().setRoutingAlgorithmType( RoutingAlgorithmType.FastAStarLandmarks);
+		
+		config.plansCalcRoute().setInsertingAccessEgressWalk(true);
 
 		{
 			StrategySettings stratSets = new StrategySettings( ) ;
@@ -77,6 +82,9 @@ public class RunMatsim {
 
 		config.qsim().setFlowCapFactor(0.01);
 		config.qsim().setStorageCapFactor(0.01);
+		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
+		
+		config.vspExperimental().setVspDefaultsCheckingLevel(VspDefaultsCheckingLevel.abort);
 
 		// ---
 
