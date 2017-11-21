@@ -51,16 +51,21 @@ public class RunMelbourne {
 		Config config = ConfigUtils.loadConfig("scenarios/devel/baseConfig.xml") ;
 		config.controler().setOverwriteFileSetting(OverwriteFileSetting.deleteDirectoryIfExists);
 
-		//		config.network().setInputFile("mergedGmelbNetwork.xml.gz");
-		config.network().setInputFile("net.xml.gz");
+//		{
+//			config.network().setInputFile("mergedGmelbNetwork.xml.gz");
+//			config.plans().setInputFile("pop.xml.gz") ; // indep of network
+//		}
+		{
+					config.network().setInputFile("net.xml.gz");
+					config.plans().setInputFile("pop.xml.gz") ;
+//					config.plans().setInputFile("pop-routed.xml.gz") ;
+//					config.plans().setInputFile("pop-routed-accessegress.xml.gz") ;
+		}
 
-		config.plans().setInputFile("pop.xml.gz") ;
-//		config.plans().setInputFile("pop-routed-accessegress.xml.gz") ;
-
-		config.controler().setLastIteration(100);
+		config.controler().setLastIteration(0);
 
 		config.controler().setRoutingAlgorithmType( RoutingAlgorithmType.FastAStarLandmarks);
-		
+
 		config.plansCalcRoute().setInsertingAccessEgressWalk(true);
 
 		{
@@ -83,30 +88,30 @@ public class RunMelbourne {
 		config.qsim().setFlowCapFactor(0.01);
 		config.qsim().setStorageCapFactor(0.01);
 		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
-		
-		config.vspExperimental().setVspDefaultsCheckingLevel(VspDefaultsCheckingLevel.abort);
+
+		config.vspExperimental().setVspDefaultsCheckingLevel(VspDefaultsCheckingLevel.warn);
 
 		// ---
 
 		Scenario scenario = ScenarioUtils.loadScenario(config) ;
 
-		log.info("number of links before simplifying=" + scenario.getNetwork().getLinks().size() ) ;
-		List<Id<Link>> keysToRemove = new ArrayList<>() ;
-		for ( Link link : scenario.getNetwork().getLinks().values() ) {
-			if ( link.getFreespeed()<=11.12 && link.getCapacity()<=600. ) {
-				keysToRemove.add(link.getId()) ;
-			}
-		}
-		log.info( "removing " + keysToRemove.size() + " links" ) ;
-		for ( Id<Link> id : keysToRemove ) {
-			scenario.getNetwork().removeLink(id) ;
-		}
-		//		NetworkUtils.runNetworkCleaner( scenario.getNetwork() ) ;
-		NetworkUtils.runNetworkSimplifier( scenario.getNetwork() ) ;
-		NetworkUtils.runNetworkCleaner( scenario.getNetwork() ) ;
-		log.info("number of links after simplifying=" + scenario.getNetwork().getLinks().size() ) ;
-
-		NetworkUtils.writeNetwork( scenario.getNetwork(), "net.xml.gz" ) ;
+//		log.info("number of links before simplifying=" + scenario.getNetwork().getLinks().size() ) ;
+//		List<Id<Link>> keysToRemove = new ArrayList<>() ;
+//		for ( Link link : scenario.getNetwork().getLinks().values() ) {
+//			if ( link.getFreespeed()<=11.12 && link.getCapacity()<=600. ) {
+//				keysToRemove.add(link.getId()) ;
+//			}
+//		}
+//		log.info( "removing " + keysToRemove.size() + " links" ) ;
+//		for ( Id<Link> id : keysToRemove ) {
+//			scenario.getNetwork().removeLink(id) ;
+//		}
+//		//		NetworkUtils.runNetworkCleaner( scenario.getNetwork() ) ;
+//		NetworkUtils.runNetworkSimplifier( scenario.getNetwork() ) ;
+//		NetworkUtils.runNetworkCleaner( scenario.getNetwork() ) ;
+//		log.info("number of links after simplifying=" + scenario.getNetwork().getLinks().size() ) ;
+//
+//		NetworkUtils.writeNetwork( scenario.getNetwork(), "net.xml.gz" ) ;
 
 		// ---
 

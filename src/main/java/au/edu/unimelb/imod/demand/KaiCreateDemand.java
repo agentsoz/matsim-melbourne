@@ -261,7 +261,7 @@ public class KaiCreateDemand {
 		// get corresponding feature:
 		SimpleFeature ft = featureMap.get(ccdCode) ;
 		if ( ft==null ) {
-			log.error("unknown ccdCode=" + ccdCode );
+			log.error("unknown ccdCode=" + ccdCode ); // yyyyyy look at this again
 			log.error( record.toString() );
 			double xmin = 271704. ; double xmax = 421000. ;
 			double xx = xmin + this.random.nextDouble()*(xmax-xmin) ; 
@@ -517,6 +517,7 @@ public class KaiCreateDemand {
 			y = ft.getBounds().getMinY() + rnd.nextDouble() * (ft.getBounds().getMaxY() - ft.getBounds().getMinY());
 			p = MGC.xy2Point(x, y);
 		} while (((Geometry) ft.getDefaultGeometry()).contains(p));
+		// yyyyyy should probably be negative ?!?!?!
 		return p;
 	}
 
