@@ -161,7 +161,7 @@ public class MTWPCreateDemand {
 
 		// ===
 
-		String zonesFile = "data/shp/1259030002_cd06avic_shape/CD06aVIC.shp";
+		String zonesFile = "data/shp/1270055001_sa2_2016_aust_shape/SA2_2016_AUST.shp";
 
 		SimpleFeatureSource fts = ShapeFileReader.readDataFile(zonesFile); //reads the shape file in
 		Random rnd = new Random();

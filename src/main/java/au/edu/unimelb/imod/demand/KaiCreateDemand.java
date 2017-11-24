@@ -512,14 +512,14 @@ public class KaiCreateDemand {
 		Gbl.assertNotNull(ft);
 		Point p = null;
 		double x, y;
+		// generate a random point until a point inside the feature geometry is found
 		do {
 			x = ft.getBounds().getMinX() + rnd.nextDouble() * (ft.getBounds().getMaxX() - ft.getBounds().getMinX());
 			y = ft.getBounds().getMinY() + rnd.nextDouble() * (ft.getBounds().getMaxY() - ft.getBounds().getMinY());
 			p = MGC.xy2Point(x, y);
-		} while (((Geometry) ft.getDefaultGeometry()).contains(p));
-		// yyyyyy should probably be negative ?!?!?!
+		} while (!(((Geometry) ft.getDefaultGeometry()).contains(p)));
 		return p;
-	}
+	} 
 
 	public static void main(String[] args) throws IOException {
 
