@@ -56,7 +56,8 @@ import com.vividsolutions.jts.geom.Point;
 public class MTWPCreateDemand {
 	private static final String pusTripsFile = "data/mtwp/Victoria_SA2_UR_by_SA2_POW.csv" ;
 	private static final Logger log = Logger.getLogger( MTWPCreateDemand.class ) ;
-
+	private static final String pusPersonsFile = null ;
+	
 	public final static class Visitors {
 		// needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
 
