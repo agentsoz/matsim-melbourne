@@ -42,8 +42,8 @@ import org.matsim.core.scenario.ScenarioUtils;
  * @author nagel
  *
  */
-public class RunMelbourne {
-	private static final Logger log = Logger.getLogger(RunMelbourne.class) ;
+public class RunMelbourneMTWP {
+	private static final Logger log = Logger.getLogger(RunMelbourneMTWP.class) ;
 
 	public static void main(String[] args) {
 		// yyyyyy increase memory!

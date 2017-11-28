@@ -1,4 +1,4 @@
-package au.edu.unimelb.imod.demand;
+package au.edu.unimelb.imod.demand.mtwp;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -53,11 +53,11 @@ import com.vividsolutions.jts.geom.Point;
  * @author (of documentation) kainagel
  *
  */
-public class KaiCreateDemand {
-	private static final String pusTripsFile = "data/vista/Trips_VISTA09_v3_VISTA_Online.csv" ;
-	private static final String pusPersonsFile = "data/vista/Persons_VISTA09_v3_VISTA_Online.csv" ;
-	private static final Logger log = Logger.getLogger( KaiCreateDemand.class ) ;
-
+public class MTWPCreateDemand {
+	private static final String pusTripsFile = "data/mtwp/Victoria_SA2_UR_by_SA2_POW.csv" ;
+	private static final Logger log = Logger.getLogger( MTWPCreateDemand.class ) ;
+	private static final String pusPersonsFile = null ;
+	
 	public final static class Visitors {
 		// needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
 
@@ -97,7 +97,7 @@ public class KaiCreateDemand {
 	
 	Random random = new Random(4711) ;
 
-	KaiCreateDemand() {
+	MTWPCreateDemand() {
 		this.scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 	}
 
@@ -162,7 +162,7 @@ public class KaiCreateDemand {
 
 		// ===
 
-		String zonesFile = "data/shp/1259030002_cd06avic_shape/CD06aVIC.shp";
+		String zonesFile = "data/shp/1270055001_sa2_2016_aust_shape/SA2_2016_AUST.shp";
 
 		SimpleFeatureSource fts = ShapeFileReader.readDataFile(zonesFile); //reads the shape file in
 		Random rnd = new Random();
@@ -523,7 +523,7 @@ public class KaiCreateDemand {
 
 	public static void main(String[] args) throws IOException {
 
-		KaiCreateDemand createDemand = new KaiCreateDemand();
+		MTWPCreateDemand createDemand = new MTWPCreateDemand();
 		Config config = ConfigUtils.createConfig();
 		Scenario scenario = ScenarioUtils.createScenario(config);
 		createDemand.run();
