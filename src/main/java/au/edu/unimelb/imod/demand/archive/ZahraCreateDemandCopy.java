@@ -34,8 +34,6 @@ import org.opengis.feature.simple.SimpleFeature;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 
-import au.edu.unimelb.imod.demand.ZahraUtility;
-
 /**
  * This is probably chain based
  * 

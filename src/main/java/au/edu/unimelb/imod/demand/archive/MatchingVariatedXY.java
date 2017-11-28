@@ -1,4 +1,4 @@
-package au.edu.unimelb.imod.demand;
+package au.edu.unimelb.imod.demand.archive;
 
 public class MatchingVariatedXY {
 

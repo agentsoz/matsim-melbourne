@@ -1,8 +1,8 @@
-package au.edu.unimelb.imod.demand;
+package au.edu.unimelb.imod.demand.archive;
 
 import java.util.ArrayList;
 
-import au.edu.unimelb.imod.demand.ZahraClass.SAs;
+import au.edu.unimelb.imod.demand.archive.ZahraClass.SAs;
 
 public class VarriatingXAndY {
 

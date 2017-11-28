@@ -20,8 +20,6 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 
-import au.edu.unimelb.imod.demand.ZahraUtility;
-
 /**
  * This is probably chain based
  * 
