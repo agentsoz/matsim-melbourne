@@ -35,6 +35,28 @@ you have to do. Other than ensuring that you [install Git LFS](https://help.gith
   * Last accessed: 1 Nov 2017
   * Saved in `data/vista/`
 
+## How to build and run
+
+To build the project, do:
+```concept
+mvn clean install
+```
+
+To create the MATSim activity plans for the population, using the VISTA 2009 data only (i.e., a small 
+subset of the full Melbourne population), do something like what is below. This will extract the VISTA CSV files, 
+and run the demand generation routine. The output population files will be saved under `scenarios/devel/pop*.xml.gz`. 
+**Note: pre-generated population files are already checked in, so unless you are looking to regenerate the 
+files, you can probably skip this step.**
+
+```concept
+cd data && unzip VISTA_v3_Online_Data_CSV_2009.zip && cd -
+mvn exec:java -Dexec.mainClass="au.edu.unimelb.imod.demand.KaiCreateDemand"
+```
+
+Then to run the simulation with the generated MATSim population, do:
+```concept
+mvn exec:java -Dexec.mainClass="org.matsim.run.RunMelbourne"
+```
 
 ## Contributors
 
