@@ -194,7 +194,7 @@ public class CreateDemandFromVISTA {
 			for ( Iterator<Visitors> it = reader2.iterator() ; it.hasNext() ; ) {
 //				ii++ ; if ( ii>10 ) break ;
 				Visitors record = it.next() ;
-				Id<Person> personId = Id.create(record.PERSID, Person.class);
+				Id<Person> personId = Id.createPersonId(record.PERSID);
 				Person person = population.getPersons().get(personId);
 				Gbl.assertNotNull(person);
 				Plan plan = person.getSelectedPlan();
