@@ -9,6 +9,21 @@ public class MTWPDataPlanGenerator {
 
     private final static String DATA_FILE_PATH = "data/mtwp/Victoria_SA2_UR_by_SA2_POW.csv";
 
+    public static void main(String args[]) {
+
+        SyntheticPopulationManager syn = new SyntheticPopulationManager();
+        syn.convertSyntheticPersonsToVista();
+        syn.convertJSONHMap();
+        syn.addSyntheticPersonToPopulation();
+
+//        MTWPDataPlanGenerator mt = new MTWPDataPlanGenerator();
+//
+//        //Converts file Format from a matrix to a flat comma-separated format
+//        mt.convertToFlat();
+
+
+    }
+
     public void convertToFlat() {
 
         int lineCount = 0;
@@ -48,19 +63,5 @@ public class MTWPDataPlanGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void main(String args[]) {
-
-        SyntheticPopulationManager syn = new SyntheticPopulationManager();
-        syn.convertSyntheticPersonsToVista();
-        syn.convertJSONHMap();
-
-//        MTWPDataPlanGenerator mt = new MTWPDataPlanGenerator();
-//
-//        //Converts file Format from a matrix to a flat comma-separated format
-//        mt.convertToFlat();
-
-
     }
 }
