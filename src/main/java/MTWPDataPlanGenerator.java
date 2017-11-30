@@ -25,12 +25,17 @@ public class MTWPDataPlanGenerator {
 
                 if (lineCount == 0) {
                     lineCount++;
+                    line = bf.readLine();
                     continue;
 
                 }
+
                 String[] entries = line.split(",");
 
-                for (int ii = 1; ii < entries.length; ii++) {
+                for (int ii = 1; ii < entries.length-1; ii++) {
+
+                    if(entries[0].equals("Total"))
+                    continue;
 
                     System.out.println(entries[0] + "," + headers[ii] + "," + entries[ii]);
                 }
@@ -48,10 +53,13 @@ public class MTWPDataPlanGenerator {
     public static void main(String args[]) {
 
         SyntheticPopulationManager syn = new SyntheticPopulationManager();
-        MTWPDataPlanGenerator mt = new MTWPDataPlanGenerator();
+        syn.convertSyntheticPersonsToVista();
+        syn.convertJSONHMap();
 
-        //Converts file Format from a matrix to a flat comma-separated format
-        mt.convertToFlat();
+//        MTWPDataPlanGenerator mt = new MTWPDataPlanGenerator();
+//
+//        //Converts file Format from a matrix to a flat comma-separated format
+//        mt.convertToFlat();
 
 
     }
