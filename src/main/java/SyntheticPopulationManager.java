@@ -1,22 +1,35 @@
-package au.edu.unimelb.imod.demand;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class MTWPDataPlanGenerator {
+public class SyntheticPopulationManager {
+//
+//    private static class Person{
+//
+//        String personID;
+//        String householdID;
+//        int age;
+//        String sex;
+//
+//
+//    }
 
-    private final static String FILE_PATH = "data/mtwp/Victoria_SA2_UR_by_SA2_POW.csv";
+    private final static String SYNTHETIC_PERSONS_FILE_PATH = "data/matsim-melbourne/data/latch";
 
-    public void convertToFlat() {
+    private static class HouseHold{
+
+
+    }
+
+    //Read files - convert to  vista format
+    public void convertSyntheticToVista(){
 
         int lineCount = 0;
         BufferedReader bf;
 
-
         try {
-            bf = new BufferedReader(new FileReader(FILE_PATH));
+            bf = new BufferedReader(new FileReader(SYNTHETIC_PERSONS_FILE_PATH));
 
             String line = bf.readLine();
             String[] headers = line.split(",");
@@ -44,10 +57,8 @@ public class MTWPDataPlanGenerator {
             e.printStackTrace();
         }
     }
+    //use CreateVistaDemand to parse new file to convert to MatSIM format
 
-    public static void main(String args[]) {
 
-        MTWPDataPlanGenerator mt = new MTWPDataPlanGenerator();
-        mt.convertToFlat();
-    }
 }
+
