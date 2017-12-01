@@ -13,7 +13,7 @@ import org.matsim.core.scenario.ScenarioUtils;
 import java.io.*;
 import java.util.List;
 
-public class SyntheticPopulationManager {
+class SyntheticPopulationManager {
 
     private final static String SYNTHETIC_PERSONS_FILE_PATH = "data/latch/AllAgents.csv";
     private final static String SYNTHETIC_GENERATED_PERSONS_FILE_PATH = "data/Synthetic_Persons.csv";
@@ -28,7 +28,7 @@ public class SyntheticPopulationManager {
     }
 
     /*Read files - convert to  vista format*/
-    public void convertSyntheticPersonsToVista() {
+    void convertSyntheticPersonsToVista() {
 
         int lineCount = 0;
         BufferedReader bfr;
@@ -36,7 +36,7 @@ public class SyntheticPopulationManager {
 
         try {
             bfr = new BufferedReader(new FileReader(SYNTHETIC_PERSONS_FILE_PATH));
-            fw = new FileWriter("data/Synthetic_Persons.csv");
+            fw = new FileWriter(SYNTHETIC_GENERATED_PERSONS_FILE_PATH);
 
             String headerline = bfr.readLine();
             String line = headerline;
@@ -71,12 +71,9 @@ public class SyntheticPopulationManager {
                 line = bfr.readLine();
 
             }
+            System.out.println("Synthetic Persons to VISTA format conversion complete..");
             bfr.close();
             fw.close();
-
-        } catch (FileNotFoundException e) {
-
-            e.printStackTrace();
 
         } catch (IOException e) {
 
@@ -87,9 +84,9 @@ public class SyntheticPopulationManager {
     /*Gets JSON file for the House Hold Mapped Address File and stores it in Java objects
     using the GSON converter
     * */
-    public void convertJSONHMap() {
+    void convertJSONHMap() {
         BufferedReader fr;
-        String json = "";
+        StringBuilder json = new StringBuilder();
         String line;
 
         try {
@@ -98,7 +95,7 @@ public class SyntheticPopulationManager {
             fr = new BufferedReader(new FileReader(SYNTHETIC_HMAP_FILE_PATH));
 
             while ((line = fr.readLine()) != null)
-                json += line;
+                json.append(line);
 
             fr.close();
 
@@ -106,17 +103,14 @@ public class SyntheticPopulationManager {
 
             //Testing String for JSON file storage as Java Object
             //Original file is large about 43 MB takes considerable time
-            json = "{\"features\":[{\"properties\":{\"EZI_ADD\":\"12 WATERLOO ROAD NORTHCOTE 3070\",\"STATE\":\"VIC\",\"POSTCODE\":\"3070\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"NORTHCOTE\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2111138\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[324058.8753037447,5817187.2590698935]},\"HOUSEHOLD_ID\":\"11604\"},{\"properties\":{\"EZI_ADD\":\"38 MACORNA STREET WATSONIA NORTH 3087\",\"STATE\":\"VIC\",\"POSTCODE\":\"3087\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"WATSONIA NORTH\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120407\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[331160.92976421374,5825765.298372125]},\"HOUSEHOLD_ID\":\"64297\"},{\"properties\":{\"EZI_ADD\":\"27 DURHAM STREET EAGLEMONT 3084\",\"STATE\":\"VIC\",\"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"EAGLEMONT\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120112\",\"BEDD\":\"4 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329627.89563218964,5818811.241577283]},\"HOUSEHOLD_ID\":\"49237\"},{\"properties\":{\"EZI_ADD\":\"30 KILLERTON CRESCENT HEIDELBERG WEST 3081\",\"STATE\":\"VIC\",\"POSTCODE\":\"3081\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG WEST\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2119902\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[327226.127194053,5821253.361783082]},\"HOUSEHOLD_ID\":\"38295\"},{\"properties\":{\"EZI_ADD\":\"5/68 YARRA STREET HEIDELBERG 3084\",\"STATE\":\"VIC\",\"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2119810\",\"BEDD\":\"2 bedroom\",\"STRD\":\"Flats or units (3 storeys or less)\",\"TENLLD\":\"Private Renter\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329383.2924766755,5819340.600254489]},\"HOUSEHOLD_ID\":\"34846\"},{\"properties\":{\"EZI_ADD\":\"35A CAMERON STREET RESERVOIR 3073\",\"STATE\":\"VIC\",\"POSTCODE\":\"3073\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"RESERVOIR\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120829\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[323503.89143659646,5822569.286676848]},\"HOUSEHOLD_ID\":\"100800\"}]}";
+//            json = "{\"features\":[{\"properties\":{\"EZI_ADD\":\"12 WATERLOO ROAD NORTHCOTE 3070\",\"STATE\":\"VIC\",\"POSTCODE\":\"3070\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"NORTHCOTE\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2111138\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[324058.8753037447,5817187.2590698935]},\"HOUSEHOLD_ID\":\"11604\"},{\"properties\":{\"EZI_ADD\":\"38 MACORNA STREET WATSONIA NORTH 3087\",\"STATE\":\"VIC\",\"POSTCODE\":\"3087\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"WATSONIA NORTH\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120407\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[331160.92976421374,5825765.298372125]},\"HOUSEHOLD_ID\":\"64297\"},{\"properties\":{\"EZI_ADD\":\"27 DURHAM STREET EAGLEMONT 3084\",\"STATE\":\"VIC\",\"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"EAGLEMONT\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120112\",\"BEDD\":\"4 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329627.89563218964,5818811.241577283]},\"HOUSEHOLD_ID\":\"49237\"},{\"properties\":{\"EZI_ADD\":\"30 KILLERTON CRESCENT HEIDELBERG WEST 3081\",\"STATE\":\"VIC\",\"POSTCODE\":\"3081\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG WEST\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2119902\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[327226.127194053,5821253.361783082]},\"HOUSEHOLD_ID\":\"38295\"},{\"properties\":{\"EZI_ADD\":\"5/68 YARRA STREET HEIDELBERG 3084\",\"STATE\":\"VIC\",\"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2119810\",\"BEDD\":\"2 bedroom\",\"STRD\":\"Flats or units (3 storeys or less)\",\"TENLLD\":\"Private Renter\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329383.2924766755,5819340.600254489]},\"HOUSEHOLD_ID\":\"34846\"},{\"properties\":{\"EZI_ADD\":\"35A CAMERON STREET RESERVOIR 3073\",\"STATE\":\"VIC\",\"POSTCODE\":\"3073\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"RESERVOIR\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120829\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[323503.89143659646,5822569.286676848]},\"HOUSEHOLD_ID\":\"100800\"}]}";
 
             Gson gson = new Gson();
-            HMAP data = gson.fromJson(json, HMAP.class);
+            HMAP data = gson.fromJson(json.toString(), HMAP.class);
+            System.out.println("House-Hold JSON file mapping complete..");
 
 
-            System.out.println(data.toString());
-        } catch (FileNotFoundException e) {
-
-            e.printStackTrace();
-
+//       System.out.println(data.toString());
         } catch (IOException e) {
 
             e.printStackTrace();
@@ -124,7 +118,8 @@ public class SyntheticPopulationManager {
 
     }
 
-    public void addSyntheticPersonToPopulation() {
+    /*method to add synthetic people to population*/
+    void addSyntheticPersonToPopulation() {
 
 		/*
          * Code below taken from the createPUSPersons in CreateDemandFromVISTA file
@@ -152,8 +147,8 @@ public class SyntheticPopulationManager {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 String parts[] = line.split(",");
-				/*
-				 * Create a person and add it to the population
+                /*
+                 * Create a person and add it to the population
 				 */
                 Person person = populationFactory.createPerson(Id.create(parts[index_personId].trim(), Person.class));
                 population.addPerson(person);
@@ -192,12 +187,17 @@ public class SyntheticPopulationManager {
         @Override
         public String toString() {
 
-            String s = "";
+//            int count = 0;
+            StringBuilder s = new StringBuilder();
 
-            for (HFeature hf : features)
-                s += hf.toString() + "\n";
+            for (HFeature hf : features) {
+//                count++;
+                s.append(hf.toString()).append("\n");
 
-            return s;
+//                if(count>500)
+//                    break;
+            }
+            return s.toString();
         }
     }
 
@@ -278,11 +278,11 @@ public class SyntheticPopulationManager {
         @Override
         public String toString() {
 
-            String s = "";
+            StringBuilder s = new StringBuilder();
             for (Float hc : coordinates)
-                s += Float.toString(hc) + ",";
+                s.append(Float.toString(hc)).append(",");
 
-            return s;
+            return s.toString();
         }
     }
 

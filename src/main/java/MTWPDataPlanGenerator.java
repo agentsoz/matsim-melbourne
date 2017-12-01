@@ -1,37 +1,37 @@
 //package au.edu.unimelb.imod.demand;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 
 public class MTWPDataPlanGenerator {
 
-    private final static String DATA_FILE_PATH = "data/mtwp/Victoria_SA2_UR_by_SA2_POW.csv";
+    private final static String MATRIX_FILE_PATH = "data/mtwp/Victoria_SA2_UR_by_SA2_POW.csv";
+
 
     public static void main(String args[]) {
+
+
+        MTWPDataPlanGenerator mt = new MTWPDataPlanGenerator();
+
+        //Converts file Format from a matrix to a flat comma-separated format
+        mt.convertToFlat();
+
 
         SyntheticPopulationManager syn = new SyntheticPopulationManager();
         syn.convertSyntheticPersonsToVista();
         syn.convertJSONHMap();
         syn.addSyntheticPersonToPopulation();
 
-//        MTWPDataPlanGenerator mt = new MTWPDataPlanGenerator();
-//
-//        //Converts file Format from a matrix to a flat comma-separated format
-//        mt.convertToFlat();
-
 
     }
 
-    public void convertToFlat() {
+    private void convertToFlat() {
 
         int lineCount = 0;
         BufferedReader bf;
 
 
         try {
-            bf = new BufferedReader(new FileReader(DATA_FILE_PATH));
+            bf = new BufferedReader(new FileReader(MATRIX_FILE_PATH));
 
             String line = bf.readLine();
             String[] headers = line.split(",");
@@ -52,14 +52,13 @@ public class MTWPDataPlanGenerator {
                     if(entries[0].equals("Total"))
                     continue;
 
-                    System.out.println(entries[0] + "," + headers[ii] + "," + entries[ii]);
+//                    System.out.println(entries[0] + "," + headers[ii] + "," + entries[ii]);
                 }
                 line = bf.readLine();
 
             }
+            System.out.println("Matrix file conversion complete..");
             bf.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
