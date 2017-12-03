@@ -16,7 +16,7 @@ import java.util.List;
 class SyntheticPopulationManager {
 
     private final static String SYNTHETIC_PERSONS_FILE_PATH = "data/latch/AllAgents.csv";
-    private final static String SYNTHETIC_GENERATED_PERSONS_FILE_PATH = "data/Synthetic_Persons.csv";
+    private final static String SYNTHETIC_GENERATED_PERSONS_FILE_PATH = "data/latch/Synthetic_Persons.csv";
     private final static String SYNTHETIC_HMAP_FILE_PATH = "data/latch/Hh-mapped-address.json";
     private final Scenario scenario;
 
