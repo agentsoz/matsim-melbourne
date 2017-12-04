@@ -306,7 +306,7 @@ public class CreateDemandFromVISTA {
 		System.out.println("writing done");
 	}//end of writing
 
-	private static Point getRandomPointInFeature(Random rnd, SimpleFeature ft) {
+	public static Point getRandomPointInFeature(Random rnd, SimpleFeature ft) {
 		Gbl.assertNotNull(ft);
 		Point p = null;
 		double x, y;

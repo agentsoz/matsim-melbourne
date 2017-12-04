@@ -1,4 +1,5 @@
 
+import au.edu.unimelb.imod.demand.CreateDemandFromVISTA;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
@@ -99,7 +100,7 @@ class CreatePopulationFromLatch2 {
 				Coord coord = hhs.get( record.HouseHoldId ) ;
                 Activity activity = populationFactory.createActivityFromCoord( "home", coord ) ;
                 plan.addActivity(activity);
-    
+	
                 //TO limit the output for testing purpose
                 if (cnt >= 30) {
                     break;
