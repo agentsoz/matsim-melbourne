@@ -1,5 +1,8 @@
 import au.edu.unimelb.imod.demand.CreateDemandFromVISTA;
 import com.opencsv.bean.*;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -11,6 +14,8 @@ import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.population.io.PopulationReader;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordUtils;
+import org.matsim.core.utils.geometry.GeometryUtils;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -30,7 +35,7 @@ class AddWorkplacesToPopulation {
     private final static String OD_MATRIX_FILE = "data/mtwp/2017-11-24-Victoria/UR and POW by MTWP.csv";
     private final Config config;
     private final Scenario scenario;
-
+	Map<String, SimpleFeature> featureMap ;
 
     public AddWorkplacesToPopulation() {
 
@@ -60,7 +65,7 @@ class AddWorkplacesToPopulation {
         SimpleFeatureSource fts = ShapeFileReader.readDataFile(ZONES_FILE);
         Random rnd = new Random();
 
-        Map<String, SimpleFeature> featureMap = new LinkedHashMap<>();
+        featureMap = new LinkedHashMap<>();
 
         //Iterator to iterate over the features from the shape file
         try (SimpleFeatureIterator it = fts.getFeatures().features()) {
@@ -125,8 +130,19 @@ class AddWorkplacesToPopulation {
 
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
-
-            String origin = null; // in which ASGS are we?   Where do we get this from?
+            
+            Coord homeCoord = (Coord) person.getAttributes().getAttribute("homeCoords"); // add home coordinates into attributes!
+	
+			Coordinate coordinate = CoordUtils.createGeotoolsCoordinate(homeCoord) ;
+			Point point = new GeometryFactory().createPoint( coordinate ) ;
+   
+			String origin = null ;
+            for ( SimpleFeature ft : this.featureMap.values() ) {
+				if ( ((Geometry)ft.getDefaultGeometry()).contains( point ) ) {
+					origin = (String) ft.getAttribute("SA2_NAME16");
+					break ;
+				}
+			}
 
             String destination = null; // draw destination from OD Matrix.   Start with car only.
 
