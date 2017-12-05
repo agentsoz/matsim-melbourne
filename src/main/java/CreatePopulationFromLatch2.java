@@ -33,6 +33,7 @@ class CreatePopulationFromLatch2 {
     //Path for the LATCH file
     private static final String LATCH_PERSONS = "data/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
     private final static String SYNTHETIC_HMAP_FILE_PATH = "data/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
+    private final static String OUTPUT_POPULATION_FILE = "population-from-latch.xml";
     private final Scenario scenario;
     private final Population population;
     private final PopulationFactory populationFactory;
@@ -75,11 +76,11 @@ class CreatePopulationFromLatch2 {
             int cnt = 0;
 
             final CsvToBeanBuilder<Visitors> builder = new CsvToBeanBuilder<>(reader);
-            builder.withType(Visitors.class);
-            builder.withSeparator(',');
-            final CsvToBean<Visitors> reader2 = builder.build();
-            for (Iterator<Visitors> it = reader2.iterator(); it.hasNext(); ) {
-                Visitors record = it.next();
+                builder.withType(Visitors.class);
+                builder.withSeparator(',');
+                final CsvToBean<Visitors> reader2 = builder.build();
+                for (Iterator<Visitors> it = reader2.iterator(); it.hasNext(); ) {
+                    Visitors record = it.next();
 //				System.out.println( "AgentId=" + record.AgentId + "; rs=" + record.RelationshipStatus ) ;
 
                 Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
@@ -112,7 +113,7 @@ class CreatePopulationFromLatch2 {
         } // end of for loop
 
         PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
-        populationWriter.write("population-from-latch.xml");
+        populationWriter.write(OUTPUT_POPULATION_FILE);
 
     }
 
