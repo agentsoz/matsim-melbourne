@@ -1,4 +1,3 @@
-import au.edu.unimelb.imod.demand.CreateDemandFromVISTA;
 import com.opencsv.bean.*;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -12,10 +11,8 @@ import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.population.io.PopulationReader;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
-import org.matsim.core.utils.geometry.GeometryUtils;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -23,10 +20,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 class AddWorkplacesToPopulation {
 
@@ -52,7 +46,7 @@ class AddWorkplacesToPopulation {
         AddWorkplacesToPopulation abc = new AddWorkplacesToPopulation();
         abc.readShapefile(); // zones as used in the OD matrix.  ASGS
         abc.readODMatrix();
-        //abc.parsePopulation();
+        abc.parsePopulation();
     }
 
     private void readShapefile() {
@@ -94,6 +88,8 @@ class AddWorkplacesToPopulation {
         try (final BufferedReader reader = new BufferedReader(new FileReader(OD_MATRIX_FILE))) {
             // try-with-resources
 
+            System.out.println("Parsing Matrix file..");
+
             while(++cnt < 15)
             reader.readLine();
 
@@ -103,18 +99,50 @@ class AddWorkplacesToPopulation {
 
             final CsvToBean<Mode> reader2 = builder.build();
 
+            Map<String,Integer> mainStateAreaURCarDriveCount = new HashMap<>();
+            Map<String,Integer> mainStateAreaURCarPassCount = new HashMap<>();
+
+            int carDrivingWorkPopulation = 0;
+            int carPassWorkPopulation = 0;
+
             for (Iterator<Mode> it = reader2.iterator(); it.hasNext(); ) {
+
                 Mode record = it.next();
 
-                if(record.mainStatAreaUR != null)
+                if(record.mainStatAreaUR != null) {
+                    //if the file read reaches a new UR
+
+                    if(record.mainStatAreaUR.toLowerCase().equals("total")) {
+
+                        System.out.println("Parsing matrix finished..");
+                        break;
+                    }
+                    mainStateAreaURCarDriveCount.put(previousUR,carDrivingWorkPopulation);
+                    mainStateAreaURCarPassCount.put(previousUR,carPassWorkPopulation);
+
                     previousUR = record.mainStatAreaUR;
-                else
+
+                    carDrivingWorkPopulation = 0;
+                    carPassWorkPopulation = 0;
+
+                }else {
+                    //if the file is still currently in the same UR
+
+                    carDrivingWorkPopulation += Integer.parseInt(record.carAsDriver);
+
+                    carPassWorkPopulation += Integer.parseInt(record.carAsPassenger);
+
                     record.mainStatAreaUR = new String(previousUR);
 
-                System.out.print("UR :"+record.mainStatAreaUR+" ");
-                System.out.print("POW :"+record.mainStatAreaPOW+" ");
-                System.out.print("carD :"+record.carAsDriver+" ");
-                System.out.println("carP :"+record.carAsPassenger);
+                    record.carAsDriverCumulative = carDrivingWorkPopulation;
+                    record.carAsPassengerCumulative = carPassWorkPopulation;
+                }
+//                System.out.print("UR :"+record.mainStatAreaUR+" ");
+//                System.out.print("POW :"+record.mainStatAreaPOW+" "+"\n");
+//                System.out.print("carD :"+record.carAsDriver+" ");
+//                System.out.println("carDrCumulative :"+record.carAsDriverCumulative);
+//                System.out.println("carP :"+record.carAsPassenger);
+//                System.out.println("carPassCumulative :"+record.carAsPassengerCumulative);
 
 
             }
@@ -125,24 +153,49 @@ class AddWorkplacesToPopulation {
         }
     }
 
+    private void pickRandomWorkdestination(){
+
+        Random rnd = new Random();
+
+    }
+
     private void parsePopulation() {
         Random rnd = new Random(4711);
 
-
         for (Person person : scenario.getPopulation().getPersons().values()) {
-            
-            Coord homeCoord = (Coord) person.getAttributes().getAttribute("homeCoords"); // add home coordinates into attributes!
-	
+
+            String homeCoordString = (String)person.getAttributes().getAttribute("homeCoords"); // add home coordinates into attributes!
+
+            Coord homeCoord = new Coord(Double.parseDouble(homeCoordString.split(",")[0]),Double.parseDouble(homeCoordString.split(",")[1]));
+
 			Coordinate coordinate = CoordUtils.createGeotoolsCoordinate(homeCoord) ;
 			Point point = new GeometryFactory().createPoint( coordinate ) ;
    
 			String origin = null ;
-            for ( SimpleFeature ft : this.featureMap.values() ) {
-				if ( ((Geometry)ft.getDefaultGeometry()).contains( point ) ) {
-					origin = (String) ft.getAttribute("SA2_NAME16");
-					break ;
-				}
-			}
+
+
+			int count = 0;
+			for(String sa2Name : this.featureMap.keySet()) {
+                System.out.println(count);
+                count++;
+                if(((Geometry) (this.featureMap.get(sa2Name)).getDefaultGeometry())!=null)
+                if (((Geometry) (this.featureMap.get(sa2Name)).getDefaultGeometry()).contains(point)) {
+
+                    origin = sa2Name;
+                    break;
+
+                }
+            }
+//            for ( SimpleFeature ft1 : this.featureMap.values() ) {
+//
+//                if ( ((Geometry) ft1.getDefaultGeometry()).contains(point) ) {
+//                    origin = (String) ft1.getAttribute("SA2_NAME16");
+//
+//                    break ;
+//                }
+//
+//            }
+            System.out.println(origin);
 
             String destination = null; // draw destination from OD Matrix.   Start with car only.
 
@@ -182,8 +235,12 @@ class AddWorkplacesToPopulation {
         @CsvBindByPosition(position = 6)
         private String carAsDriver;
 
+        private int carAsDriverCumulative;
+
         @CsvBindByPosition(position = 7)
         private String carAsPassenger;
+
+        private int carAsPassengerCumulative;
 
 
 
