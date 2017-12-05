@@ -11,6 +11,7 @@ import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.gis.ShapeFileReader;
@@ -105,12 +106,18 @@ class AddWorkplacesToPopulation {
             int carDrivingWorkPopulation = 0;
             int carPassWorkPopulation = 0;
 
+            long cnt2 = 0 ;
             for (Iterator<Mode> it = reader2.iterator(); it.hasNext(); ) {
-
                 Mode record = it.next();
 
                 if(record.mainStatAreaUR != null) {
                     //if the file read reaches a new UR
+
+					cnt2++ ;
+					System.out.print(".") ;
+					if ( cnt2 % 80 == 0 ) {
+						System.out.println() ;
+					}
 
                     if(record.mainStatAreaUR.toLowerCase().equals("total")) {
 
@@ -174,28 +181,37 @@ class AddWorkplacesToPopulation {
 			String origin = null ;
 
 
-			int count = 0;
-			for(String sa2Name : this.featureMap.keySet()) {
-                System.out.println(count);
-                count++;
-                if(((Geometry) (this.featureMap.get(sa2Name)).getDefaultGeometry())!=null)
-                if (((Geometry) (this.featureMap.get(sa2Name)).getDefaultGeometry()).contains(point)) {
-
-                    origin = sa2Name;
-                    break;
-
-                }
+//			int count = 0;
+//			for(String sa2Name : this.featureMap.keySet()) {
+//                System.out.println(count);
+//                count++;
+//				final Geometry geometry = (Geometry) (this.featureMap.get(sa2Name)).getDefaultGeometry();
+//				if(geometry !=null)
+//					if (geometry.contains(point)) {
+//
+//						origin = sa2Name;
+//						break;
+//
+//					}
+//			}
+			
+			
+            for ( SimpleFeature ft1 : this.featureMap.values() ) {
+				Gbl.assertNotNull(ft1) ;
+				final Geometry geometry = (Geometry) ft1.getDefaultGeometry();
+				if ( geometry != null ) {
+					if (geometry.contains(point)) {
+						origin = (String) ft1.getAttribute("SA2_NAME16");
+						Gbl.assertNotNull(origin);
+						break;
+					}
+				} else {
+					System.out.println( "geometry is null; to check; feature=" + ft1.toString() ) ;
+				}
             }
-//            for ( SimpleFeature ft1 : this.featureMap.values() ) {
-//
-//                if ( ((Geometry) ft1.getDefaultGeometry()).contains(point) ) {
-//                    origin = (String) ft1.getAttribute("SA2_NAME16");
-//
-//                    break ;
-//                }
-//
-//            }
             System.out.println(origin);
+	
+			System.exit(-1) ;
 
             String destination = null; // draw destination from OD Matrix.   Start with car only.
 
