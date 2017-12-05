@@ -7,6 +7,7 @@ import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.sun.org.apache.bcel.internal.generic.POP;
+import com.vividsolutions.jts.geom.Coordinate;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -17,6 +18,7 @@ import org.matsim.households.Household;
 import org.matsim.households.Households;
 import org.matsim.households.HouseholdsFactory;
 
+import java.awt.geom.Arc2D;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -99,7 +101,10 @@ class CreatePopulationFromLatch2 {
 //                Household hh = scenario.getHouseholds().getHouseholds().get( Id.create( record.HouseHoldId, Household.class) ) ;
 //                Coord coord = (Coord) hh.getAttributes().getAttribute("Coord");
 				Coord coord = hhs.get( record.HouseHoldId ) ;
-                Activity activity = populationFactory.createActivityFromCoord( "home", coord ) ;
+
+				person.getAttributes().putAttribute("homeCoords", Double.toString(coord.getX())+","+Double.toString(coord.getY()));
+
+                    Activity activity = populationFactory.createActivityFromCoord( "home", coord ) ;
                 plan.addActivity(activity);
 	
                 //TO limit the output for testing purpose
@@ -202,6 +207,8 @@ class CreatePopulationFromLatch2 {
         private String Gender;
         @CsvBindByName
         private String HouseHoldId;
+        @CsvBindByName
+        private String homeCoords;
 
     }
 
