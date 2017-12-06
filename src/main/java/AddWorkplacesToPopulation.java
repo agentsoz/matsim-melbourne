@@ -37,6 +37,7 @@ class AddWorkplacesToPopulation {
 	Map<String, SimpleFeature> featureMap ;
 	Map<String,String> sa2NameFromSa1Id ;
 	Map<String,Map<String,Map<String,Double>>> odMatrix ;
+	// something like odMatrix.get(origin).get(destination).get(mode)
 
     public AddWorkplacesToPopulation() {
 
@@ -206,18 +207,12 @@ class AddWorkplacesToPopulation {
         }
     }
 
-    private void pickRandomWorkdestination(){
-
-        Random rnd = new Random();
-
-    }
-
     private void parsePopulation() {
         Random rnd = new Random(4711);
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
 	
-			// get sa1Id (which comes from latch):
+			// get sa1Id (which comes from latch; still needs to be entered!):
 			String sa1Id = (String) person.getAttributes().getAttribute("sa1Id");
 			Gbl.assertNotNull(sa1Id);
 	
@@ -235,7 +230,7 @@ class AddWorkplacesToPopulation {
 			}
 			
 			// throw random number
-			int tripToTake = rnd.nextInt((int) sum);
+			int tripToTake = rnd.nextInt((int) sum+1);
 			// variable to store destination name:
 			String destinationSa2Name=null ;
 			double sum2 = 0. ;
@@ -252,6 +247,8 @@ class AddWorkplacesToPopulation {
 			
 			// find a coordinate for the destination:
 			SimpleFeature ft = this.featureMap.get( destinationSa2Name ) ;
+			Gbl.assertNotNull(ft);
+			Gbl.assertNotNull(ft.getDefaultGeometry()) ; // otherwise no polygon, cannot get a point.
 			Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
 			Gbl.assertNotNull(point);
 	
