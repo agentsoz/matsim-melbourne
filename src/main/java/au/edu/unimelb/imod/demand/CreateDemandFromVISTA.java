@@ -91,6 +91,7 @@ public class CreateDemandFromVISTA {
 	private final Scenario scenario;
 	ArrayList<Id<Person>> activePeople = new ArrayList<>();
 	CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
+	// yyyyyy the "from" of this is probably not right; should be GCS_GDA_1994 (EPSG:4283)
 	
 	private final Set<String> modes = new TreeSet<>() ;
 	private final Set<String> activityTypes = new TreeSet<>() ;

@@ -196,15 +196,26 @@ class AddWorkplacesToPopulation {
 //			}
 			
 			
+			
+			// The following is no longer needed since can be replaced by "correspondences" table.
+			// However, a similar problem will happen when giving random coordinates to
+			// destination zones: some of these zones don't have a geometry (= no polygon).
+			// these are all "out of state" zones; the trips need to be marked, but can be
+			// ignored.
+			int ccnntt=0 ;
             for ( SimpleFeature ft1 : this.featureMap.values() ) {
 				Gbl.assertNotNull(ft1) ;
 				final Geometry geometry = (Geometry) ft1.getDefaultGeometry();
 				if ( geometry != null ) {
-					if (geometry.contains(point)) {
-						origin = (String) ft1.getAttribute("SA2_NAME16");
-						Gbl.assertNotNull(origin);
-						break;
+					if ( ccnntt==0 ) {
+						System.out.println("non-null geometry feature=" + ft1.toString());
 					}
+					ccnntt++ ;
+//					if (geometry.contains(point)) {
+//						origin = (String) ft1.getAttribute("SA2_NAME16");
+//						Gbl.assertNotNull(origin);
+//						break;
+//					}
 				} else {
 					System.out.println( "geometry is null; to check; feature=" + ft1.toString() ) ;
 				}
