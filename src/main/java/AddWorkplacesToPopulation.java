@@ -1,3 +1,4 @@
+import au.edu.unimelb.imod.demand.CreateDemandFromVISTA;
 import com.opencsv.bean.*;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -14,6 +15,8 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
+import org.matsim.core.utils.geometry.GeometryUtils;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -30,7 +33,10 @@ class AddWorkplacesToPopulation {
     private final static String OD_MATRIX_FILE = "data/mtwp/2017-11-24-Victoria/UR and POW by MTWP.csv";
     private final Config config;
     private final Scenario scenario;
+    private final PopulationFactory pf ;
 	Map<String, SimpleFeature> featureMap ;
+	Map<String,String> sa2NameFromSa1Id ;
+	Map<String,Map<String,Map<String,Double>>> odMatrix ;
 
     public AddWorkplacesToPopulation() {
 
@@ -39,6 +45,8 @@ class AddWorkplacesToPopulation {
 
         scenario = ScenarioUtils.loadScenario(config);
         // (this will read the population file)
+		
+		pf = scenario.getPopulation().getFactory() ;
 
     }
 
@@ -46,11 +54,23 @@ class AddWorkplacesToPopulation {
     public static void main(String[] args) {
         AddWorkplacesToPopulation abc = new AddWorkplacesToPopulation();
         abc.readShapefile(); // zones as used in the OD matrix.  ASGS
+		abc.readCorrespondences() ;
         abc.readODMatrix();
         abc.parsePopulation();
     }
-
-    private void readShapefile() {
+	
+	private void readCorrespondences() {
+    	// this reads the table that allows to look up SA2 names from the SA1 IDs from latch.
+		
+		// you will need something like
+		String sa1Id = null ;
+		String sa2Name = null ;
+		sa2NameFromSa1Id.put(sa1Id, sa2Name) ;
+		
+		
+	}
+	
+	private void readShapefile() {
 
         // read shapefile; see CreateDemandFromVISTA for example.
         Population population = this.scenario.getPopulation();
@@ -69,7 +89,7 @@ class AddWorkplacesToPopulation {
                 // get feature
                 SimpleFeature ft = it.next();
 
-                //A feature contains a geometry (in this case a polygon) and an arbitrary number
+                // store the feature by SA2 name (because that is the way in which we will need it later)
                 featureMap.put((String) ft.getAttribute("SA2_NAME16"), ft);
             }
             it.close();
@@ -85,6 +105,8 @@ class AddWorkplacesToPopulation {
 
         int cnt = 0;
         String previousUR = "";
+        
+        // TODO I think that this so far only reads the summary.
 
         try (final BufferedReader reader = new BufferedReader(new FileReader(OD_MATRIX_FILE))) {
             // try-with-resources
@@ -94,56 +116,80 @@ class AddWorkplacesToPopulation {
             while(++cnt < 15)
             reader.readLine();
 
-            final CsvToBeanBuilder<Mode> builder = new CsvToBeanBuilder<>(reader);
-            builder.withType(Mode.class);
+            final CsvToBeanBuilder<Record> builder = new CsvToBeanBuilder<>(reader);
+            builder.withType(Record.class);
             builder.withSeparator(',');
 
-            final CsvToBean<Mode> reader2 = builder.build();
+            final CsvToBean<Record> reader2 = builder.build();
 
-            Map<String,Integer> mainStateAreaURCarDriveCount = new HashMap<>();
-            Map<String,Integer> mainStateAreaURCarPassCount = new HashMap<>();
-
-            int carDrivingWorkPopulation = 0;
-            int carPassWorkPopulation = 0;
+//            Map<String,Integer> mainStateAreaURCarDriveCount = new HashMap<>();
+//            Map<String,Integer> mainStateAreaURCarPassCount = new HashMap<>();
+//
+//            int carDrivingWorkPopulation = 0;
+//            int carPassWorkPopulation = 0;
 
             long cnt2 = 0 ;
-            for (Iterator<Mode> it = reader2.iterator(); it.hasNext(); ) {
-                Mode record = it.next();
+            
+            String currentOrigin = null ;
+            
+            for (Iterator<Record> it = reader2.iterator(); it.hasNext(); ) {
+                Record record = it.next();
 
                 if(record.mainStatAreaUR != null) {
                     //if the file read reaches a new UR
-
+	
 					cnt2++ ;
 					System.out.print(".") ;
 					if ( cnt2 % 80 == 0 ) {
 						System.out.println() ;
 					}
-
+	
+					// memorize the origin name:
+					currentOrigin = record.mainStatAreaUR ;
+					// start new table for all destinations from this new origin ...
+					Map<String,Map<String,Double>> destinations = new HashMap<>() ;
+					// ... and put it into the OD matrix:
+					odMatrix.put( record.mainStatAreaUR, destinations ) ;
+					
                     if(record.mainStatAreaUR.toLowerCase().equals("total")) {
 
                         System.out.println("Parsing matrix finished..");
                         break;
                     }
-                    mainStateAreaURCarDriveCount.put(previousUR,carDrivingWorkPopulation);
-                    mainStateAreaURCarPassCount.put(previousUR,carPassWorkPopulation);
+//                    mainStateAreaURCarDriveCount.put(previousUR,carDrivingWorkPopulation);
+//                    mainStateAreaURCarPassCount.put(previousUR,carPassWorkPopulation);
+//
+//                    previousUR = record.mainStatAreaUR;
+//
+//                    carDrivingWorkPopulation = 0;
+//                    carPassWorkPopulation = 0;
 
-                    previousUR = record.mainStatAreaUR;
-
-                    carDrivingWorkPopulation = 0;
-                    carPassWorkPopulation = 0;
-
-                }else {
-                    //if the file is still currently in the same UR
-
-                    carDrivingWorkPopulation += Integer.parseInt(record.carAsDriver);
-
-                    carPassWorkPopulation += Integer.parseInt(record.carAsPassenger);
-
-                    record.mainStatAreaUR = new String(previousUR);
-
-                    record.carAsDriverCumulative = carDrivingWorkPopulation;
-                    record.carAsPassengerCumulative = carPassWorkPopulation;
                 }
+//                else {
+//                    //if the file is still currently in the same UR
+//
+//					// somehow I don't think that we need the following:
+//                    carDrivingWorkPopulation += Integer.parseInt(record.carAsDriver);
+//
+//                    carPassWorkPopulation += Integer.parseInt(record.carAsPassenger);
+//
+//                    record.mainStatAreaUR = new String(previousUR);
+//
+//                    record.carAsDriverCumulative = carDrivingWorkPopulation;
+//                    record.carAsPassengerCumulative = carPassWorkPopulation;
+//                }
+                
+                // this is what we need to do for every record:
+
+				// start new table for the specific destination in current row ...
+				Map<String,Double> nTripsByMode = new HashMap<>() ;
+				// .. and put in the od matrix:
+				odMatrix.get(currentOrigin).put( record.mainStatAreaPOW, nTripsByMode ) ;
+				// memorize the car value (we forget all others for the time being):
+				nTripsByMode.put( TransportMode.car, Double.parseDouble(record.carAsDriver ) ) ;
+
+
+
 //                System.out.print("UR :"+record.mainStatAreaUR+" ");
 //                System.out.print("POW :"+record.mainStatAreaPOW+" "+"\n");
 //                System.out.print("carD :"+record.carAsDriver+" ");
@@ -170,77 +216,61 @@ class AddWorkplacesToPopulation {
         Random rnd = new Random(4711);
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
-
-            String homeCoordString = (String)person.getAttributes().getAttribute("homeCoords"); // add home coordinates into attributes!
-
-            Coord homeCoord = new Coord(Double.parseDouble(homeCoordString.split(",")[0]),Double.parseDouble(homeCoordString.split(",")[1]));
-
-			Coordinate coordinate = CoordUtils.createGeotoolsCoordinate(homeCoord) ;
-			Point point = new GeometryFactory().createPoint( coordinate ) ;
-   
-			String origin = null ;
-
-
-//			int count = 0;
-//			for(String sa2Name : this.featureMap.keySet()) {
-//                System.out.println(count);
-//                count++;
-//				final Geometry geometry = (Geometry) (this.featureMap.get(sa2Name)).getDefaultGeometry();
-//				if(geometry !=null)
-//					if (geometry.contains(point)) {
-//
-//						origin = sa2Name;
-//						break;
-//
-//					}
-//			}
-			
-			
-			
-			// The following is no longer needed since can be replaced by "correspondences" table.
-			// However, a similar problem will happen when giving random coordinates to
-			// destination zones: some of these zones don't have a geometry (= no polygon).
-			// these are all "out of state" zones; the trips need to be marked, but can be
-			// ignored.
-			int ccnntt=0 ;
-            for ( SimpleFeature ft1 : this.featureMap.values() ) {
-				Gbl.assertNotNull(ft1) ;
-				final Geometry geometry = (Geometry) ft1.getDefaultGeometry();
-				if ( geometry != null ) {
-					if ( ccnntt==0 ) {
-						System.out.println("non-null geometry feature=" + ft1.toString());
-					}
-					ccnntt++ ;
-//					if (geometry.contains(point)) {
-//						origin = (String) ft1.getAttribute("SA2_NAME16");
-//						Gbl.assertNotNull(origin);
-//						break;
-//					}
-				} else {
-					System.out.println( "geometry is null; to check; feature=" + ft1.toString() ) ;
-				}
-            }
-            System.out.println(origin);
 	
-			System.exit(-1) ;
-
-            String destination = null; // draw destination from OD Matrix.   Start with car only.
-
-            SimpleFeature ft = null; // get this from the shp file
-
-//			Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
-//			final Coord coord = new Coord(point.getX(), point.getY());
-            final Coord coord = new Coord(50000., 50000.);
-
-            Leg leg = scenario.getPopulation().getFactory().createLeg(TransportMode.car);
-            person.getSelectedPlan().addLeg(leg);
-
-            Activity act = scenario.getPopulation().getFactory().createActivityFromCoord("work", coord);
-            person.getSelectedPlan().addActivity(act);
-
-            // todo: add trip back home
-
-        }
+			// get sa1Id (which comes from latch):
+			String sa1Id = (String) person.getAttributes().getAttribute("sa1Id");
+			Gbl.assertNotNull(sa1Id);
+	
+			// get corresponding sa2name (which comes from the correspondences file):
+			String sa2name = this.sa2NameFromSa1Id.get(sa1Id);
+			Gbl.assertNotNull(sa2name);
+			
+			// find corresponding destinations from the OD matrix:
+			Map<String, Map<String, Double>> destinations = odMatrix.get(sa2name);
+			
+			// sum over all destinations (yes, agreed, we could have done this earlier; at this point I prefer better being safe than sorry)
+			double sum = 0. ;
+			for ( Map<String,Double> nTripsByMode : destinations.values() ) {
+				sum += nTripsByMode.get(TransportMode.car ) ;
+			}
+			
+			// throw random number
+			int tripToTake = rnd.nextInt((int) sum);
+			// variable to store destination name:
+			String destinationSa2Name=null ;
+			double sum2 = 0. ;
+			for ( Map.Entry<String,Map<String,Double>> entry : destinations.entrySet() ) {
+				Map<String, Double> nTripsByMode = entry.getValue();;
+				sum2 += nTripsByMode.get(TransportMode.car ) ;
+				if ( sum2 > tripToTake ) {
+					// this our trip!
+					destinationSa2Name = entry.getKey() ;
+					break ;
+				}
+			}
+			Gbl.assertNotNull(destinationSa2Name);
+			
+			// find a coordinate for the destination:
+			SimpleFeature ft = this.featureMap.get( destinationSa2Name ) ;
+			Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
+			Gbl.assertNotNull(point);
+	
+			// add the leg and act (only if the above has not failed!)
+			Leg leg = pf.createLeg( TransportMode.car ) ; // yyyy needs to be fixed; currently only looking at car
+			person.getSelectedPlan().addLeg(leg);
+	
+			Coord coord = new Coord( point.getX(), point.getY() ) ;
+			Activity act = pf.createActivityFromCoord("work", coord) ;
+			person.getSelectedPlan().addActivity(act);
+			
+			// check what we have:
+			System.out.println( "plan=" + person.getSelectedPlan() );
+			for ( PlanElement pe : person.getSelectedPlan().getPlanElements() ) {
+				System.out.println( "pe=" + pe ) ;
+			}
+			
+			// we leave it at this; the trip back home we do later.
+		}
 
         PopulationWriter writer = new PopulationWriter(scenario.getPopulation());
         writer.write("population-with-home-work-trips.xml");
@@ -250,7 +280,7 @@ class AddWorkplacesToPopulation {
     /**
      * Class to build the records bound by the column header found in the csv file
      */
-    public final static class Mode {
+    public final static class Record {
         // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
 
         @CsvBindByPosition(position = 0)
