@@ -33,8 +33,8 @@ import java.util.Map;
 class CreatePopulationFromLatch2 {
 
     //Path for the LATCH file
-    private static final String LATCH_PERSONS = "data/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
-    private final static String SYNTHETIC_HMAP_FILE_PATH = "data/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
+    private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
+    private final static String SYNTHETIC_HMAP_FILE_PATH = "data/census/2011/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
     private final static String OUTPUT_POPULATION_FILE = "population-from-latch.xml";
     private final Scenario scenario;
     private final Population population;
@@ -194,23 +194,15 @@ class CreatePopulationFromLatch2 {
     /**
      * Class to build the records bound by the column header found in the csv file
      */
-    public final static class Visitors {
-        // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
-
-        @CsvBindByName
-        private String AgentId;
-        @CsvBindByName
-        private String RelationshipStatus;
-        @CsvBindByName
-        private String Age;
-        @CsvBindByName
-        private String Gender;
-        @CsvBindByName
-        private String HouseHoldId;
-        @CsvBindByName
-        private String homeCoords;
-
-    }
+    @SuppressWarnings("WeakerAccess") // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
+	public final static class Visitors {
+		@CsvBindByName private String AgentId;
+        @CsvBindByName private String RelationshipStatus;
+        @CsvBindByName private String Age;
+        @CsvBindByName private String Gender;
+        @CsvBindByName private String HouseHoldId;
+        @CsvBindByName private String homeCoords;
+	}
 
 
     /*
