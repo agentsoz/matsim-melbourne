@@ -54,8 +54,9 @@ import com.vividsolutions.jts.geom.Point;
  *
  */
 public class CreateDemandFromVISTA {
-	private static final String pusTripsFile = "data/vista/Trips_VISTA09_v3_VISTA_Online.csv" ;
-	private static final String pusPersonsFile = "data/vista/Persons_VISTA09_v3_VISTA_Online.csv" ;
+	private static final String pusTripsFile = "data/vista/2017-11-01-vista2009/Trips_VISTA09_v3_VISTA_Online.csv" ;
+	private static final String pusPersonsFile = "data/vista/2017-11-01-vista2009/Persons_VISTA09_v3_VISTA_Online.csv" ;
+	private static final String zonesFile = "data/census/2006/shp/2017-11-08-1259030002_cd06avic_shape/CD06aVIC.shp";
 	private static final Logger log = Logger.getLogger( CreateDemandFromVISTA.class ) ;
 
 	public final static class Visitors {
@@ -160,7 +161,7 @@ public class CreateDemandFromVISTA {
 
 		// ===
 
-		String zonesFile = "data/shp/1259030002_cd06avic_shape/CD06aVIC.shp";
+
 
 		SimpleFeatureSource fts = ShapeFileReader.readDataFile(zonesFile); //reads the shape file in
 		Random rnd = new Random();
