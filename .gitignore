@@ -14,9 +14,9 @@
 *.jar
 *.war
 *.ear
-*.zip
 *.tar.gz
 *.rar
+#*.zip # would also concern zipped data files.  kai, dec'17
 
 .settings
 .project
