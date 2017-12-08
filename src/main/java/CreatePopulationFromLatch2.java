@@ -40,6 +40,7 @@ class CreatePopulationFromLatch2 {
     private final Population population;
     private final PopulationFactory populationFactory;
 	private Map<String,Coord> hhs = new HashMap<>() ;
+	private Map<String,String>hhsa1Code = new HashMap<>();
 	
 	public CreatePopulationFromLatch2(){
 
@@ -92,7 +93,7 @@ class CreatePopulationFromLatch2 {
                 person.getAttributes().putAttribute("Age", record.Age);
                 person.getAttributes().putAttribute("Gender", record.Gender);
                 person.getAttributes().putAttribute("HouseHoldId", record.HouseHoldId);
-
+                person.getAttributes().putAttribute("sa1_7digitcode_2011",hhsa1Code.get(record.HouseHoldId));
                 
                 Plan plan = populationFactory.createPlan();
                 person.addPlan(plan);
@@ -164,7 +165,9 @@ class CreatePopulationFromLatch2 {
 //                hh.getAttributes().putAttribute("Coord", new Coord( coords.get(0), coords.get(1) ) ) ;
 				
 				if ( hhIdString!=null ) {
-					hhs.put(hhIdString, new Coord(coords.get(0), coords.get(1)));
+
+				    hhsa1Code.put(hhIdString,feature.hproperty.SA1_7DIG11);
+				    hhs.put(hhIdString, new Coord(coords.get(0), coords.get(1)));
 					System.out.println("just stored hh w id=" + hhIdString);
 				}
             }
@@ -202,6 +205,7 @@ class CreatePopulationFromLatch2 {
         @CsvBindByName private String Gender;
         @CsvBindByName private String HouseHoldId;
         @CsvBindByName private String homeCoords;
+        @CsvBindByName private String sa1_7digitcode_2011;
 	}
 
 

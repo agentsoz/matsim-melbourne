@@ -99,13 +99,8 @@ class AddWorkplacesToPopulation {
 
     private void readShapefile() {
 
-        // read shapefile; see CreateDemandFromVISTA for example.
-        Population population = this.scenario.getPopulation();
-        PopulationFactory pf = population.getFactory();
-
         //reads the shape file in
         SimpleFeatureSource fts = ShapeFileReader.readDataFile(ZONES_FILE);
-        Random rnd = new Random();
 
         featureMap = new LinkedHashMap<>();
 
@@ -117,7 +112,7 @@ class AddWorkplacesToPopulation {
                 SimpleFeature ft = it.next();
 
                 // store the feature by SA2 name (because that is the way in which we will need it later)
-                featureMap.put((String) ft.getAttribute("SA2_NAME16"), ft);
+                featureMap.put((String) ft.getAttribute("SA2_NAME11"), ft);
             }
             it.close();
         } catch (Exception ee) {
@@ -238,7 +233,7 @@ class AddWorkplacesToPopulation {
         for (Person person : scenario.getPopulation().getPersons().values()) {
 
             // get sa1Id (which comes from latch; still needs to be entered!):
-            String sa1Id = (String) person.getAttributes().getAttribute("sa1Id");
+            String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
             Gbl.assertNotNull(sa1Id);
 
             // get corresponding sa2name (which comes from the correspondences file):
