@@ -26,12 +26,15 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Class to add working places to the synthetic population
+ */
 class AddWorkplacesToPopulation {
 
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
     private final static String ZONES_FILE =
             "data/census/2011/shp/2017-12-06-1270055001_sa2_2011_aust_shape/SA2_2011_AUST" +
-            ".shp";
+                    ".shp";
     private final static String OD_MATRIX_FILE = "data/census/2011/mtwp/2017-11-24-Victoria/UR and POW by MTWP.csv";
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
@@ -44,10 +47,15 @@ class AddWorkplacesToPopulation {
     Map<String, Map<String, Map<String, Double>>> odMatrix;
     // something like odMatrix.get(origin).get(destination).get(mode)
 
+/**
+ * Constructor
+ * */
     public AddWorkplacesToPopulation() {
 
         config = ConfigUtils.createConfig();
-        config.plans().setInputFile(INPUT_CONFIG_FILE);  // add gz after debugging
+
+        config.plans().setInputFile(INPUT_CONFIG_FILE);
+        // currently generates add gz after debugging
 
         scenario = ScenarioUtils.loadScenario(config);
         // (this will read the population file)
@@ -56,7 +64,11 @@ class AddWorkplacesToPopulation {
 
     }
 
-
+    /**
+     * Main method
+     *
+     * @param args
+     */
     public static void main(String[] args) {
         AddWorkplacesToPopulation abc = new AddWorkplacesToPopulation();
         abc.readShapefile(); // zones as used in the OD matrix.  ASGS
@@ -65,6 +77,10 @@ class AddWorkplacesToPopulation {
         abc.parsePopulation();
     }
 
+    /**
+     * Method to read the mapping correspondence file
+     * to map the sa1 7 digit codes (2011) to the sa2 names (2011)
+     */
     private void readCorrespondences() {
         // this reads the table that allows to look up SA2 names from the SA1 IDs from latch.
 
@@ -84,9 +100,6 @@ class AddWorkplacesToPopulation {
             for (Iterator<SAMap> it = reader2.iterator(); it.hasNext(); ) {
                 SAMap saMap = it.next();
 
-//            String sa1Id = null;
-//            String sa2Name = null;
-
                 sa2NameFromSa1Id.put(saMap.SA1_7DIGITCODE_2011, saMap.SA2_NAME_2011);
             }
 
@@ -97,6 +110,9 @@ class AddWorkplacesToPopulation {
         }
     }
 
+    /**
+     * Method to read the shape file and store all the features associated with a given sa2 name (2011)
+     */
     private void readShapefile() {
 
         //reads the shape file in
@@ -121,16 +137,19 @@ class AddWorkplacesToPopulation {
 
     }
 
+    /**
+     * Method to read the OD matrix which stores the home-work place journeys Victoria(??) (2011)
+     *
+     */
     private void readODMatrix() {
 
         // csv reader; start at line 12 (or 13); read only car to get started.
 
         int cnt = 0;
-        String previousUR = "";
 
-        Map<String, Double> mode = new HashMap<String, Double>();
+        Map<String, Double> mode = new HashMap<>();
         Map<String, Map<String, Double>> destinations = new LinkedHashMap<>();
-        odMatrix = new HashMap<String, Map<String, Map<String, Double>>>();
+        odMatrix = new HashMap<>();
 
         // TODO I think that this so far only reads the summary.
 
@@ -168,12 +187,10 @@ class AddWorkplacesToPopulation {
                     }
 
 
-                        //                    odMatrix.put(currentOrigin, destinations);
-
                     // memorize the origin name:
                     currentOrigin = record.mainStatAreaUR;
 
-                    if(currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
+                    if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
                         continue;
 
                     mode = new HashMap<>();
@@ -199,24 +216,10 @@ class AddWorkplacesToPopulation {
                 //???????????????????????????????????????
                 mode.put(TransportMode.car, Double.parseDouble(record.carAsDriver));
 //                mode.put("carPassenger", Double.parseDouble(record.carAsPassenger));
-                destinations.put(record.mainStatAreaPOW,mode);
-
-                // start new table for the specific destination in current row ...
-//                Map<String, Double> nTripsByMode = new HashMap<>();
+                destinations.put(record.mainStatAreaPOW, mode);
 
                 // .. and put in the od matrix:
                 odMatrix.get(currentOrigin).put(record.mainStatAreaPOW, mode);
-
-                // memorize the car value (we forget all others for the time being):
-//                nTripsByMode.put(TransportMode.car, Double.parseDouble(record.carAsDriver));
-
-
-//                System.out.print("UR :"+record.mainStatAreaUR+" ");
-//                System.out.print("POW :"+record.mainStatAreaPOW+" "+"\n");
-//                System.out.print("carD :"+record.carAsDriver+" ");
-//                System.out.println("carDrCumulative :"+record.carAsDriverCumulative);
-//                System.out.println("carP :"+record.carAsPassenger);
-//                System.out.println("carPassCumulative :"+record.carAsPassengerCumulative);
 
 
             }
@@ -227,12 +230,16 @@ class AddWorkplacesToPopulation {
         }
     }
 
+    /**
+     * Method to retrieve the population and add the home-work trip to each person
+     * using the home starting coordinates, and random selection of work trip destination
+     * scaled from the OD matrix file
+     */
     private void parsePopulation() {
         Random rnd = new Random(4711);
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
 
-            // get sa1Id (which comes from latch; still needs to be entered!):
             String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
             Gbl.assertNotNull(sa1Id);
 
@@ -243,8 +250,7 @@ class AddWorkplacesToPopulation {
             // find corresponding destinations from the OD matrix:
             Map<String, Map<String, Double>> destinations = odMatrix.get(sa2name);
 
-            // sum over all destinations (yes, agreed, we could have done this earlier; at this point I prefer better
-            // being safe than sorry)
+            // sum over all destinations
             double sum = 0.;
             for (Map<String, Double> nTripsByMode : destinations.values()) {
                 sum += nTripsByMode.get(TransportMode.car);
@@ -252,14 +258,17 @@ class AddWorkplacesToPopulation {
 
             // throw random number
             int tripToTake = rnd.nextInt((int) sum + 1);
+
             // variable to store destination name:
             String destinationSa2Name = null;
             double sum2 = 0.;
+
             for (Map.Entry<String, Map<String, Double>> entry : destinations.entrySet()) {
                 Map<String, Double> nTripsByMode = entry.getValue();
-                ;
+
                 sum2 += nTripsByMode.get(TransportMode.car);
                 if (sum2 > tripToTake) {
+
                     // this our trip!
                     destinationSa2Name = entry.getKey();
                     break;
@@ -270,7 +279,9 @@ class AddWorkplacesToPopulation {
             // find a coordinate for the destination:
             SimpleFeature ft = this.featureMap.get(destinationSa2Name);
             Gbl.assertNotNull(ft);
+
             Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
+
             Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
             Gbl.assertNotNull(point);
 
@@ -291,6 +302,7 @@ class AddWorkplacesToPopulation {
             // we leave it at this; the trip back home we do later.
         }
 
+        //Write out the population to xml file
         PopulationWriter writer = new PopulationWriter(scenario.getPopulation());
         writer.write("population-with-home-work-trips.xml");
 

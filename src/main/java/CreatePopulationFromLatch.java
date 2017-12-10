@@ -1,24 +1,19 @@
 
-import au.edu.unimelb.imod.demand.CreateDemandFromVISTA;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
-import com.sun.org.apache.bcel.internal.generic.POP;
-import com.vividsolutions.jts.geom.Coordinate;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.households.Household;
 import org.matsim.households.Households;
 import org.matsim.households.HouseholdsFactory;
 
-import java.awt.geom.Arc2D;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -30,7 +25,7 @@ import java.util.Map;
 /**
  * Class to create population in MatSIM format from LATCH process
  */
-class CreatePopulationFromLatch2 {
+public class CreatePopulationFromLatch {
 
     //Path for the LATCH file
     private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
@@ -42,7 +37,7 @@ class CreatePopulationFromLatch2 {
 	private Map<String,Coord> hhs = new HashMap<>() ;
 	private Map<String,String>hhsa1Code = new HashMap<>();
 	
-	public CreatePopulationFromLatch2(){
+	public CreatePopulationFromLatch(){
 
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         population = scenario.getPopulation();
@@ -57,7 +52,7 @@ class CreatePopulationFromLatch2 {
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
-        CreatePopulationFromLatch2 createPop = new CreatePopulationFromLatch2();
+        CreatePopulationFromLatch createPop = new CreatePopulationFromLatch();
 		createPop.storeHouseHoldFeatures();
         createPop.createPopulation();
 
