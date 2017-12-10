@@ -16,18 +16,10 @@
  *   See also COPYING, LICENSE and WARRANTY file                           *
  *                                                                         *
  * *********************************************************************** */
-package org.matsim.example;
+package io.github.agentsoz.matsimmelbourne;
 
-import au.edu.unimelb.imod.demand.CreateDemandFromVISTA;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
+import io.github.agentsoz.matsimmelbourne.CreateDemandFromVISTA;
 import org.junit.Test;
-import org.matsim.api.core.v01.Scenario;
-import org.matsim.core.config.Config;
-import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.controler.Controler;
-import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
-import org.matsim.core.scenario.ScenarioUtils;
 
 import java.io.IOException;
 
