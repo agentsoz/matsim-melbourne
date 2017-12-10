@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * Class to create population in MatSIM format from LATCH process
  */
-class CreatePopulationFromLatch {
+public class CreatePopulationFromLatch {
 
     //Path for the LATCH file
     private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
@@ -37,7 +37,7 @@ class CreatePopulationFromLatch {
     private final PopulationFactory populationFactory;
 	private Map<String,Coord> hhs = new HashMap<>() ;
 	private Map<String,String>hhsa1Code = new HashMap<>();
-	
+
 	public CreatePopulationFromLatch(){
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         population = scenario.getPopulation();
@@ -53,7 +53,7 @@ class CreatePopulationFromLatch {
      */
     public static void main(String[] args) throws IOException {
 		Map<String, String> config = MMUtils.parse(args);
-	
+
 		CreatePopulationFromLatch createPop = new CreatePopulationFromLatch();
 		createPop.storeHouseholdFeatures();
         createPop.createPopulation();
@@ -91,11 +91,11 @@ class CreatePopulationFromLatch {
                 person.getAttributes().putAttribute("Gender", record.Gender);
                 person.getAttributes().putAttribute("HouseHoldId", record.HouseHoldId);
                 person.getAttributes().putAttribute("sa1_7digitcode_2011",hhsa1Code.get(record.HouseHoldId));
-                
+
                 Plan plan = populationFactory.createPlan();
                 person.addPlan(plan);
                 person.setSelectedPlan(plan);
-    
+
 //                Household hh = scenario.getHouseholds().getHouseholds().get( Id.create( record.HouseHoldId, Household.class) ) ;
 //                Coord coord = (Coord) hh.getAttributes().getAttribute("Coord");
 				Coord coord = hhs.get( record.HouseHoldId ) ;
@@ -104,7 +104,7 @@ class CreatePopulationFromLatch {
 
                     Activity activity = populationFactory.createActivityFromCoord( "home", coord ) ;
                 plan.addActivity(activity);
-	
+
                 //TO limit the output for testing purpose
                 if (cnt >= 30) {
                     break;
@@ -128,10 +128,10 @@ class CreatePopulationFromLatch {
         BufferedReader fr;
         StringBuilder json = new StringBuilder();
         String line;
-    
+
         Households households = scenario.getHouseholds();
         HouseholdsFactory hf = households.getFactory();
-    
+
         try {
 
 
@@ -150,17 +150,17 @@ class CreatePopulationFromLatch {
 
             Gson gson = new Gson();
 			HouseholdsFromJson data = gson.fromJson(json.toString(), HouseholdsFromJson.class);
-			
+
             for ( HouseholdFromJson feature : data.features ) {
                 String hhIdString = feature.householdID;
                 List<Float> coords = feature.hgeometry.coordinates;
-    
+
 //                Id<Household> hhId = Id.create( hhIdString, Household.class ) ;
 //                Household hh = hf.createHousehold(hhId);;
 //                households.getHouseholds().put( hhId, hh ) ;
 //
 //                hh.getAttributes().putAttribute("Coord", new Coord( coords.get(0), coords.get(1) ) ) ;
-				
+
 				if ( hhIdString!=null ) {
 
 				    hhsa1Code.put(hhIdString,feature.hproperty.SA1_7DIG11);
@@ -239,11 +239,11 @@ class CreatePopulationFromLatch {
         @SerializedName("properties")
         @Expose
         private HProperty hproperty;
-        
+
         @SerializedName("geometry")
         @Expose
         private HGeometry hgeometry;
-        
+
         @SerializedName("HOUSEHOLD_ID")
         @Expose
         private String householdID;

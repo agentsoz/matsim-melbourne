@@ -24,7 +24,7 @@ import java.util.*;
 /**
  * Class to add working places to the synthetic population
  */
-class AddWorkplacesToPopulation {
+public class AddWorkPlacesToPopulation {
 
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
     private final static String ZONES_FILE =
@@ -45,7 +45,7 @@ class AddWorkplacesToPopulation {
 /**
  * Constructor
  * */
-    public AddWorkplacesToPopulation() {
+    public AddWorkPlacesToPopulation() {
 
         config = ConfigUtils.createConfig();
 
@@ -65,7 +65,7 @@ class AddWorkplacesToPopulation {
      * @param args
      */
     public static void main(String[] args) {
-        AddWorkplacesToPopulation abc = new AddWorkplacesToPopulation();
+        AddWorkPlacesToPopulation abc = new AddWorkPlacesToPopulation();
         abc.readShapefile(); // zones as used in the OD matrix.  ASGS
         abc.readCorrespondences();
         abc.readODMatrix();
