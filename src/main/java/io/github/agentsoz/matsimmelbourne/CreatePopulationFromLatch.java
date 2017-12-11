@@ -30,21 +30,53 @@ public class CreatePopulationFromLatch {
 
     //Path for the LATCH file
     private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
-    private final static String SYNTHETIC_HMAP_FILE_PATH = "data/census/2011/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
-    private final static String OUTPUT_POPULATION_FILE = "population-from-latch.xml";
+    private final static String SYNTHETIC_HMAP_FILE_PATH =
+            "data/census/2011/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
+    private static String OUTPUT_POPULATION_FILE;
     private final Scenario scenario;
     private final Population population;
     private final PopulationFactory populationFactory;
-	private Map<String,Coord> hhs = new HashMap<>() ;
-	private Map<String,String>hhsa1Code = new HashMap<>();
+    private Map<String, Coord> hhs = new HashMap<>();
+    private Map<String, String> hhsa1Code = new HashMap<>();
 
-	public CreatePopulationFromLatch(){
+    public final class TestMode {
+
+        static final String debug = "population-from-latch.xml";
+        static final String full = "population-from-latch.xml.gz";
+    }
+
+    public CreatePopulationFromLatch(String outputDir, String runMode) {
+
+        OUTPUT_POPULATION_FILE = "";
+
+        if (outputDir != null) {
+
+            if (outputDir.endsWith("/"))
+                OUTPUT_POPULATION_FILE += outputDir;
+            else
+                OUTPUT_POPULATION_FILE += outputDir + "/";
+
+        }
+        //else prints to default working directory
+
+        if (runMode != null) {
+
+            if (runMode.equals("d"))
+                OUTPUT_POPULATION_FILE += TestMode.debug;
+            else
+                OUTPUT_POPULATION_FILE += TestMode.full;
+        }
+        else
+            OUTPUT_POPULATION_FILE += TestMode.debug;
+
+
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         population = scenario.getPopulation();
         populationFactory = population.getFactory();
 
 
     }
+
     /**
      * Main method
      *
@@ -52,10 +84,13 @@ public class CreatePopulationFromLatch {
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
-		Map<String, String> config = MMUtils.parse(args);
 
-		CreatePopulationFromLatch createPop = new CreatePopulationFromLatch();
-		createPop.storeHouseholdFeatures();
+        Map<String, String> config = MMUtils.parse(args);
+        String oDir = config.get(MMUtils.OUTPUT_DIRECTORY_INDICATOR);
+        String rMode = config.get(MMUtils.RUN_MODE);
+
+        CreatePopulationFromLatch createPop = new CreatePopulationFromLatch(oDir, rMode);
+        createPop.storeHouseholdFeatures();
         createPop.createPopulation();
 
     }
@@ -69,18 +104,17 @@ public class CreatePopulationFromLatch {
     void createPopulation() throws IOException {
 
 
-
         try (final FileReader reader = new FileReader(LATCH_PERSONS)) {
             // try-with-resources
 
             int cnt = 0;
 
             final CsvToBeanBuilder<LatchRecord> builder = new CsvToBeanBuilder<>(reader);
-                builder.withType(LatchRecord.class);
-                builder.withSeparator(',');
-                final CsvToBean<LatchRecord> reader2 = builder.build();
-                for (Iterator<LatchRecord> it = reader2.iterator(); it.hasNext(); ) {
-                    LatchRecord record = it.next();
+            builder.withType(LatchRecord.class);
+            builder.withSeparator(',');
+            final CsvToBean<LatchRecord> reader2 = builder.build();
+            for (Iterator<LatchRecord> it = reader2.iterator(); it.hasNext(); ) {
+                LatchRecord record = it.next();
 //				System.out.println( "AgentId=" + record.AgentId + "; rs=" + record.RelationshipStatus ) ;
 
                 Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
@@ -90,19 +124,20 @@ public class CreatePopulationFromLatch {
                 person.getAttributes().putAttribute("Age", record.Age);
                 person.getAttributes().putAttribute("Gender", record.Gender);
                 person.getAttributes().putAttribute("HouseHoldId", record.HouseHoldId);
-                person.getAttributes().putAttribute("sa1_7digitcode_2011",hhsa1Code.get(record.HouseHoldId));
+                person.getAttributes().putAttribute("sa1_7digitcode_2011", hhsa1Code.get(record.HouseHoldId));
 
                 Plan plan = populationFactory.createPlan();
                 person.addPlan(plan);
                 person.setSelectedPlan(plan);
 
-//                Household hh = scenario.getHouseholds().getHouseholds().get( Id.create( record.HouseHoldId, Household.class) ) ;
+//                Household hh = scenario.getHouseholds().getHouseholds().get( Id.create( record.HouseHoldId,
+// Household.class) ) ;
 //                Coord coord = (Coord) hh.getAttributes().getAttribute("Coord");
-				Coord coord = hhs.get( record.HouseHoldId ) ;
+                Coord coord = hhs.get(record.HouseHoldId);
 
-				person.getAttributes().putAttribute("homeCoords", coord);
+                person.getAttributes().putAttribute("homeCoords", coord);
 
-                    Activity activity = populationFactory.createActivityFromCoord( "home", coord ) ;
+                Activity activity = populationFactory.createActivityFromCoord("home", coord);
                 plan.addActivity(activity);
 
                 //TO limit the output for testing purpose
@@ -146,12 +181,36 @@ public class CreatePopulationFromLatch {
 
             //Testing String for JSON file storage as Java Object
             //Original file is large about 43 MB takes considerable time
-//            json = "{\"features\":[{\"properties\":{\"EZI_ADD\":\"12 WATERLOO ROAD NORTHCOTE 3070\",\"STATE\":\"VIC\",\"POSTCODE\":\"3070\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"NORTHCOTE\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2111138\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[324058.8753037447,5817187.2590698935]},\"HOUSEHOLD_ID\":\"11604\"},{\"properties\":{\"EZI_ADD\":\"38 MACORNA STREET WATSONIA NORTH 3087\",\"STATE\":\"VIC\",\"POSTCODE\":\"3087\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"WATSONIA NORTH\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120407\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[331160.92976421374,5825765.298372125]},\"HOUSEHOLD_ID\":\"64297\"},{\"properties\":{\"EZI_ADD\":\"27 DURHAM STREET EAGLEMONT 3084\",\"STATE\":\"VIC\",\"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"EAGLEMONT\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120112\",\"BEDD\":\"4 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329627.89563218964,5818811.241577283]},\"HOUSEHOLD_ID\":\"49237\"},{\"properties\":{\"EZI_ADD\":\"30 KILLERTON CRESCENT HEIDELBERG WEST 3081\",\"STATE\":\"VIC\",\"POSTCODE\":\"3081\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG WEST\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2119902\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[327226.127194053,5821253.361783082]},\"HOUSEHOLD_ID\":\"38295\"},{\"properties\":{\"EZI_ADD\":\"5/68 YARRA STREET HEIDELBERG 3084\",\"STATE\":\"VIC\",\"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2119810\",\"BEDD\":\"2 bedroom\",\"STRD\":\"Flats or units (3 storeys or less)\",\"TENLLD\":\"Private Renter\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329383.2924766755,5819340.600254489]},\"HOUSEHOLD_ID\":\"34846\"},{\"properties\":{\"EZI_ADD\":\"35A CAMERON STREET RESERVOIR 3073\",\"STATE\":\"VIC\",\"POSTCODE\":\"3073\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"RESERVOIR\",\"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120829\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[323503.89143659646,5822569.286676848]},\"HOUSEHOLD_ID\":\"100800\"}]}";
+//            json = "{\"features\":[{\"properties\":{\"EZI_ADD\":\"12 WATERLOO ROAD NORTHCOTE 3070\",
+// \"STATE\":\"VIC\",\"POSTCODE\":\"3070\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"NORTHCOTE\",\"ADD_CLASS\":\"S\",
+// \"SA1_7DIG11\":\"2111138\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",
+// \"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[324058.8753037447,5817187.2590698935]},
+// \"HOUSEHOLD_ID\":\"11604\"},{\"properties\":{\"EZI_ADD\":\"38 MACORNA STREET WATSONIA NORTH 3087\",
+// \"STATE\":\"VIC\",\"POSTCODE\":\"3087\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"WATSONIA NORTH\",\"ADD_CLASS\":\"S\",
+// \"SA1_7DIG11\":\"2120407\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",
+// \"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[331160.92976421374,5825765.298372125]},
+// \"HOUSEHOLD_ID\":\"64297\"},{\"properties\":{\"EZI_ADD\":\"27 DURHAM STREET EAGLEMONT 3084\",\"STATE\":\"VIC\",
+// \"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"EAGLEMONT\",\"ADD_CLASS\":\"S\",
+// \"SA1_7DIG11\":\"2120112\",\"BEDD\":\"4 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",
+// \"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329627.89563218964,5818811.241577283]},
+// \"HOUSEHOLD_ID\":\"49237\"},{\"properties\":{\"EZI_ADD\":\"30 KILLERTON CRESCENT HEIDELBERG WEST 3081\",
+// \"STATE\":\"VIC\",\"POSTCODE\":\"3081\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG WEST\",\"ADD_CLASS\":\"S\",
+// \"SA1_7DIG11\":\"2119902\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",\"TENLLD\":\"Owner\",
+// \"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[327226.127194053,5821253.361783082]},
+// \"HOUSEHOLD_ID\":\"38295\"},{\"properties\":{\"EZI_ADD\":\"5/68 YARRA STREET HEIDELBERG 3084\",\"STATE\":\"VIC\",
+// \"POSTCODE\":\"3084\",\"LGA_CODE\":\"303\",\"LOCALITY\":\"HEIDELBERG\",\"ADD_CLASS\":\"S\",
+// \"SA1_7DIG11\":\"2119810\",\"BEDD\":\"2 bedroom\",\"STRD\":\"Flats or units (3 storeys or less)\",
+// \"TENLLD\":\"Private Renter\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[329383.2924766755,
+// 5819340.600254489]},\"HOUSEHOLD_ID\":\"34846\"},{\"properties\":{\"EZI_ADD\":\"35A CAMERON STREET RESERVOIR
+// 3073\",\"STATE\":\"VIC\",\"POSTCODE\":\"3073\",\"LGA_CODE\":\"316\",\"LOCALITY\":\"RESERVOIR\",
+// \"ADD_CLASS\":\"S\",\"SA1_7DIG11\":\"2120829\",\"BEDD\":\"3 bedroom\",\"STRD\":\"Detached House\",
+// \"TENLLD\":\"Owner\",\"TYPE\":\"RESIDENTIAL\"},\"geometry\":{\"coordinates\":[323503.89143659646,
+// 5822569.286676848]},\"HOUSEHOLD_ID\":\"100800\"}]}";
 
             Gson gson = new Gson();
-			HouseholdsFromJson data = gson.fromJson(json.toString(), HouseholdsFromJson.class);
+            HouseholdsFromJson data = gson.fromJson(json.toString(), HouseholdsFromJson.class);
 
-            for ( HouseholdFromJson feature : data.features ) {
+            for (HouseholdFromJson feature : data.features) {
                 String hhIdString = feature.householdID;
                 List<Float> coords = feature.hgeometry.coordinates;
 
@@ -161,12 +220,12 @@ public class CreatePopulationFromLatch {
 //
 //                hh.getAttributes().putAttribute("Coord", new Coord( coords.get(0), coords.get(1) ) ) ;
 
-				if ( hhIdString!=null ) {
+                if (hhIdString != null) {
 
-				    hhsa1Code.put(hhIdString,feature.hproperty.SA1_7DIG11);
-				    hhs.put(hhIdString, new Coord(coords.get(0), coords.get(1)));
-					System.out.println("just stored hh w id=" + hhIdString);
-				}
+                    hhsa1Code.put(hhIdString, feature.hproperty.SA1_7DIG11);
+                    hhs.put(hhIdString, new Coord(coords.get(0), coords.get(1)));
+                    System.out.println("just stored hh w id=" + hhIdString);
+                }
             }
 
 //            System.out.println(data.toString());
@@ -188,22 +247,29 @@ public class CreatePopulationFromLatch {
     void createTrip(String HouseHoldId) {
 
 
-
     }
 
     /**
      * Class to build the records bound by the column header found in the csv file
      */
-    @SuppressWarnings("WeakerAccess") // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
-	public final static class LatchRecord {
-		@CsvBindByName private String AgentId;
-        @CsvBindByName private String RelationshipStatus;
-        @CsvBindByName private String Age;
-        @CsvBindByName private String Gender;
-        @CsvBindByName private String HouseHoldId;
-        @CsvBindByName private String homeCoords;
-        @CsvBindByName private String sa1_7digitcode_2011;
-	}
+    @SuppressWarnings("WeakerAccess")
+    // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
+    public final static class LatchRecord {
+        @CsvBindByName
+        private String AgentId;
+        @CsvBindByName
+        private String RelationshipStatus;
+        @CsvBindByName
+        private String Age;
+        @CsvBindByName
+        private String Gender;
+        @CsvBindByName
+        private String HouseHoldId;
+        @CsvBindByName
+        private String homeCoords;
+        @CsvBindByName
+        private String sa1_7digitcode_2011;
+    }
 
 
     /*
@@ -225,7 +291,7 @@ public class CreatePopulationFromLatch {
                 count++;
                 s.append(hf.toString()).append("\n");
 
-                if(count>500)
+                if (count > 500)
                     break;
             }
             return s.toString();
@@ -296,7 +362,8 @@ public class CreatePopulationFromLatch {
         public String toString() {
 
 
-            return EZI_ADD + "," + state + "," + postCode + "," + LGA_Code + "," + locality + "," + add_class + "," + SA1_7DIG11
+            return EZI_ADD + "," + state + "," + postCode + "," + LGA_Code + "," + locality + "," + add_class + "," +
+                    SA1_7DIG11
                     + "," + bedd + "," + strd + "," + tenlld + "," + type;
         }
     }
