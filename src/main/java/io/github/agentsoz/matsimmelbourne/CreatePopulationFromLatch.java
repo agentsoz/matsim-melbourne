@@ -100,7 +100,7 @@ public class CreatePopulationFromLatch {
 //                Coord coord = (Coord) hh.getAttributes().getAttribute("Coord");
 				Coord coord = hhs.get( record.HouseHoldId ) ;
 
-				person.getAttributes().putAttribute("homeCoords", Double.toString(coord.getX())+","+Double.toString(coord.getY()));
+				person.getAttributes().putAttribute("homeCoords", coord);
 
                     Activity activity = populationFactory.createActivityFromCoord( "home", coord ) ;
                 plan.addActivity(activity);
