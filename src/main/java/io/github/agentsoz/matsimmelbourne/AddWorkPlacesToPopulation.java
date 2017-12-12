@@ -231,7 +231,10 @@ public class AddWorkPlacesToPopulation {
      * scaled from the OD matrix file
      */
     private void parsePopulation() {
+        // TODO: Make the random seed an input param (make sure you use only one instance of Random everywhere)
         Random rnd = new Random(4711);
+
+        // TODO: Add function to filter out only working population here
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
 

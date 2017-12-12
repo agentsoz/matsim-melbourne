@@ -28,6 +28,9 @@ import java.util.Map;
  */
 public class CreatePopulationFromLatch {
 
+    // TODO: Add input parameter defaults here
+
+
     //Path for the LATCH file
     private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
     private final static String SYNTHETIC_HMAP_FILE_PATH =
@@ -66,9 +69,9 @@ public class CreatePopulationFromLatch {
             else
                 OUTPUT_POPULATION_FILE += TestMode.full;
         }
-        else
+        else {
             OUTPUT_POPULATION_FILE += TestMode.debug;
-
+        }
 
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         population = scenario.getPopulation();
@@ -103,7 +106,6 @@ public class CreatePopulationFromLatch {
      */
     void createPopulation() throws IOException {
 
-
         try (final FileReader reader = new FileReader(LATCH_PERSONS)) {
             // try-with-resources
 
@@ -117,9 +119,11 @@ public class CreatePopulationFromLatch {
                 LatchRecord record = it.next();
 //				System.out.println( "AgentId=" + record.AgentId + "; rs=" + record.RelationshipStatus ) ;
 
+
                 Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
                 population.addPerson(person);
 
+                // TODO: for now put in a heuristic to calculate the 'LabourForceStatus' attribute for the person
                 person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
                 person.getAttributes().putAttribute("Age", record.Age);
                 person.getAttributes().putAttribute("Gender", record.Gender);
@@ -141,6 +145,7 @@ public class CreatePopulationFromLatch {
                 plan.addActivity(activity);
 
                 //TO limit the output for testing purpose
+                // FIXME: Add option to switch between 'testing' and 'normal' modes; use --run-mode to differentiate
                 if (cnt >= 30) {
                     break;
                 }
