@@ -9,7 +9,7 @@ class MMUtils {
 	
 	public static final String OUTPUT_DIRECTORY_INDICATOR = "--output-dir";
 	public static final String RUN_MODE = "--run-mode";
-	
+	public static final String FILE_FORMAT = "--file-format";
 	/**
 	 * Parse the command line arguments
 	 */
@@ -29,6 +29,14 @@ class MMUtils {
 					if (i + 1 < args.length) {
 						i++;
 						map.put(RUN_MODE, args[i]);
+					} else {
+						throw new RuntimeException("argument missing");
+					}
+					break;
+				case FILE_FORMAT:
+					if (i + 1 < args.length) {
+						i++;
+						map.put(FILE_FORMAT, args[i]);
 					} else {
 						throw new RuntimeException("argument missing");
 					}
