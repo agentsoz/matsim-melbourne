@@ -65,9 +65,8 @@ public class CreatePopulationFromLatch {
                 OUTPUT_POPULATION_FILE += TestMode.debug;
             else
                 OUTPUT_POPULATION_FILE += TestMode.full;
-        }
-        else
-            OUTPUT_POPULATION_FILE += TestMode.debug;
+        } else
+            OUTPUT_POPULATION_FILE += TestMode.full;
 
 
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
@@ -103,11 +102,10 @@ public class CreatePopulationFromLatch {
      */
     void createPopulation() throws IOException {
 
-
+        int cnt = 0;
         try (final FileReader reader = new FileReader(LATCH_PERSONS)) {
             // try-with-resources
 
-            int cnt = 0;
 
             final CsvToBeanBuilder<LatchRecord> builder = new CsvToBeanBuilder<>(reader);
             builder.withType(LatchRecord.class);
@@ -115,7 +113,6 @@ public class CreatePopulationFromLatch {
             final CsvToBean<LatchRecord> reader2 = builder.build();
             for (Iterator<LatchRecord> it = reader2.iterator(); it.hasNext(); ) {
                 LatchRecord record = it.next();
-//				System.out.println( "AgentId=" + record.AgentId + "; rs=" + record.RelationshipStatus ) ;
 
                 Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
                 population.addPerson(person);
@@ -123,33 +120,39 @@ public class CreatePopulationFromLatch {
                 person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
                 person.getAttributes().putAttribute("Age", record.Age);
                 person.getAttributes().putAttribute("Gender", record.Gender);
-                person.getAttributes().putAttribute("HouseHoldId", record.HouseHoldId);
-                person.getAttributes().putAttribute("sa1_7digitcode_2011", hhsa1Code.get(record.HouseHoldId));
+                person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
+
+                person.getAttributes().putAttribute("sa1_7digitcode_2011",
+                        hhsa1Code.containsKey(record.HouseholdId) ? hhsa1Code.get(record.HouseholdId) : "NULL");
 
                 Plan plan = populationFactory.createPlan();
                 person.addPlan(plan);
                 person.setSelectedPlan(plan);
 
+
 //                Household hh = scenario.getHouseholds().getHouseholds().get( Id.create( record.HouseHoldId,
 // Household.class) ) ;
 //                Coord coord = (Coord) hh.getAttributes().getAttribute("Coord");
-                Coord coord = hhs.get(record.HouseHoldId);
+                Coord coord = hhs.get(record.HouseholdId);
 
-                person.getAttributes().putAttribute("homeCoords", coord);
+
+                //person.getAttributes().putAttribute("homeCoords", coord);
 
                 Activity activity = populationFactory.createActivityFromCoord("home", coord);
                 plan.addActivity(activity);
-
+//                }
+                //FIXME: TO SWITCH BETWEEN TESTING MODE SET AND  FULL SET
                 //TO limit the output for testing purpose
-                if (cnt >= 30) {
-                    break;
-                }
+//                if (cnt >= 1595) {
+//                    break;
+//                }
+//                cnt++;
                 cnt++;
-
             }
 
         } // end of for loop
 
+        System.out.println("COUNT : " + cnt);
         PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
         populationWriter.write(OUTPUT_POPULATION_FILE);
 
@@ -264,7 +267,7 @@ public class CreatePopulationFromLatch {
         @CsvBindByName
         private String Gender;
         @CsvBindByName
-        private String HouseHoldId;
+        private String HouseholdId;
         @CsvBindByName
         private String homeCoords;
         @CsvBindByName
