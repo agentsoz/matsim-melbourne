@@ -56,31 +56,11 @@ public class CreatePopulationFromLatch {
         if (outputDir != null)
             OUTPUT_POPULATION_FILE += outputDir.endsWith("/") ? outputDir : outputDir + "/";
 
-<<<<<<< HEAD
         if (fileformat != null)
             OUTPUT_POPULATION_FILE += fileformat.equals("x") ? XML_OUT : ZIPPED_OUT;
         else
             OUTPUT_POPULATION_FILE += XML_OUT;
-=======
-            if (outputDir.endsWith("/"))
-                OUTPUT_POPULATION_FILE += outputDir;
-            else
-                OUTPUT_POPULATION_FILE += outputDir + "/";
 
-        }
-        //else prints to default working directory
-
-        if (runMode != null) {
-
-            if (runMode.equals("d"))
-                OUTPUT_POPULATION_FILE += TestMode.debug;
-            else
-                OUTPUT_POPULATION_FILE += TestMode.full;
-        }
-        else {
-            OUTPUT_POPULATION_FILE += TestMode.debug;
-        }
->>>>>>> 3c6d422922c95ed2be49b293674c4362f65932cc
 
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         population = scenario.getPopulation();
@@ -127,10 +107,8 @@ public class CreatePopulationFromLatch {
      */
     void createPopulation() throws IOException {
 
-<<<<<<< HEAD
         int cnt = 0;
-=======
->>>>>>> 3c6d422922c95ed2be49b293674c4362f65932cc
+
         try (final FileReader reader = new FileReader(LATCH_PERSONS)) {
             // try-with-resources
 
@@ -166,40 +144,28 @@ public class CreatePopulationFromLatch {
                 Activity activity = populationFactory.createActivityFromCoord("home", coord);
                 plan.addActivity(activity);
 
-<<<<<<< HEAD
-                //FIXME: TO SWITCH BETWEEN TESTING MODE SET AND  FULL SET
-
                 if (runMode.equals("d")) {
                     //Testing for a small sample of the population
                     if (cnt >= 30) {
                         break;
                     }
 
-
-=======
-                //TO limit the output for testing purpose
-                // FIXME: Add option to switch between 'testing' and 'normal' modes; use --run-mode to differentiate
-                if (cnt >= 30) {
-                    break;
->>>>>>> 3c6d422922c95ed2be49b293674c4362f65932cc
                 }
                 //else runs completely
-
                 cnt++;
+            } // end of for loop
+        }
 
-            }
+            System.out.println("COUNT : " + cnt);
+            PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
+            populationWriter.write(OUTPUT_POPULATION_FILE);
 
-        } // end of for loop
+        }
 
-        System.out.println("COUNT : " + cnt);
-        PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
-        populationWriter.write(OUTPUT_POPULATION_FILE);
+        /**
+         * Store the household feature information
+         */
 
-    }
-
-    /**
-     * Store the household feature information
-     */
     void storeHouseholdFeatures() {
 
         BufferedReader fr;
