@@ -28,6 +28,9 @@ import java.util.Map;
  */
 public class CreatePopulationFromLatch {
 
+    // TODO: Add input parameter defaults here
+
+
     //Path for the LATCH file
     private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
     private final static String SYNTHETIC_HMAP_FILE_PATH =
@@ -53,10 +56,31 @@ public class CreatePopulationFromLatch {
         if (outputDir != null)
             OUTPUT_POPULATION_FILE += outputDir.endsWith("/") ? outputDir : outputDir + "/";
 
+<<<<<<< HEAD
         if (fileformat != null)
             OUTPUT_POPULATION_FILE += fileformat.equals("x") ? XML_OUT : ZIPPED_OUT;
         else
             OUTPUT_POPULATION_FILE += XML_OUT;
+=======
+            if (outputDir.endsWith("/"))
+                OUTPUT_POPULATION_FILE += outputDir;
+            else
+                OUTPUT_POPULATION_FILE += outputDir + "/";
+
+        }
+        //else prints to default working directory
+
+        if (runMode != null) {
+
+            if (runMode.equals("d"))
+                OUTPUT_POPULATION_FILE += TestMode.debug;
+            else
+                OUTPUT_POPULATION_FILE += TestMode.full;
+        }
+        else {
+            OUTPUT_POPULATION_FILE += TestMode.debug;
+        }
+>>>>>>> 3c6d422922c95ed2be49b293674c4362f65932cc
 
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
         population = scenario.getPopulation();
@@ -103,7 +127,10 @@ public class CreatePopulationFromLatch {
      */
     void createPopulation() throws IOException {
 
+<<<<<<< HEAD
         int cnt = 0;
+=======
+>>>>>>> 3c6d422922c95ed2be49b293674c4362f65932cc
         try (final FileReader reader = new FileReader(LATCH_PERSONS)) {
             // try-with-resources
 
@@ -115,9 +142,11 @@ public class CreatePopulationFromLatch {
             for (Iterator<LatchRecord> it = reader2.iterator(); it.hasNext(); ) {
                 LatchRecord record = it.next();
 
+
                 Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
                 population.addPerson(person);
 
+                // TODO: for now put in a heuristic to calculate the 'LabourForceStatus' attribute for the person
                 person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
                 person.getAttributes().putAttribute("Age", record.Age);
                 person.getAttributes().putAttribute("Gender", record.Gender);
@@ -137,6 +166,7 @@ public class CreatePopulationFromLatch {
                 Activity activity = populationFactory.createActivityFromCoord("home", coord);
                 plan.addActivity(activity);
 
+<<<<<<< HEAD
                 //FIXME: TO SWITCH BETWEEN TESTING MODE SET AND  FULL SET
 
                 if (runMode.equals("d")) {
@@ -146,6 +176,12 @@ public class CreatePopulationFromLatch {
                     }
 
 
+=======
+                //TO limit the output for testing purpose
+                // FIXME: Add option to switch between 'testing' and 'normal' modes; use --run-mode to differentiate
+                if (cnt >= 30) {
+                    break;
+>>>>>>> 3c6d422922c95ed2be49b293674c4362f65932cc
                 }
                 //else runs completely
 
