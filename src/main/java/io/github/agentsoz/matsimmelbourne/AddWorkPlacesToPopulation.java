@@ -42,9 +42,11 @@ public class AddWorkPlacesToPopulation {
     Map<String, Map<String, Map<String, Double>>> odMatrix;
     // something like odMatrix.get(origin).get(destination).get(mode)
 
-/**
- * Constructor
- * */
+    private Random rnd;
+
+    /**
+     * Constructor
+     */
     public AddWorkPlacesToPopulation() {
 
         config = ConfigUtils.createConfig();
@@ -134,7 +136,6 @@ public class AddWorkPlacesToPopulation {
 
     /**
      * Method to read the OD matrix which stores the home-work place journeys Victoria(??) (2011)
-     *
      */
     private void readODMatrix() {
 
@@ -145,8 +146,6 @@ public class AddWorkPlacesToPopulation {
         Map<String, Double> mode = new HashMap<>();
         Map<String, Map<String, Double>> destinations = new LinkedHashMap<>();
         odMatrix = new HashMap<>();
-
-        // TODO I think that this so far only reads the summary.
 
         try (final BufferedReader reader = new BufferedReader(new FileReader(OD_MATRIX_FILE))) {
             // try-with-resources
@@ -181,17 +180,44 @@ public class AddWorkPlacesToPopulation {
                         System.out.println();
                     }
 
+                    if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
+                        continue;
+
+                    //TODO FIX SORTING OF MAP BASED ON MODE VALUES BELOW
+                    //Checking if the map is not initially empty i.e pointer at first ASGS location
+                    if(destinations.size()>0)
+                    {
+                        //Sort the destination sa2 based on the carDriving workforce populations
+
+//                        List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
+//
+//                        Collections.sort(entries, new Comparator<Map.Entry<String,Map<String,Double>>>() {
+//                            @Override
+//                            public int compare(Map.Entry<String,Map<String,Double>> o1, Map.Entry<String,
+//                                    Map<String,Double>> o2) {
+//                                return (o1.getValue().get(TransportMode.car)).compareTo(o2.getValue().get
+//                                        (TransportMode.car));
+//                            }
+//                        });
+//
+//                        Map<String,Map<String,Double>> sortedDestinations = new LinkedHashMap<String,Map<String,
+//                                Double>>();
+//
+//                        for(Map.Entry<String,Map<String,Double>> entry : entries)
+//                            sortedDestinations.put(entry.getKey(),entry.getValue());
+//
+//                        destinations = sortedDestinations;
+//                        odMatrix.put(currentOrigin, destinations);
+
+                    }
 
                     // memorize the origin name:
                     currentOrigin = record.mainStatAreaUR;
 
-                    if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
-                        continue;
-
-                    mode = new HashMap<>();
+                    mode = new LinkedHashMap<>();
 
                     // start new table for all destinations from this new origin ...
-                    destinations = new LinkedHashMap<>();
+                    destinations = new HashMap<>();
 
                     // ... and put it into the OD matrix:
                     odMatrix.put(currentOrigin, destinations);
@@ -209,10 +235,13 @@ public class AddWorkPlacesToPopulation {
 
                 //Using only car as driver for now as the TransportMode class contains a singular mode for car
                 //???????????????????????????????????????
+
                 mode.put(TransportMode.car, Double.parseDouble(record.carAsDriver));
 //                mode.put("carPassenger", Double.parseDouble(record.carAsPassenger));
+
                 destinations.put(record.mainStatAreaPOW, mode);
 
+                //TODO - REMOVE FOLLOWING STATEMENT AND FIX ABOVE SORTING
                 // .. and put in the od matrix:
                 odMatrix.get(currentOrigin).put(record.mainStatAreaPOW, mode);
 
@@ -232,11 +261,16 @@ public class AddWorkPlacesToPopulation {
      */
     private void parsePopulation() {
         // TODO: Make the random seed an input param (make sure you use only one instance of Random everywhere)
-        Random rnd = new Random(4711);
+        //Done declared as class variable
+        rnd = new Random(4711);
 
         // TODO: Add function to filter out only working population here
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
+
+            //Assumption Anyone over 15 is working
+            if (person.getAttributes().getAttribute("RelationshipStatus").equals("U15Child"))
+                continue;
 
             String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
             Gbl.assertNotNull(sa1Id);
