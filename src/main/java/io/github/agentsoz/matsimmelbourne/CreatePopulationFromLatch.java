@@ -147,6 +147,7 @@ public class CreatePopulationFromLatch {
                 plan.addActivity(activity);
 
                 //Testing for a small sample of the population
+                // FIXME: move "30" to a runtime argument
                 if (runMode.equals("d") && cnt >= 30) {
                         break;
                 }
