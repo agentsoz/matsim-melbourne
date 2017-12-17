@@ -76,6 +76,8 @@ public class CreatePopulationFromLatch {
      */
     public static void main(String[] args) throws IOException {
 
+        // FIXME: stop if parsing fails; should say what options are valid and what the defaults are for each
+        // See example in https://github.com/agentsoz/jill/blob/master/jill/src/main/java/io/github/agentsoz/jill/util/ArgumentsLoader.java
         Map<String, String> config = MMUtils.parse(args);
 
         String oDir = null;
@@ -144,12 +146,9 @@ public class CreatePopulationFromLatch {
                 Activity activity = populationFactory.createActivityFromCoord("home", coord);
                 plan.addActivity(activity);
 
-                if (runMode.equals("d")) {
-                    //Testing for a small sample of the population
-                    if (cnt >= 30) {
+                //Testing for a small sample of the population
+                if (runMode.equals("d") && cnt >= 30) {
                         break;
-                    }
-
                 }
                 //else runs completely
                 cnt++;
@@ -165,6 +164,7 @@ public class CreatePopulationFromLatch {
         /**
          * Store the household feature information
          */
+
 
     void storeHouseholdFeatures() {
 
