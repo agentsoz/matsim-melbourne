@@ -18,6 +18,7 @@ import org.matsim.households.HouseholdsFactory;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +39,7 @@ public class CreatePopulationFromLatch {
     private static final String XML_OUT = "population-from-latch.xml";
     private static final String ZIPPED_OUT = "population-from-latch.xml.gz";
 
+
     private final Scenario scenario;
     private final Population population;
     private final PopulationFactory populationFactory;
@@ -45,21 +47,28 @@ public class CreatePopulationFromLatch {
     private Map<String, Coord> hhs = new HashMap<>();
     private Map<String, String> hhsa1Code = new HashMap<>();
 
-    private static String runMode;
-    private static String OUTPUT_POPULATION_FILE = "";
+    private String runMode = "f";
+    private StringBuilder oFile = new StringBuilder();
+    private int samplePopulation = 0;
 
 
-    public CreatePopulationFromLatch(String outputDir, String runMode, String fileformat) {
+    public CreatePopulationFromLatch(String outputDir, String runMode, String samplePopulation, String fileFormat) {
 
         this.runMode = runMode;
 
-        if (outputDir != null)
-            OUTPUT_POPULATION_FILE += outputDir.endsWith("/") ? outputDir : outputDir + "/";
+        try{
+            this.samplePopulation = Integer.parseInt(samplePopulation);
+        }catch(NumberFormatException n){
+            System.err.println("Error parsing string : "+n.getCause());
+        }
 
-        if (fileformat != null)
-            OUTPUT_POPULATION_FILE += fileformat.equals("x") ? XML_OUT : ZIPPED_OUT;
+        if (outputDir != null)
+            oFile.append(outputDir.endsWith("/") ? outputDir : outputDir + "/");
+
+        if (fileFormat != null)
+            oFile.append(fileFormat.equals("x") ? XML_OUT : ZIPPED_OUT);
         else
-            OUTPUT_POPULATION_FILE += XML_OUT;
+            oFile.append(XML_OUT);
 
 
         scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
@@ -83,6 +92,7 @@ public class CreatePopulationFromLatch {
         String oDir = null;
         String rrMode = null;
         String fFormat = null;
+        String samplePop = null;
 
         if (config.containsKey(MMUtils.OUTPUT_DIRECTORY_INDICATOR))
             oDir = config.get(MMUtils.OUTPUT_DIRECTORY_INDICATOR);
@@ -90,12 +100,14 @@ public class CreatePopulationFromLatch {
         if (config.containsKey(MMUtils.RUN_MODE))
             rrMode = config.get(MMUtils.RUN_MODE);
 
+        if(rrMode.equals("d"))
+            samplePop = config.get(MMUtils.SAMPLE_POPULATION);
 
         if (config.containsKey(MMUtils.FILE_FORMAT))
             fFormat = config.get(MMUtils.FILE_FORMAT);
 
 
-        CreatePopulationFromLatch createPop = new CreatePopulationFromLatch(oDir, rrMode, fFormat);
+        CreatePopulationFromLatch createPop = new CreatePopulationFromLatch(oDir, rrMode, samplePop, fFormat);
         createPop.storeHouseholdFeatures();
         createPop.createPopulation();
 
@@ -147,8 +159,8 @@ public class CreatePopulationFromLatch {
                 plan.addActivity(activity);
 
                 //Testing for a small sample of the population
-                // FIXME: move "30" to a runtime argument
-                if (runMode.equals("d") && cnt >= 30) {
+                //*********** FIXED *********** FIXME: move "30" to a runtime argument
+                if (runMode.equals("d") && cnt >= this.samplePopulation) {
                         break;
                 }
                 //else runs completely
@@ -158,7 +170,7 @@ public class CreatePopulationFromLatch {
 
             System.out.println("COUNT : " + cnt);
             PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
-            populationWriter.write(OUTPUT_POPULATION_FILE);
+            populationWriter.write(oFile.toString());
 
         }
 
