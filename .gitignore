@@ -30,3 +30,8 @@ hs_err_pid*
 # exclude intellj files:
 **/.idea
 **/*.iml
+
+# ignore outputs
+config.xml
+plansCoM.xml.gz
+population-from-latch.xml

@@ -10,6 +10,10 @@ class MMUtils {
 	public static final String OUTPUT_DIRECTORY_INDICATOR = "--output-dir";
 	public static final String RUN_MODE = "--run-mode";
 	public static final String FILE_FORMAT = "--file-format";
+
+	// TODO: Add input param for setting random seed
+	// TODO: Add input param to specify number of persons to process here, ie "30"
+
 	/**
 	 * Parse the command line arguments
 	 */

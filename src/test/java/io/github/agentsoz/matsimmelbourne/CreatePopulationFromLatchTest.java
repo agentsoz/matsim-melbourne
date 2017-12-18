@@ -16,6 +16,8 @@ public class CreatePopulationFromLatchTest {
 //        testOutputDir();
 //        testRunOutputDir();
 
+        //FIXME: Not really testing anything here; save expected output file and then compare new to old.
+        // See how expected/actual directories are organised here https://github.com/agentsoz/bdi-abm-integration/blob/kaibranch/examples/bushfire/src/test/java/io/github/agentsoz/ees/MainCampbellsCreek01Test.java
         CreatePopulationFromLatch.main(new String[]{MMUtils.OUTPUT_DIRECTORY_INDICATOR,".",MMUtils.RUN_MODE,"d"});
 
     }
