@@ -32,10 +32,10 @@ public class CreatePopulationFromLatchTest {
         CreatePopulationFromLatch.main(args);
 
         Path p = null;
-        p = Paths.get("./"+fileExpected);
+        p = Paths.get(fileExpected);
         byte[] bytes_expected = Files.readAllBytes(p);
 
-        p= Paths.get("./"+fileActual);
+        p= Paths.get(fileActual);
         byte[] bytes_actual = Files.readAllBytes(p);
 
 
