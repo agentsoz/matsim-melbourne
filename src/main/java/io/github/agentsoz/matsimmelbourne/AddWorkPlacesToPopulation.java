@@ -15,16 +15,22 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 /**
  * Class to add working places to the synthetic population
  */
 public class AddWorkPlacesToPopulation {
+
+    private static final String[] INIT_POPULATION = {
+
+                "--output-dir",".",
+                "--run-mode","d",
+                "--sample-population","100",
+                "--file-format","x",
+
+    };
 
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
     private final static String ZONES_FILE =
@@ -47,11 +53,30 @@ public class AddWorkPlacesToPopulation {
     /**
      * Constructor
      */
-    public AddWorkPlacesToPopulation() {
+    public AddWorkPlacesToPopulation(){
 
         config = ConfigUtils.createConfig();
 
-        config.plans().setInputFile(INPUT_CONFIG_FILE);
+
+            File fOpen = new File(INPUT_CONFIG_FILE);
+
+            if(!fOpen.exists())
+            {
+
+                System.err.println(INPUT_CONFIG_FILE + "does not exist");
+                System.err.println("Creating population from latch..");
+
+                try {
+
+                    CreatePopulationFromLatch.main(INIT_POPULATION);
+
+                }catch(IOException ii){
+                    System.err.println(this.getClass()+" : Input Output Exception");
+                }
+            }
+
+            config.plans().setInputFile(INPUT_CONFIG_FILE);
+
         // currently generates add gz after debugging
 
         scenario = ScenarioUtils.loadScenario(config);
@@ -171,6 +196,7 @@ public class AddWorkPlacesToPopulation {
             for (Iterator<Record> it = reader2.iterator(); it.hasNext(); ) {
                 Record record = it.next();
 
+
                 if (record.mainStatAreaUR != null) {
                     //if the file read reaches a new UR
 
@@ -180,13 +206,12 @@ public class AddWorkPlacesToPopulation {
                         System.out.println();
                     }
 
-                    if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
-                        continue;
+
 
                     //TODO FIX SORTING OF MAP BASED ON MODE VALUES BELOW
                     //Checking if the map is not initially empty i.e pointer at first ASGS location
-                    if(destinations.size()>0)
-                    {
+//                    if(destinations.size()>0)
+//                    {
                         //Sort the destination sa2 based on the carDriving workforce populations
 
 //                        List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
@@ -209,10 +234,14 @@ public class AddWorkPlacesToPopulation {
 //                        destinations = sortedDestinations;
 //                        odMatrix.put(currentOrigin, destinations);
 
-                    }
+//                    }
 
                     // memorize the origin name:
                     currentOrigin = record.mainStatAreaUR;
+
+                    if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
+                        continue;
+
 
                     mode = new LinkedHashMap<>();
 
