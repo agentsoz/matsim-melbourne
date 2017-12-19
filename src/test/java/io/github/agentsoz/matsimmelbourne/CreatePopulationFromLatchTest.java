@@ -51,10 +51,9 @@ public class CreatePopulationFromLatchTest {
 
 
 
-
         //*******FIXED********** FIXME: Not really testing anything here; save expected output file and then compare new
         // to old.
-      
+
     }
 
     }

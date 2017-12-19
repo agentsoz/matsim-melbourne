@@ -224,7 +224,7 @@ public class CreatePopulationFromLatch {
 
                     hhsa1Code.put(hhIdString, feature.hproperty.SA1_7DIG11);
                     hhs.put(hhIdString, new Coord(coords.get(0), coords.get(1)));
-                    System.out.println("just stored hh w id=" + hhIdString);
+//                    System.out.println("just stored hh w id=" + hhIdString);
                 }
             }
             System.out.println("House-Hold JSON file mapping complete..");
