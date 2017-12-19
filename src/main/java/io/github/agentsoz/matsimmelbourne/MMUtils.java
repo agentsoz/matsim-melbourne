@@ -11,6 +11,7 @@ class MMUtils {
 
     public static final String OUTPUT_DIRECTORY_INDICATOR = "--output-dir";
     public static final String RUN_MODE = "--run-mode";
+    public static final String FILE_NAME = "--file-name";
     public static final String FILE_FORMAT = "--file-format";
     public static final String SAMPLE_POPULATION = "--sample-population";
     public static final String HELP = "--help";
@@ -18,14 +19,14 @@ class MMUtils {
 
     public static String usage() {
         return "\n\n" +
-                "\tusage: " +
+                "\tusage: " + CreatePopulationFromLatch.class.getName()+
                 "  [options] " + "\n\n" +
-                "\t--output-dir <outputdirectory>             sets output directory (.,..,<complete path>)" +
-                "\n" +
-                "\t--run-mode <runMode>              		   sets run mode (d/f) [debugging,full]" + "\n" +
-                "\t--file-format <fileformat>          	   sets the output file format (x,z) [xml,zip]" + "\n" +
+                "\t--file-name <filename>                     sets output file name" + "\n" +
+                "\t--output-dir <outputdirectory>             sets output directory (.,..,<complete path>)" + "\n" +
+                "\t--run-mode <runMode>              		  sets run mode (d/f) [debugging,full]" + "\n" +
+                "\t--file-format <fileformat>          	      sets the output file format (x,z) [xml,zip]" + "\n" +
                 "\t--sample-population <inputNumber>          sets the sample population for debgugging mode" + "\n" +
-                "\t--help 									   Displays usage" +
+                "\t--help 									  Displays usage" +
                 "\n\n";
     }
 
@@ -37,6 +38,14 @@ class MMUtils {
         Map<String, String> map = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
+                case FILE_NAME:
+                    if (i + 1 < args.length) {
+                        i++;
+                        map.put(FILE_NAME, args[i]);
+                    } else {
+                        throw new RuntimeException("argument missing");
+                    }
+                    break;
                 case OUTPUT_DIRECTORY_INDICATOR:
                     if (i + 1 < args.length) {
                         i++;

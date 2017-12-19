@@ -29,15 +29,18 @@ import java.util.Map;
  */
 public class CreatePopulationFromLatch {
 
-    // TODO: Add input parameter defaults here
-
+    //************FIXED************* TODO: Add input parameter defaults here
+    //
+    private static final String PARAM_RUN_MODE = "f";
+    private static final String PARAM_OUTPUT_FORMAT = "x";
 
     //Path for the LATCH file
     private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
     private final static String SYNTHETIC_HMAP_FILE_PATH =
             "data/census/2011/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
-    private static final String XML_OUT = "population-from-latch.xml";
-    private static final String ZIPPED_OUT = "population-from-latch.xml.gz";
+    public static final String DEFAULT_OUT = "population-from-latch";
+    public static final String XML_OUT = ".xml";
+    public static final String ZIPPED_OUT = ".xml.gz";
 
 
     private final Scenario scenario;
@@ -47,12 +50,13 @@ public class CreatePopulationFromLatch {
     private Map<String, Coord> hhs = new HashMap<>();
     private Map<String, String> hhsa1Code = new HashMap<>();
 
-    private String runMode = "f";
+    private String runMode = PARAM_RUN_MODE;
     private StringBuilder oFile = new StringBuilder();
     private int samplePopulation = 0;
 
 
-    public CreatePopulationFromLatch(String outputDir, String runMode, String samplePopulation, String fileFormat) {
+    public CreatePopulationFromLatch(String outputDir, String runMode, String samplePopulation, String fileFormat,
+                                     String fName) {
 
         this.runMode = runMode;
 
@@ -65,8 +69,13 @@ public class CreatePopulationFromLatch {
         if (outputDir != null)
             oFile.append(outputDir.endsWith("/") ? outputDir : outputDir + "/");
 
+        if(fName!=null)
+            oFile.append(fName);
+        else
+            oFile.append(DEFAULT_OUT);
+
         if (fileFormat != null)
-            oFile.append(fileFormat.equals("x") ? XML_OUT : ZIPPED_OUT);
+            oFile.append(fileFormat.equals(PARAM_OUTPUT_FORMAT) ? XML_OUT : ZIPPED_OUT);
         else
             oFile.append(XML_OUT);
 
@@ -85,14 +94,17 @@ public class CreatePopulationFromLatch {
      */
     public static void main(String[] args) throws IOException {
 
-        // FIXME: stop if parsing fails; should say what options are valid and what the defaults are for each
+        // ***********FIXED*************FIXME: stop if parsing fails; should say what options are valid and what the
+        // defaults are for each
         // See example in https://github.com/agentsoz/jill/blob/master/jill/src/main/java/io/github/agentsoz/jill/util/ArgumentsLoader.java
+
         Map<String, String> config = MMUtils.parse(args);
 
         String oDir = null;
         String rrMode = null;
         String fFormat = null;
         String samplePop = null;
+        String fName = null;
 
         if (config.containsKey(MMUtils.OUTPUT_DIRECTORY_INDICATOR))
             oDir = config.get(MMUtils.OUTPUT_DIRECTORY_INDICATOR);
@@ -106,8 +118,11 @@ public class CreatePopulationFromLatch {
         if (config.containsKey(MMUtils.FILE_FORMAT))
             fFormat = config.get(MMUtils.FILE_FORMAT);
 
+        if(config.containsKey((MMUtils.FILE_NAME)))
+            fName = config.get(MMUtils.FILE_NAME);
 
-        CreatePopulationFromLatch createPop = new CreatePopulationFromLatch(oDir, rrMode, samplePop, fFormat);
+
+        CreatePopulationFromLatch createPop = new CreatePopulationFromLatch(oDir, rrMode, samplePop, fFormat, fName);
         createPop.storeHouseholdFeatures();
         createPop.createPopulation();
 
@@ -143,7 +158,6 @@ public class CreatePopulationFromLatch {
                 person.getAttributes().putAttribute("Age", record.Age);
                 person.getAttributes().putAttribute("Gender", record.Gender);
                 person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
-
                 person.getAttributes().putAttribute("sa1_7digitcode_2011",
                         hhsa1Code.containsKey(record.HouseholdId) ? hhsa1Code.get(record.HouseholdId) : "NULL");
 
