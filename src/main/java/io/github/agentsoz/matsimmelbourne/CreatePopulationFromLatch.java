@@ -182,7 +182,7 @@ public class CreatePopulationFromLatch {
             } // end of for loop
         }
 
-            System.out.println("COUNT : " + cnt);
+//            System.out.println("COUNT : " + cnt);
             PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
             populationWriter.write(oFile.toString());
 

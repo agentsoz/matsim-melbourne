@@ -3,7 +3,6 @@ package io.github.agentsoz.matsimmelbourne;
 import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
@@ -31,12 +30,8 @@ public class CreatePopulationFromLatchTest {
 
         CreatePopulationFromLatch.main(args);
 
-        Path p = null;
-        p = Paths.get(fileExpected);
-        byte[] bytes_expected = Files.readAllBytes(p);
-
-        p= Paths.get(fileActual);
-        byte[] bytes_actual = Files.readAllBytes(p);
+        byte[] bytes_expected = Files.readAllBytes(Paths.get(fileExpected));
+        byte[] bytes_actual = Files.readAllBytes(Paths.get(fileActual));
 
 
         if(bytes_actual.length != bytes_expected.length)

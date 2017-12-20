@@ -16,6 +16,7 @@ import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
 import java.io.*;
+import java.nio.MappedByteBuffer;
 import java.util.*;
 
 /**
@@ -25,10 +26,10 @@ public class AddWorkPlacesToPopulation {
 
     private static final String[] INIT_POPULATION = {
 
-                "--output-dir",".",
-                "--run-mode","d",
-                "--sample-population","100",
-                "--file-format","x",
+            "--output-dir", ".",
+            "--run-mode", "d",
+            "--sample-population", "100",
+            "--file-format", "x",
 
     };
 
@@ -53,29 +54,28 @@ public class AddWorkPlacesToPopulation {
     /**
      * Constructor
      */
-    public AddWorkPlacesToPopulation(){
+    public AddWorkPlacesToPopulation() {
 
         config = ConfigUtils.createConfig();
 
 
-            File fOpen = new File(INPUT_CONFIG_FILE);
+        File fOpen = new File(INPUT_CONFIG_FILE);
 
-            if(!fOpen.exists())
-            {
+        if (!fOpen.exists()) {
 
-                System.err.println(INPUT_CONFIG_FILE + "does not exist");
-                System.err.println("Creating population from latch..");
+            System.err.println(INPUT_CONFIG_FILE + "does not exist");
+            System.err.println("Creating population from latch..");
 
-                try {
+            try {
 
-                    CreatePopulationFromLatch.main(INIT_POPULATION);
+                CreatePopulationFromLatch.main(INIT_POPULATION);
 
-                }catch(IOException ii){
-                    System.err.println(this.getClass()+" : Input Output Exception");
-                }
+            } catch (IOException ii) {
+                System.err.println(this.getClass() + " : Input Output Exception");
             }
+        }
 
-            config.plans().setInputFile(INPUT_CONFIG_FILE);
+        config.plans().setInputFile(INPUT_CONFIG_FILE);
 
         // currently generates add gz after debugging
 
@@ -207,33 +207,11 @@ public class AddWorkPlacesToPopulation {
                     }
 
 
-
-                    //TODO FIX SORTING OF MAP BASED ON MODE VALUES BELOW
-                    //Checking if the map is not initially empty i.e pointer at first ASGS location
-//                    if(destinations.size()>0)
+//                    System.out.println("Origin : "+currentOrigin );
+//                    System.out.println("*********************************************" );
+//                    for(Map.Entry<String,Map<String,Double>> entry : destinations.entrySet())
 //                    {
-                        //Sort the destination sa2 based on the carDriving workforce populations
-
-//                        List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
-//
-//                        Collections.sort(entries, new Comparator<Map.Entry<String,Map<String,Double>>>() {
-//                            @Override
-//                            public int compare(Map.Entry<String,Map<String,Double>> o1, Map.Entry<String,
-//                                    Map<String,Double>> o2) {
-//                                return (o1.getValue().get(TransportMode.car)).compareTo(o2.getValue().get
-//                                        (TransportMode.car));
-//                            }
-//                        });
-//
-//                        Map<String,Map<String,Double>> sortedDestinations = new LinkedHashMap<String,Map<String,
-//                                Double>>();
-//
-//                        for(Map.Entry<String,Map<String,Double>> entry : entries)
-//                            sortedDestinations.put(entry.getKey(),entry.getValue());
-//
-//                        destinations = sortedDestinations;
-//                        odMatrix.put(currentOrigin, destinations);
-
+//                        System.out.println(entry.getKey()+" "+entry.getValue().get(TransportMode.car));
 //                    }
 
                     // memorize the origin name:
@@ -243,10 +221,10 @@ public class AddWorkPlacesToPopulation {
                         continue;
 
 
-                    mode = new LinkedHashMap<>();
+                    mode = new HashMap<>();
 
                     // start new table for all destinations from this new origin ...
-                    destinations = new HashMap<>();
+                    destinations = new LinkedHashMap<>();
 
                     // ... and put it into the OD matrix:
                     odMatrix.put(currentOrigin, destinations);
@@ -260,19 +238,41 @@ public class AddWorkPlacesToPopulation {
 
                 }
 
-                // this is what we need to do for every record:
+                //Following lines upto sorting may be an unecessary step linking the destinations directly to the car
+                // as
+                // driver population
+                Map<String,Double> carDriverMap = new LinkedHashMap<>();
 
-                //Using only car as driver for now as the TransportMode class contains a singular mode for car
-                //???????????????????????????????????????
+                List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
+                for(Map.Entry<String,Map<String,Double>> entry : entries)
+                    carDriverMap.put(entry.getKey(),entry.getValue().get(TransportMode.car));
+
+                List<Map.Entry> carDriverMapEntries = new ArrayList<>(carDriverMap.entrySet());
+
 
                 mode.put(TransportMode.car, Double.parseDouble(record.carAsDriver));
-//                mode.put("carPassenger", Double.parseDouble(record.carAsPassenger));
 
-                destinations.put(record.mainStatAreaPOW, mode);
+                destinations = new LinkedHashMap<>();
 
-                //TODO - REMOVE FOLLOWING STATEMENT AND FIX ABOVE SORTING
-                // .. and put in the od matrix:
-                odMatrix.get(currentOrigin).put(record.mainStatAreaPOW, mode);
+                boolean isRecordInserted = false;
+
+                //Carry out sorting
+                for (Map.Entry<String, Double> entry : carDriverMapEntries) {
+                    if (Double.parseDouble(record.carAsDriver) < entry.getValue()) {
+                        isRecordInserted = true;
+                        destinations.put(record.mainStatAreaPOW, mode);
+                    }
+                    Map<String,Double> currMode = new HashMap<>();
+                    currMode.put(TransportMode.car,entry.getValue());
+
+                    destinations.put(entry.getKey(),currMode);
+
+                }
+                if(isRecordInserted == false)
+                    destinations.put(record.mainStatAreaPOW,mode);
+                // this is what we need to do for every record:
+
+                odMatrix.put(currentOrigin,destinations);
 
 
             }
@@ -335,10 +335,19 @@ public class AddWorkPlacesToPopulation {
                     break;
                 }
             }
+
+
+            //############### TESTING ####################################
+//            Double num = destinations.get(destinationSa2Name).get(TransportMode.car);
+//            destinations.get(destinationSa2Name).put(TransportMode.car,num-1);
+
             Gbl.assertNotNull(destinationSa2Name);
 
             // find a coordinate for the destination:
             SimpleFeature ft = this.featureMap.get(destinationSa2Name);
+
+            //Null because there are some sa2 locations for which we cannot retrieve a feature
+            if(ft!=null){
             Gbl.assertNotNull(ft);
 
             Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
@@ -359,7 +368,7 @@ public class AddWorkPlacesToPopulation {
             for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
                 System.out.println("pe=" + pe);
             }
-
+        }
             // we leave it at this; the trip back home we do later.
         }
 
