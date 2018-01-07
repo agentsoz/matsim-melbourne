@@ -119,12 +119,16 @@ public class AddWorkPlacesToPopulation {
 
             final CsvToBean<SAMap> reader2 = builder.build();
 
+            int count = 0;
             for (Iterator<SAMap> it = reader2.iterator(); it.hasNext(); ) {
                 SAMap saMap = it.next();
 
+                //if(saMap.SA2_NAME_2011.toLowerCase().equals("northcote"))
+//                    count++;
                 sa2NameFromSa1Id.put(saMap.SA1_7DIGITCODE_2011, saMap.SA2_NAME_2011);
             }
 
+//            System.out.println("NORTHCOTE RECORDS : "+count);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
