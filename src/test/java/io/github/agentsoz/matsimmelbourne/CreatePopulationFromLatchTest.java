@@ -16,8 +16,6 @@ public class CreatePopulationFromLatchTest {
     public final void testMain() throws IOException{
 
         String TEST_OUTPUT_FILENAME = "test";
-        String fileExpected = CreatePopulationFromLatch.DEFAULT_OUT + CreatePopulationFromLatch.XML_OUT;
-        String fileActual = TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
 
         String [] args = {
 
@@ -29,6 +27,9 @@ public class CreatePopulationFromLatchTest {
         };
 
         CreatePopulationFromLatch.main(args);
+
+        String fileExpected = CreatePopulationFromLatch.DEFAULT_OUT + CreatePopulationFromLatch.XML_OUT;
+        String fileActual = TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
 
         byte[] bytes_expected = Files.readAllBytes(Paths.get(fileExpected));
         byte[] bytes_actual = Files.readAllBytes(Paths.get(fileActual));
