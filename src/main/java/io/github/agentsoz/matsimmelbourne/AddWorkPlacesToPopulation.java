@@ -59,21 +59,6 @@ public class AddWorkPlacesToPopulation {
         config = ConfigUtils.createConfig();
 
 
-        File fOpen = new File(INPUT_CONFIG_FILE);
-
-        if (!fOpen.exists()) {
-
-            System.err.println(INPUT_CONFIG_FILE + "does not exist");
-            System.err.println("Creating population from latch..");
-
-            try {
-
-                CreatePopulationFromLatch.main(INIT_POPULATION);
-
-            } catch (IOException ii) {
-                System.err.println(this.getClass() + " : Input Output Exception");
-            }
-        }
 
         config.plans().setInputFile(INPUT_CONFIG_FILE);
 
@@ -92,12 +77,32 @@ public class AddWorkPlacesToPopulation {
      * @param args
      */
     public static void main(String[] args) {
+        createPopulationFromLatch();
         AddWorkPlacesToPopulation abc = new AddWorkPlacesToPopulation();
         abc.readShapefile(); // zones as used in the OD matrix.  ASGS
         abc.readCorrespondences();
         abc.readODMatrix();
         abc.parsePopulation();
     }
+
+    private static void createPopulationFromLatch() {
+        File fOpen = new File(INPUT_CONFIG_FILE);
+
+        if (!fOpen.exists()) {
+
+            System.err.println(INPUT_CONFIG_FILE + "does not exist");
+            System.err.println("Creating population from latch..");
+
+            try {
+
+                CreatePopulationFromLatch.main(INIT_POPULATION);
+
+            } catch (IOException ii) {
+                System.err.println(AddWorkPlacesToPopulation.class.getName() + " : Input Output Exception");
+            }
+        }
+    }
+
 
     /**
      * Method to read the mapping correspondence file
