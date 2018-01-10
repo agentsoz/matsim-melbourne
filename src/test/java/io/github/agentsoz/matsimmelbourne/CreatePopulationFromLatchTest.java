@@ -30,27 +30,28 @@ public class CreatePopulationFromLatchTest {
 
     }
 
-
     // *******FIXED**********FIXME: rename testMain everywhere to be more meaningful wrt what is being tested
 
     @Test
     public final void createPopFromLatchTestMain() throws IOException {
 
-        String TEST_OUTPUT_FILENAME = "test";
-
-        String[] args = setPopulationParameters(".", "d", "100", "x", TEST_OUTPUT_FILENAME);
+        final String TEST_OUTPUT_FILENAME = "test";
+        String[] args = setPopulationParameters("./output/test/", "d", "100", "x", TEST_OUTPUT_FILENAME);
 
         CreatePopulationFromLatch.main(args);
 
-        String fileExpected = CreatePopulationFromLatch.DEFAULT_OUT + CreatePopulationFromLatch.XML_OUT;
-        String fileActual = TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
-
+        String fileExpected = "./output/expected/" + CreatePopulationFromLatch.DEFAULT_OFNAME +
+                CreatePopulationFromLatch
+                .XML_OUT;
         File file = new File(fileExpected);
 
         if (!file.exists()) {
-            CreatePopulationFromLatch.main(setPopulationParameters(".", "d", "100", "x", CreatePopulationFromLatch
-                    .DEFAULT_OUT));
+            CreatePopulationFromLatch.main(setPopulationParameters("./output/expected/", "d", "100", "x",
+                    CreatePopulationFromLatch
+                            .DEFAULT_OFNAME));
         }
+
+        String fileActual = TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
 
         String expectedExists = Files.exists(Paths.get(fileExpected)) ? " exists" : " does not exist!";
         log.warn(fileExpected + expectedExists);

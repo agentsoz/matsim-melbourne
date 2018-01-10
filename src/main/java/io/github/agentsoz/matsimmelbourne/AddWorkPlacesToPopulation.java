@@ -16,7 +16,6 @@ import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
 import java.io.*;
-import java.nio.MappedByteBuffer;
 import java.util.*;
 
 /**
@@ -33,7 +32,9 @@ public class AddWorkPlacesToPopulation {
 
     };
 
-    private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
+    private final static String INPUT_CONFIG_FILE = "./output/expected/population-from-latch.xml";
+    private final static String OUTPUT_TRIPS_FILE = "./output/expected/population-with-home-work-trips.xml";
+
     private final static String ZONES_FILE =
             "data/census/2011/shp/2017-12-06-1270055001_sa2_2011_aust_shape/SA2_2011_AUST" +
                     ".shp";
@@ -383,7 +384,7 @@ public class AddWorkPlacesToPopulation {
 
         //Write out the population to xml file
         PopulationWriter writer = new PopulationWriter(scenario.getPopulation());
-        writer.write("population-with-home-work-trips.xml");
+        writer.write(OUTPUT_TRIPS_FILE);
 
     }
 

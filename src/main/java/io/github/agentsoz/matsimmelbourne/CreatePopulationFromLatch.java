@@ -38,7 +38,7 @@ public class CreatePopulationFromLatch {
     private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
     private final static String SYNTHETIC_HMAP_FILE_PATH =
             "data/census/2011/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
-    public static final String DEFAULT_OUT = "population-from-latch";
+    public static final String DEFAULT_OFNAME = "population-from-latch";
     public static final String XML_OUT = ".xml";
     public static final String ZIPPED_OUT = ".xml.gz";
 
@@ -72,7 +72,7 @@ public class CreatePopulationFromLatch {
         if(fName!=null)
             oFile.append(fName);
         else
-            oFile.append(DEFAULT_OUT);
+            oFile.append(DEFAULT_OFNAME);
 
         if (fileFormat != null)
             oFile.append(fileFormat.equals(PARAM_OUTPUT_FORMAT) ? XML_OUT : ZIPPED_OUT);
