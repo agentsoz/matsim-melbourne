@@ -36,22 +36,22 @@ public class CreatePopulationFromLatchTest {
     public final void createPopFromLatchTestMain() throws IOException {
 
         final String TEST_OUTPUT_FILENAME = "test";
-        String[] args = setPopulationParameters("./output/test/", "d", "100", "x", TEST_OUTPUT_FILENAME);
+        String[] args = setPopulationParameters(".", "d", "100", "x", TEST_OUTPUT_FILENAME);
 
         CreatePopulationFromLatch.main(args);
 
-        String fileExpected = "./output/expected/" + CreatePopulationFromLatch.DEFAULT_OFNAME +
+        String fileExpected = CreatePopulationFromLatch.DEFAULT_OFNAME +
                 CreatePopulationFromLatch
                 .XML_OUT;
         File file = new File(fileExpected);
 
         if (!file.exists()) {
-            CreatePopulationFromLatch.main(setPopulationParameters("./output/expected/", "d", "100", "x",
+            CreatePopulationFromLatch.main(setPopulationParameters(".", "d", "100", "x",
                     CreatePopulationFromLatch
                             .DEFAULT_OFNAME));
         }
 
-        String fileActual = "./output/test/"+TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
+        String fileActual = TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
 
         String expectedExists = Files.exists(Paths.get(fileExpected)) ? " exists" : " does not exist!";
         log.warn(fileExpected + expectedExists);
