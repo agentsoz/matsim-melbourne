@@ -51,7 +51,7 @@ public class CreatePopulationFromLatchTest {
                             .DEFAULT_OFNAME));
         }
 
-        String fileActual = TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
+        String fileActual = "./output/test/"+TEST_OUTPUT_FILENAME + CreatePopulationFromLatch.XML_OUT;
 
         String expectedExists = Files.exists(Paths.get(fileExpected)) ? " exists" : " does not exist!";
         log.warn(fileExpected + expectedExists);
