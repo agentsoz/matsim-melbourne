@@ -24,7 +24,7 @@ import java.util.*;
  */
 public class AddWorkPlacesToPopulation {
 
-    private static final String[] INIT_POPULATION = {
+    public static final String[] INIT_POPULATION = {
 
             "--output-dir", ".",
             "--run-mode", "d",

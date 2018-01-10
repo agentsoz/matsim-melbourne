@@ -10,7 +10,7 @@ import java.io.IOException;
 public class AddWorkPlacesToPopulationTest {
 
     @Test
-    public final void testMain() throws IOException {
+    public final void addworkPlacestoPopTestMain() throws IOException {
         // FIXME: not really testing anything at the moment;
         // ***********FIXED************ FIXME: also relies on availability of population-from-latch.xml which may not
         // exist (think up a
