@@ -19,10 +19,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Class to create population in MatSIM format from LATCH process
@@ -60,16 +57,16 @@ public class CreatePopulationFromLatch {
 
         this.runMode = runMode;
 
-        try{
+        try {
             this.samplePopulation = Integer.parseInt(samplePopulation);
-        }catch(NumberFormatException n){
-            System.err.println("Error parsing string : "+n.getCause());
+        } catch (NumberFormatException n) {
+            System.err.println("Error parsing string : " + n.getCause());
         }
 
         if (outputDir != null)
             oFile.append(outputDir.endsWith("/") ? outputDir : outputDir + "/");
 
-        if(fName!=null)
+        if (fName != null)
             oFile.append(fName);
         else
             oFile.append(DEFAULT_OFNAME);
@@ -96,7 +93,8 @@ public class CreatePopulationFromLatch {
 
         // ***********FIXED*************FIXME: stop if parsing fails; should say what options are valid and what the
         // defaults are for each
-        // See example in https://github.com/agentsoz/jill/blob/master/jill/src/main/java/io/github/agentsoz/jill/util/ArgumentsLoader.java
+        // See example in https://github.com/agentsoz/jill/blob/master/jill/src/main/java/io/github/agentsoz/jill
+        // /util/ArgumentsLoader.java
 
         Map<String, String> config = MMUtils.parse(args);
 
@@ -112,13 +110,13 @@ public class CreatePopulationFromLatch {
         if (config.containsKey(MMUtils.RUN_MODE))
             rrMode = config.get(MMUtils.RUN_MODE);
 
-        if(rrMode.equals("d"))
+        if (rrMode.equals("d"))
             samplePop = config.get(MMUtils.SAMPLE_POPULATION);
 
         if (config.containsKey(MMUtils.FILE_FORMAT))
             fFormat = config.get(MMUtils.FILE_FORMAT);
 
-        if(config.containsKey((MMUtils.FILE_NAME)))
+        if (config.containsKey((MMUtils.FILE_NAME)))
             fName = config.get(MMUtils.FILE_NAME);
 
 
@@ -141,6 +139,8 @@ public class CreatePopulationFromLatch {
         try (final FileReader reader = new FileReader(LATCH_PERSONS)) {
             // try-with-resources
 
+            int nullsa1Count = 0;
+            List<String> excludedPersons = new ArrayList<>();
 
             final CsvToBeanBuilder<LatchRecord> builder = new CsvToBeanBuilder<>(reader);
             builder.withType(LatchRecord.class);
@@ -153,46 +153,65 @@ public class CreatePopulationFromLatch {
                 Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
                 population.addPerson(person);
 
-                // TODO: for now put in a heuristic to calculate the 'LabourForceStatus' attribute for the person
-                person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
-                person.getAttributes().putAttribute("Age", record.Age);
-                person.getAttributes().putAttribute("Gender", record.Gender);
-                person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
 
-               //FIXME: null householdid error in MATSim
-                person.getAttributes().putAttribute("sa1_7digitcode_2011",
-                        hhsa1Code.containsKey(record.HouseholdId) ? hhsa1Code.get(record.HouseholdId) : "NULL");
+                if (hhsa1Code.containsKey(record.HouseholdId)) {
+                    // TODO: for now put in a heuristic to calculate the 'LabourForceStatus' attribute for the person
+                    person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
+                    person.getAttributes().putAttribute("Age", record.Age);
+                    person.getAttributes().putAttribute("Gender", record.Gender);
+                    person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
 
-                Plan plan = populationFactory.createPlan();
-                person.addPlan(plan);
-                person.setSelectedPlan(plan);
+                    //FIXME: null sa1code for householdid error in MATSim
+                    person.getAttributes().putAttribute("sa1_7digitcode_2011",
+                            hhsa1Code.containsKey(record.HouseholdId) ? hhsa1Code.get(record.HouseholdId) : "NULL");
+
+                    Plan plan = populationFactory.createPlan();
+                    person.addPlan(plan);
+                    person.setSelectedPlan(plan);
 
 
-                Coord coord = hhs.get(record.HouseholdId);
+                    Coord coord = hhs.get(record.HouseholdId);
 
 
-                Activity activity = populationFactory.createActivityFromCoord("At Home", coord);
-                plan.addActivity(activity);
+                    Activity activity = populationFactory.createActivityFromCoord("At Home", coord);
+                    plan.addActivity(activity);
 
-                //Testing for a small sample of the population
-                //*********** FIXED *********** FIXME: move "30" to a runtime argument
-                if (runMode.equals("d") && cnt >= this.samplePopulation) {
+                    //Testing for a small sample of the population
+                    //*********** FIXED *********** FIXME: move "30" to a runtime argument
+                    if (runMode.equals("d") && cnt >= this.samplePopulation) {
                         break;
+                    }
+                    //else runs completely
+                    cnt++;
+
                 }
-                //else runs completely
-                cnt++;
+                //check for null sa1 coordinate
+                else {
+
+                    nullsa1Count++;
+                    excludedPersons.add(record.AgentId);
+                }
+
             } // end of for loop
+
+            int cnt2 = 0;
+            System.out.println("TOTAL EXCLUDED PERSONS = " + nullsa1Count);
+            System.out.println("##########################");
+            for (String eachPerson : excludedPersons) {
+                cnt2++;
+                System.out.println("P"+cnt2+" : "+eachPerson);
+            }
         }
 
 //            System.out.println("COUNT : " + cnt);
-            PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
-            populationWriter.write(oFile.toString());
+        PopulationWriter populationWriter = new PopulationWriter(scenario.getPopulation(), scenario.getNetwork());
+        populationWriter.write(oFile.toString());
 
-        }
+    }
 
-        /**
-         * Store the household feature information
-         */
+    /**
+     * Store the household feature information
+     */
 
 
     void storeHouseholdFeatures() {
