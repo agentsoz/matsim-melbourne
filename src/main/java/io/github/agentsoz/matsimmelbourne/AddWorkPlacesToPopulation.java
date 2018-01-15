@@ -53,21 +53,17 @@ public class AddWorkPlacesToPopulation {
     private Random rnd;
 
     /**
-     * Constructor
+     * Constructor for the AddWorkPlacesToPopulation class
+     * Initialises MATSim population construction after reading in the population file
+     * created earlier using CreatePopulationFromLatch class
      */
     public AddWorkPlacesToPopulation() {
 
         config = ConfigUtils.createConfig();
 
-
-
         config.plans().setInputFile(INPUT_CONFIG_FILE);
 
-        // currently generates add gz after debugging
-
         scenario = ScenarioUtils.loadScenario(config);
-        // (this will read the population file)
-
         pf = scenario.getPopulation().getFactory();
 
     }
@@ -78,14 +74,20 @@ public class AddWorkPlacesToPopulation {
      * @param args
      */
     public static void main(String[] args) {
+
         createPopulationFromLatch();
         AddWorkPlacesToPopulation abc = new AddWorkPlacesToPopulation();
-        abc.readShapefile(); // zones as used in the OD matrix.  ASGS
+        abc.readShapefile();
         abc.readCorrespondences();
         abc.readODMatrix();
         abc.parsePopulation();
     }
 
+    /*
+    * Method to create the population file using the files generated from the LATCH algorithm
+    * if the file has not been created already
+    *
+    * */
     private static void createPopulationFromLatch() {
         File fOpen = new File(INPUT_CONFIG_FILE);
 
@@ -104,18 +106,15 @@ public class AddWorkPlacesToPopulation {
         }
     }
 
-
     /**
-     * Method to read the mapping correspondence file
-     * to map the sa1 7 digit codes (2011) to the sa2 names (2011)
+     * Method to read the look up correspondence file
+     * to map the sa1 7 digit codes (2011) to the corresponding sa2 names (2011)
      */
     private void readCorrespondences() {
-        // this reads the table that allows to look up SA2 names from the SA1 IDs from latch.
 
         sa2NameFromSa1Id = new HashMap<String, String>();
 
         try (final BufferedReader reader = new BufferedReader(new FileReader(CORRESPONDENCE_FILE))) {
-            // try-with-resources
 
             System.out.println("Parsing Correspondences file..");
 
@@ -124,19 +123,14 @@ public class AddWorkPlacesToPopulation {
             builder.withSeparator(',');
 
             final CsvToBean<SAMap> reader2 = builder.build();
-
-            int count = 0;
             for (Iterator<SAMap> it = reader2.iterator(); it.hasNext(); ) {
                 SAMap saMap = it.next();
 
-                //if(saMap.SA2_NAME_2011.toLowerCase().equals("northcote"))
-//                    count++;
                 sa2NameFromSa1Id.put(saMap.SA1_7DIGITCODE_2011, saMap.SA2_NAME_2011);
             }
-
-//            System.out.println("NORTHCOTE RECORDS : "+count);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -170,11 +164,9 @@ public class AddWorkPlacesToPopulation {
     }
 
     /**
-     * Method to read the OD matrix which stores the home-work place journeys Victoria(??) (2011)
+     * Method to read the OD matrix which stores the home-work place journeys Victoria (2011)
      */
     private void readODMatrix() {
-
-        // csv reader; start at line 12 (or 13); read only car to get started.
 
         int cnt = 0;
 
@@ -183,13 +175,12 @@ public class AddWorkPlacesToPopulation {
         odMatrix = new HashMap<>();
 
         try (final BufferedReader reader = new BufferedReader(new FileReader(OD_MATRIX_FILE))) {
-            // try-with-resources
 
             System.out.println("Parsing Matrix file..");
 
+            // csv reader; start at line 12 (or 13) reading only car-as-driver to get started.
             while (++cnt < 15)
-
-                reader.readLine();
+            {reader.readLine();}
 
             final CsvToBeanBuilder<Record> builder = new CsvToBeanBuilder<>(reader);
             builder.withType(Record.class);
@@ -202,7 +193,7 @@ public class AddWorkPlacesToPopulation {
 
             String currentOrigin = "";
 
-
+            //Going over each line in the file
             for (Iterator<Record> it = reader2.iterator(); it.hasNext(); ) {
                 Record record = it.next();
 
@@ -210,23 +201,16 @@ public class AddWorkPlacesToPopulation {
                 if (record.mainStatAreaUR != null) {
                     //if the file read reaches a new UR
 
+                    //code below just to display loading status
                     cnt2++;
                     System.out.print(".");
                     if (cnt2 % 80 == 0) {
                         System.out.println();
                     }
 
-
-//                    System.out.println("Origin : "+currentOrigin );
-//                    System.out.println("*********************************************" );
-//                    for(Map.Entry<String,Map<String,Double>> entry : destinations.entrySet())
-//                    {
-//                        System.out.println(entry.getKey()+" "+entry.getValue().get(TransportMode.car));
-//                    }
-
-                    // memorize the origin name:
                     currentOrigin = record.mainStatAreaUR;
 
+                    //Skips header line from being read in
                     if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
                         continue;
 
@@ -239,6 +223,7 @@ public class AddWorkPlacesToPopulation {
                     // ... and put it into the OD matrix:
                     odMatrix.put(currentOrigin, destinations);
 
+                    //End reading in if the 'word' total is reached as it contains
                     if (record.mainStatAreaUR.toLowerCase().equals("total")) {
 
                         System.out.println("Parsing matrix finished..");
@@ -251,11 +236,11 @@ public class AddWorkPlacesToPopulation {
                 //Following lines upto sorting may be an unecessary step linking the destinations directly to the car
                 // as
                 // driver population
-                Map<String,Double> carDriverMap = new LinkedHashMap<>();
+                Map<String, Double> carDriverMap = new LinkedHashMap<>();
 
                 List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
-                for(Map.Entry<String,Map<String,Double>> entry : entries)
-                    carDriverMap.put(entry.getKey(),entry.getValue().get(TransportMode.car));
+                for (Map.Entry<String, Map<String, Double>> entry : entries)
+                    carDriverMap.put(entry.getKey(), entry.getValue().get(TransportMode.car));
 
                 List<Map.Entry> carDriverMapEntries = new ArrayList<>(carDriverMap.entrySet());
 
@@ -272,17 +257,17 @@ public class AddWorkPlacesToPopulation {
                         isRecordInserted = true;
                         destinations.put(record.mainStatAreaPOW, mode);
                     }
-                    Map<String,Double> currMode = new HashMap<>();
-                    currMode.put(TransportMode.car,entry.getValue());
+                    Map<String, Double> currMode = new HashMap<>();
+                    currMode.put(TransportMode.car, entry.getValue());
 
-                    destinations.put(entry.getKey(),currMode);
+                    destinations.put(entry.getKey(), currMode);
 
                 }
-                if(isRecordInserted == false)
-                    destinations.put(record.mainStatAreaPOW,mode);
+                if (isRecordInserted == false)
+                    destinations.put(record.mainStatAreaPOW, mode);
                 // this is what we need to do for every record:
 
-                odMatrix.put(currentOrigin,destinations);
+                odMatrix.put(currentOrigin, destinations);
 
 
             }
@@ -307,8 +292,9 @@ public class AddWorkPlacesToPopulation {
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
 
-            //Assumption Anyone over 15 is working
-            if (person.getAttributes().getAttribute("RelationshipStatus").equals("U15Child"))
+            //Assumption Anyone between the age of 15-84 is working
+            if (person.getAttributes().getAttribute("RelationshipStatus").equals("U15Child")
+                    || Integer.parseInt(person.getAttributes().getAttribute("Age").toString()) > 85)
                 continue;
 
             String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
@@ -357,28 +343,28 @@ public class AddWorkPlacesToPopulation {
             SimpleFeature ft = this.featureMap.get(destinationSa2Name);
 
             //Null because there are some sa2 locations for which we cannot retrieve a feature
-            if(ft!=null){
-            Gbl.assertNotNull(ft);
+            if (ft != null) {
+                Gbl.assertNotNull(ft);
 
-            Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
+                Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
 
-            Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
-            Gbl.assertNotNull(point);
+                Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
+                Gbl.assertNotNull(point);
 
-            // add the leg and act (only if the above has not failed!)
-            Leg leg = pf.createLeg(TransportMode.car); // yyyy needs to be fixed; currently only looking at car
-            person.getSelectedPlan().addLeg(leg);
+                // add the leg and act (only if the above has not failed!)
+                Leg leg = pf.createLeg(TransportMode.car); // yyyy needs to be fixed; currently only looking at car
+                person.getSelectedPlan().addLeg(leg);
 
-            Coord coord = new Coord(point.getX(), point.getY());
-            Activity act = pf.createActivityFromCoord("work", coord);
-            person.getSelectedPlan().addActivity(act);
+                Coord coord = new Coord(point.getX(), point.getY());
+                Activity act = pf.createActivityFromCoord("work", coord);
+                person.getSelectedPlan().addActivity(act);
 
-            // check what we have:
-            System.out.println("plan=" + person.getSelectedPlan());
-            for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
-                System.out.println("pe=" + pe);
+                // check what we have:
+                System.out.println("plan=" + person.getSelectedPlan());
+                for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
+                    System.out.println("pe=" + pe);
+                }
             }
-        }
             // we leave it at this; the trip back home we do later.
         }
 
