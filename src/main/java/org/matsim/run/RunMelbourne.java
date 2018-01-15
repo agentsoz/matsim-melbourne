@@ -57,7 +57,8 @@ public class RunMelbourne {
 //		}
 		{
 					config.network().setInputFile("net.xml.gz");
-					config.plans().setInputFile("plans-file-new-29-nov.xml.gz") ;
+					config.plans().setInputFile("../../population-with-home-work-trips.xml") ;
+//					config.plans().setInputFile("plans-file-new-29-nov.xml.gz") ;
 //					config.plans().setInputFile("pop-routed.xml.gz") ;
 //					config.plans().setInputFile("pop-routed-accessegress.xml.gz") ;
 		}

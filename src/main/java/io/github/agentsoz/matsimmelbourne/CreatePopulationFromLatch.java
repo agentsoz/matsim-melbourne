@@ -158,6 +158,8 @@ public class CreatePopulationFromLatch {
                 person.getAttributes().putAttribute("Age", record.Age);
                 person.getAttributes().putAttribute("Gender", record.Gender);
                 person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
+
+               //FIXME: null householdid error in MATSim
                 person.getAttributes().putAttribute("sa1_7digitcode_2011",
                         hhsa1Code.containsKey(record.HouseholdId) ? hhsa1Code.get(record.HouseholdId) : "NULL");
 
@@ -169,7 +171,7 @@ public class CreatePopulationFromLatch {
                 Coord coord = hhs.get(record.HouseholdId);
 
 
-                Activity activity = populationFactory.createActivityFromCoord("home", coord);
+                Activity activity = populationFactory.createActivityFromCoord("At Home", coord);
                 plan.addActivity(activity);
 
                 //Testing for a small sample of the population

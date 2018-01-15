@@ -370,12 +370,15 @@ public class AddWorkPlacesToPopulation {
                 Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
                 Gbl.assertNotNull(point);
 
+                Activity homeActivity = (Activity)person.getSelectedPlan().getPlanElements().get(0);
+                homeActivity.setEndTime(activityEndTime("home"));
+
                 // add the leg and act (only if the above has not failed!)
                 Leg leg = pf.createLeg(TransportMode.car); // yyyy needs to be fixed; currently only looking at car
                 person.getSelectedPlan().addLeg(leg);
 
                 Coord coord = new Coord(point.getX(), point.getY());
-                Activity act = pf.createActivityFromCoord("work", coord);
+                Activity act = pf.createActivityFromCoord("Work Related", coord);
                 person.getSelectedPlan().addActivity(act);
                 act.setStartTime(activityEndTime("home"));
                 act.setEndTime(activityEndTime("work"));

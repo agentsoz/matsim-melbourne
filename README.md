@@ -97,11 +97,6 @@ cd data && unzip VISTA_v3_Online_Data_CSV_2009.zip && cd -
 mvn exec:java -Dexec.mainClass="au.edu.unimelb.imod.demand.KaiCreateDemand"
 ```
 
-Then to run the simulation with the generated MATSim population, do:
-```concept
-mvn exec:java -Dexec.mainClass="org.matsim.run.RunMelbourne"
-```
-
 To feed the Synthetic population generated using the latch algorithm to MatSim, use the command below. It generates the output file
 saved as `population-from-latch.xml`
 ```concept
@@ -112,6 +107,11 @@ To generate the MatSim activity plans with planned mode of transport car-as-driv
 It generates the output file saved as `population-with-home-work-trips.xml`
 ```concept
 mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AddWorkPlacesToPopulation"
+```
+
+Then to run the simulation with the generated MATSim population, do:
+```concept
+mvn exec:java -Dexec.mainClass="org.matsim.run.RunMelbourne"
 ```
 
 ## Contributors
