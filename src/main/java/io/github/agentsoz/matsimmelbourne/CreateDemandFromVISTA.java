@@ -322,11 +322,11 @@ public class CreateDemandFromVISTA {
 
 	public static void main(String[] args) throws IOException {
 
-//		CreateDemandFromVISTA createDemand = new CreateDemandFromVISTA();
-//		Config config = ConfigUtils.createConfig();
-//		Scenario scenario = ScenarioUtils.createScenario(config);
-//		createDemand.run();
-//		System.out.println("DONE");
+		CreateDemandFromVISTA createDemand = new CreateDemandFromVISTA();
+		Config config = ConfigUtils.createConfig();
+		Scenario scenario = ScenarioUtils.createScenario(config);
+		createDemand.run();
+		System.out.println("DONE");
 
 	}
 

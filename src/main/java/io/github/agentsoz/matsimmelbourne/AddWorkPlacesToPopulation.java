@@ -179,8 +179,9 @@ public class AddWorkPlacesToPopulation {
             System.out.println("Parsing Matrix file..");
 
             // csv reader; start at line 12 (or 13) reading only car-as-driver to get started.
-            while (++cnt < 15)
-            {reader.readLine();}
+            while (++cnt < 15) {
+                reader.readLine();
+            }
 
             final CsvToBeanBuilder<Record> builder = new CsvToBeanBuilder<>(reader);
             builder.withType(Record.class);
@@ -279,6 +280,24 @@ public class AddWorkPlacesToPopulation {
     }
 
     /**
+     * Copied from bdi project synthetic population
+     *
+     * @param actType
+     * @return
+     */
+    private double activityEndTime(String actType) {
+        double endTime = 0.0;
+        if (actType.equals("work")) {
+			/*
+			 * Allow people to leave work between 16.45 and 17.10
+			 */
+            endTime = 60300 + (60 * 25 * Math.random());
+            return endTime;
+        }
+        return 21600;
+    }
+
+    /**
      * Method to retrieve the population and add the home-work trip to each person
      * using the home starting coordinates, and random selection of work trip destination
      * scaled from the OD matrix file
@@ -308,7 +327,7 @@ public class AddWorkPlacesToPopulation {
             Map<String, Map<String, Double>> destinations = odMatrix.get(sa2name);
 
             // sum over all destinations
-            double sum = 0.;
+            double sum = 0;
             for (Map<String, Double> nTripsByMode : destinations.values()) {
                 sum += nTripsByMode.get(TransportMode.car);
             }
@@ -318,7 +337,7 @@ public class AddWorkPlacesToPopulation {
 
             // variable to store destination name:
             String destinationSa2Name = null;
-            double sum2 = 0.;
+            double sum2 = 0;
 
             for (Map.Entry<String, Map<String, Double>> entry : destinations.entrySet()) {
                 Map<String, Double> nTripsByMode = entry.getValue();
@@ -330,12 +349,13 @@ public class AddWorkPlacesToPopulation {
                     destinationSa2Name = entry.getKey();
                     break;
                 }
+
             }
+            if (destinationSa2Name != null) {
+                double numWorkingPeople = destinations.get(destinationSa2Name).get(TransportMode.car);
+                destinations.get(destinationSa2Name).put(TransportMode.car, --numWorkingPeople);
 
-
-            //############### TESTING ####################################
-//            Double num = destinations.get(destinationSa2Name).get(TransportMode.car);
-//            destinations.get(destinationSa2Name).put(TransportMode.car,num-1);
+            }
 
             Gbl.assertNotNull(destinationSa2Name);
 
@@ -345,7 +365,6 @@ public class AddWorkPlacesToPopulation {
             //Null because there are some sa2 locations for which we cannot retrieve a feature
             if (ft != null) {
                 Gbl.assertNotNull(ft);
-
                 Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
 
                 Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
@@ -358,9 +377,12 @@ public class AddWorkPlacesToPopulation {
                 Coord coord = new Coord(point.getX(), point.getY());
                 Activity act = pf.createActivityFromCoord("work", coord);
                 person.getSelectedPlan().addActivity(act);
+                act.setStartTime(activityEndTime("home"));
+                act.setEndTime(activityEndTime("work"));
 
                 // check what we have:
                 System.out.println("plan=" + person.getSelectedPlan());
+
                 for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
                     System.out.println("pe=" + pe);
                 }
