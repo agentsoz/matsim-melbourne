@@ -342,7 +342,7 @@ public class AddWorkPlacesToPopulation {
                 Map<String, Double> nTripsByMode = entry.getValue();
 
                 sum2 += nTripsByMode.get(TransportMode.car);
-                if (sum2 > tripToTake) {
+                if (sum2 >= tripToTake) {
 
                     // this our trip!
                     destinationSa2Name = entry.getKey();
@@ -352,6 +352,7 @@ public class AddWorkPlacesToPopulation {
             }
             if (destinationSa2Name != null) {
                 double numWorkingPeople = destinations.get(destinationSa2Name).get(TransportMode.car);
+                if(numWorkingPeople>0)
                 destinations.get(destinationSa2Name).put(TransportMode.car, --numWorkingPeople);
 
             }
@@ -377,10 +378,17 @@ public class AddWorkPlacesToPopulation {
                 person.getSelectedPlan().addLeg(leg);
 
                 Coord coord = new Coord(point.getX(), point.getY());
-                Activity act = pf.createActivityFromCoord("Work Related", coord);
-                person.getSelectedPlan().addActivity(act);
-                act.setStartTime(activityEndTime("home"));
-                act.setEndTime(activityEndTime("work"));
+                Activity actWork = pf.createActivityFromCoord("Work Related", homeActivity.getCoord());
+                person.getSelectedPlan().addActivity(actWork);
+
+//                actWork.setStartTime(activityEndTime("home"));
+                actWork.setEndTime(activityEndTime("work"));
+
+                person.getSelectedPlan().addLeg(leg);
+
+                Activity actGoHome = pf.createActivityFromCoord("Go Home", coord);
+                actGoHome.setStartTime(actWork.getEndTime());
+                person.getSelectedPlan().addActivity(actGoHome);
 
                 // check what we have:
                 System.out.println("plan=" + person.getSelectedPlan());

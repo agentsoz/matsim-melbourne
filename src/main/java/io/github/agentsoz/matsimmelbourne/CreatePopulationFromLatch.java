@@ -151,11 +151,11 @@ public class CreatePopulationFromLatch {
                 LatchPopulationRecord record = it.next();
 
 
-                Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
-                population.addPerson(person);
-
-
                 if (hhsa1Code.containsKey(record.HouseholdId)) {
+
+                    Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
+                    population.addPerson(person);
+
                     // TODO: for now put in a heuristic to calculate the 'LabourForceStatus' attribute for the person
                     person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
                     person.getAttributes().putAttribute("Age", record.Age);
@@ -201,7 +201,7 @@ public class CreatePopulationFromLatch {
             System.out.println("##########################");
             for (String eachPerson : excludedPersons) {
                 cnt2++;
-                System.out.println("P"+cnt2+" : "+eachPerson);
+                System.out.println("P" + cnt2 + " : " + eachPerson);
             }
         }
 
