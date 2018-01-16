@@ -26,8 +26,7 @@ public class AddWorkPlacesToPopulation {
     public static final String[] INIT_POPULATION = {
 
             "--output-dir", ".",
-            "--run-mode", "d",
-            "--sample-population", "100",
+            "--run-mode", "f",
             "--file-format", "x",
 
     };

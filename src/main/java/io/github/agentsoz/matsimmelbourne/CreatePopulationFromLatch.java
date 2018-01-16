@@ -164,7 +164,8 @@ public class CreatePopulationFromLatch {
 
                     //*********FIXED**************FIXME: null sa1code for householdid error in MATSim
                     person.getAttributes().putAttribute("sa1_7digitcode_2011",
-                            hhsa1Code.containsKey(record.HouseholdId));// ? hhsa1Code.get(record.HouseholdId) : "NULL");
+                            hhsa1Code.get(record.HouseholdId));// hhsa1Code.contains(record.HouseholdId)? hhsa1Code.get
+                    // (record.HouseholdId) : "NULL");
 
                     Plan plan = populationFactory.createPlan();
                     person.addPlan(plan);
