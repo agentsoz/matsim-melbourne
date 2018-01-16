@@ -12,6 +12,7 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.households.Household;
 import org.matsim.households.Households;
 import org.matsim.households.HouseholdsFactory;
 
@@ -27,7 +28,7 @@ import java.util.*;
 public class CreatePopulationFromLatch {
 
     //************FIXED************* TODO: Add input parameter defaults here
-    //
+
     private static final String PARAM_RUN_MODE = "f";
     private static final String PARAM_OUTPUT_FORMAT = "x";
 
@@ -142,12 +143,12 @@ public class CreatePopulationFromLatch {
             int nullsa1Count = 0;
             List<String> excludedPersons = new ArrayList<>();
 
-            final CsvToBeanBuilder<LatchRecord> builder = new CsvToBeanBuilder<>(reader);
-            builder.withType(LatchRecord.class);
+            final CsvToBeanBuilder<LatchPopulationRecord> builder = new CsvToBeanBuilder<>(reader);
+            builder.withType(LatchPopulationRecord.class);
             builder.withSeparator(',');
-            final CsvToBean<LatchRecord> reader2 = builder.build();
-            for (Iterator<LatchRecord> it = reader2.iterator(); it.hasNext(); ) {
-                LatchRecord record = it.next();
+            final CsvToBean<LatchPopulationRecord> reader2 = builder.build();
+            for (Iterator<LatchPopulationRecord> it = reader2.iterator(); it.hasNext(); ) {
+                LatchPopulationRecord record = it.next();
 
 
                 Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
@@ -161,9 +162,9 @@ public class CreatePopulationFromLatch {
                     person.getAttributes().putAttribute("Gender", record.Gender);
                     person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
 
-                    //FIXME: null sa1code for householdid error in MATSim
+                    //*********FIXED**************FIXME: null sa1code for householdid error in MATSim
                     person.getAttributes().putAttribute("sa1_7digitcode_2011",
-                            hhsa1Code.containsKey(record.HouseholdId) ? hhsa1Code.get(record.HouseholdId) : "NULL");
+                            hhsa1Code.containsKey(record.HouseholdId));// ? hhsa1Code.get(record.HouseholdId) : "NULL");
 
                     Plan plan = populationFactory.createPlan();
                     person.addPlan(plan);
@@ -220,9 +221,6 @@ public class CreatePopulationFromLatch {
         StringBuilder json = new StringBuilder();
         String line;
 
-        Households households = scenario.getHouseholds();
-        HouseholdsFactory hf = households.getFactory();
-
         try {
 
 
@@ -263,7 +261,7 @@ public class CreatePopulationFromLatch {
      */
     @SuppressWarnings("WeakerAccess")
     // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
-    public final static class LatchRecord {
+    public final static class LatchPopulationRecord {
         @CsvBindByName
         private String AgentId;
         @CsvBindByName
