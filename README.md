@@ -97,10 +97,15 @@ cd data && unzip VISTA_v3_Online_Data_CSV_2009.zip && cd -
 mvn exec:java -Dexec.mainClass="au.edu.unimelb.imod.demand.KaiCreateDemand"
 ```
 
-To feed the Synthetic population generated using the latch algorithm to MatSim, use the command below. It generates the output file
-saved as `population-from-latch.xml`
+To convert the Synthetic population generated using the latch algorithm to the MatSim syntax, use the command below. It
+generates the output file saved as `population-from-latch.xml`
 ```concept
 mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.CreatePopulationFromLatch" --output-dir . --run-mode f --file-format x
+```
+To convert the Synthetic households generated using the latch algorithm to the MatSim syntax, use the command below. It
+generates the output file saved as `households-from-latch.xml`
+```concept
+mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.CreateHouseHoldFromLatch"
 ```
 
 To generate the MatSim activity plans with planned mode of transport car-as-driver for the Synthetic population, use the command below. 
