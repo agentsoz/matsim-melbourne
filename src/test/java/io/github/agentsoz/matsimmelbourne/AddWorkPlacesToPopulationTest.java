@@ -9,6 +9,11 @@ import java.io.IOException;
  */
 public class AddWorkPlacesToPopulationTest {
 
+    String[] args = {
+
+            "carAsDriver"
+    };
+
     @Test
     public final void addworkPlacestoPopTestMain() throws IOException {
         // FIXME: not really testing anything at the moment;
@@ -17,7 +22,7 @@ public class AddWorkPlacesToPopulationTest {
         // dir structure for this)
         // FIXME: use the util.getInputDirectory()/util.getOutputDirectory() like scheme for finding expected/output files
         // Maybe look at: https://github.com/agentsoz/bdi-abm-integration/blob/kaibranch/examples/bushfire/src/test/java/io/github/agentsoz/ees/FireAreaMaldon600Test.java
-        AddWorkPlacesToPopulation.main(null);
+        AddWorkPlacesToPopulation.main(args);
 
     }
 }
