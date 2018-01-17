@@ -1,7 +1,11 @@
 package io.github.agentsoz.matsimmelbourne;
 
-import com.opencsv.bean.*;
+import com.opencsv.bean.CsvBindByName;
+import com.opencsv.bean.CsvBindByPosition;
+import com.opencsv.bean.CsvToBean;
+import com.opencsv.bean.CsvToBeanBuilder;
 import com.vividsolutions.jts.geom.Point;
+import org.apache.log4j.Logger;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.matsim.api.core.v01.Coord;
@@ -12,6 +16,8 @@ import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordinateTransformation;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -22,6 +28,7 @@ import java.util.*;
  * Class to add working places to the synthetic population
  */
 public class AddWorkPlacesToPopulation {
+	private static final Logger log = Logger.getLogger(AddWorkPlacesToPopulation.class) ;
 
     public static final String[] INIT_POPULATION = {
 
@@ -51,7 +58,11 @@ public class AddWorkPlacesToPopulation {
     // something like odMatrix.get(origin).get(destination).get(mode)
 
     private Random rnd;
-
+    
+    private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
+    // yyyyyy the "from" of this is probably not right; should be GCS_GDA_1994 (EPSG:4283)
+    
+    
     /**
      * Constructor for the AddWorkPlacesToPopulation class
      * Initialises MATSim population construction after reading in the population file
@@ -481,36 +492,48 @@ public class AddWorkPlacesToPopulation {
 
             // find a coordinate for the destination:
             SimpleFeature ft = this.featureMap.get(destinationSa2Name);
+            
+            if ( ft==null ) {
+				//Null because there are some sa2 locations for which we cannot retrieve a feature
+            	log.warn("There is no feature for " + destinationSa2Name + ".  Possibly this means " +
+								 "that the destination is outside the area that we have covered by shapefiles.  Ignoring the person.")  ;
+            	continue ;
+			}
 
-            //Null because there are some sa2 locations for which we cannot retrieve a feature
-            if (ft != null) {
-                Gbl.assertNotNull(ft);
-                Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
+			Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
+			
+			// ---
 
-                Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
-                Gbl.assertNotNull(point);
+			Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
+			homeActivity.setEndTime(activityEndTime("home"));
+   
+			// --- add a leg:
 
-                Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
-                homeActivity.setEndTime(activityEndTime("home"));
+			Leg leg = pf.createLeg(getTransportModeString(transportMode)); // yyyy needs to be fixed; currently only looking at
+			// car
+			person.getSelectedPlan().addLeg(leg);
+			
+			// --- add work activity:
+	
+			Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
+			Gbl.assertNotNull(point);
+	
+			Coord coord = new Coord(point.getX(), point.getY());
+			Coord coordTransformed = ct.transform(coord) ;
+	
+			Activity actWork = pf.createActivityFromCoord("Work Related", coordTransformed);
+			person.getSelectedPlan().addActivity(actWork);
 
+			actWork.setEndTime(activityEndTime("work"));
+			
+			// --- add leg:
 
-                // add the leg and act (only if the above has not failed!)
-                Leg leg = pf.createLeg(getTransportModeString(transportMode)); // yyyy needs to be fixed; currently only looking at
-                // car
-                person.getSelectedPlan().addLeg(leg);
+			person.getSelectedPlan().addLeg(leg);
+			
+			// --- add home activity:
 
-                Coord coord = new Coord(point.getX(), point.getY());
-                Activity actWork = pf.createActivityFromCoord("Work Related", coord);
-                person.getSelectedPlan().addActivity(actWork);
-
-//                actWork.setStartTime(activityEndTime("home"));
-                actWork.setEndTime(activityEndTime("work"));
-
-                person.getSelectedPlan().addLeg(leg);
-
-                Activity actGoHome = pf.createActivityFromCoord("Go Home", homeActivity.getCoord());
-//                actGoHome.setStartTime(actWork.getEndTime());
-                person.getSelectedPlan().addActivity(actGoHome);
+			Activity actGoHome = pf.createActivityFromCoord("Go Home", homeActivity.getCoord());
+			person.getSelectedPlan().addActivity(actGoHome);
 
 //                // check what we have:
 //                System.out.println("plan=" + person.getSelectedPlan());
@@ -518,9 +541,7 @@ public class AddWorkPlacesToPopulation {
 //                for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
 //                    System.out.println("pe=" + pe);
 //                }
-            }
-            // we leave it at this; the trip back home we do later.
-        }
+		}
 
         //Write out the population to xml file
         PopulationWriter writer = new PopulationWriter(scenario.getPopulation());
