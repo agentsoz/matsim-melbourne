@@ -31,6 +31,7 @@ public class AddWorkPlacesToPopulation {
 
     };
 
+    private Record record;
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
     private final static String OUTPUT_TRIPS_FILE = "population-with-home-work-trips.xml";
 
@@ -74,12 +75,15 @@ public class AddWorkPlacesToPopulation {
      */
     public static void main(String[] args) {
 
+        if (args.length != 1)
+            throw new RuntimeException("Incorrect number of arguments");
+
         createPopulationFromLatch();
         AddWorkPlacesToPopulation abc = new AddWorkPlacesToPopulation();
         abc.readShapefile();
         abc.readCorrespondences();
-        abc.readODMatrix();
-        abc.parsePopulation();
+        abc.readODMatrix(args[0].toLowerCase());
+        abc.parsePopulation(args[0].toLowerCase());
     }
 
     /*
@@ -162,10 +166,110 @@ public class AddWorkPlacesToPopulation {
 
     }
 
+    private String getTransportModeString(String transportMode){
+
+        switch (transportMode) {
+
+            case "train": {
+                //TO CHANGE
+                return TransportMode.other;
+            }
+            case "tram": {
+                //TO CHANGE
+                return TransportMode.other;
+            }
+            case "bus": {
+
+                //TO CHANGE
+                return TransportMode.other;
+            }
+            case "taxi": {
+                //TO CHANGE
+                return TransportMode.other;
+            }
+            case "carasdriver": {
+
+                return TransportMode.car;
+            }
+            case "caraspassenger": {
+
+                //TO CHANGE
+                return TransportMode.car;
+            }
+            case "truck": {
+
+                return TransportMode.other;
+            }
+            case "motorbike": {
+
+                return TransportMode.other;
+            }
+            case "bicycle": {
+
+                return TransportMode.bike;
+            }
+            case "other": {
+
+                return TransportMode.other;
+            }
+
+            default: {
+
+                return record.other;
+            }
+        }
+    }
+
+    private String getTransportModeRecord(String transportMode) {
+
+        switch (transportMode) {
+
+            case "train":
+                return record.train;
+
+            case "tram": {
+                return record.tram;
+            }
+            case "bus": {
+
+                return record.bus;
+            }
+            case "taxi": {
+                return record.taxi;
+            }
+            case "carasdriver": {
+
+                return record.carAsDriver;
+            }
+            case "truck": {
+
+                return record.truck;
+            }
+            case "motorbike": {
+
+                return record.motorbike;
+            }
+            case "bicycle": {
+
+                return record.bicycle;
+            }
+            case "other": {
+
+                return record.other;
+            }
+
+            default: {
+
+                return record.other;
+            }
+        }
+
+    }
+
     /**
      * Method to read the OD matrix which stores the home-work place journeys Victoria (2011)
      */
-    private void readODMatrix() {
+    private void readODMatrix(String transportMode) {
 
         int cnt = 0;
 
@@ -195,8 +299,10 @@ public class AddWorkPlacesToPopulation {
 
             //Going over each line in the file
             for (Iterator<Record> it = reader2.iterator(); it.hasNext(); ) {
-                Record record = it.next();
 
+                record = it.next();
+
+                String tMode = getTransportModeRecord(transportMode);
 
                 if (record.mainStatAreaUR != null) {
                     //if the file read reaches a new UR
@@ -240,12 +346,12 @@ public class AddWorkPlacesToPopulation {
 
                 List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
                 for (Map.Entry<String, Map<String, Double>> entry : entries)
-                    carDriverMap.put(entry.getKey(), entry.getValue().get(TransportMode.car));
+                    carDriverMap.put(entry.getKey(), entry.getValue().get(transportMode));
 
                 List<Map.Entry> carDriverMapEntries = new ArrayList<>(carDriverMap.entrySet());
 
-
-                mode.put(TransportMode.car, Double.parseDouble(record.carAsDriver));
+//TODO CHANGE TO TRANSPORT MODE CLASS STRINGS
+                mode.put(transportMode, Double.parseDouble(tMode));
 
                 destinations = new LinkedHashMap<>();
 
@@ -253,12 +359,14 @@ public class AddWorkPlacesToPopulation {
 
                 //Carry out sorting
                 for (Map.Entry<String, Double> entry : carDriverMapEntries) {
-                    if (Double.parseDouble(record.carAsDriver) < entry.getValue()) {
+                    if (Double.parseDouble(tMode) < entry.getValue()) {
                         isRecordInserted = true;
                         destinations.put(record.mainStatAreaPOW, mode);
                     }
                     Map<String, Double> currMode = new HashMap<>();
-                    currMode.put(TransportMode.car, entry.getValue());
+
+//TODO CHANGE TO TRANSPORT MODE CLASS STRINGS
+                    currMode.put(transportMode, entry.getValue());
 
                     destinations.put(entry.getKey(), currMode);
 
@@ -287,12 +395,24 @@ public class AddWorkPlacesToPopulation {
     private double activityEndTime(String actType) {
         double endTime = 0.0;
         if (actType.equals("work")) {
-			/*
+            /*
 			 * Allow people to leave work between 16.45 and 17.10
 			 */
             endTime = 60300 + (60 * 25 * Math.random());
             return endTime;
         }
+
+        Random rnd = new Random();
+        if (actType.equals("home")) {
+
+            /*
+			 * Allow people to leave work between
+			 */
+            endTime = 21600 + (60 *
+                    rnd.nextInt(180));
+            return endTime;
+        }
+
         return 21600;
     }
 
@@ -301,7 +421,7 @@ public class AddWorkPlacesToPopulation {
      * using the home starting coordinates, and random selection of work trip destination
      * scaled from the OD matrix file
      */
-    private void parsePopulation() {
+    private void parsePopulation(String transportMode) {
         // TODO: Make the random seed an input param (make sure you use only one instance of Random everywhere)
         //Done declared as class variable
         rnd = new Random(4711);
@@ -328,7 +448,7 @@ public class AddWorkPlacesToPopulation {
             // sum over all destinations
             double sum = 0;
             for (Map<String, Double> nTripsByMode : destinations.values()) {
-                sum += nTripsByMode.get(TransportMode.car);
+                sum += nTripsByMode.get(transportMode);
             }
 
             // throw random number
@@ -341,7 +461,7 @@ public class AddWorkPlacesToPopulation {
             for (Map.Entry<String, Map<String, Double>> entry : destinations.entrySet()) {
                 Map<String, Double> nTripsByMode = entry.getValue();
 
-                sum2 += nTripsByMode.get(TransportMode.car);
+                sum2 += nTripsByMode.get(transportMode);
                 if (sum2 >= tripToTake) {
 
                     // this our trip!
@@ -351,9 +471,9 @@ public class AddWorkPlacesToPopulation {
 
             }
             if (destinationSa2Name != null) {
-                double numWorkingPeople = destinations.get(destinationSa2Name).get(TransportMode.car);
-                if(numWorkingPeople>0)
-                destinations.get(destinationSa2Name).put(TransportMode.car, --numWorkingPeople);
+                double numWorkingPeople = destinations.get(destinationSa2Name).get(transportMode);
+                if (numWorkingPeople > 0)
+                    destinations.get(destinationSa2Name).put(transportMode, --numWorkingPeople);
 
             }
 
@@ -370,15 +490,17 @@ public class AddWorkPlacesToPopulation {
                 Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
                 Gbl.assertNotNull(point);
 
-                Activity homeActivity = (Activity)person.getSelectedPlan().getPlanElements().get(0);
+                Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
                 homeActivity.setEndTime(activityEndTime("home"));
 
+
                 // add the leg and act (only if the above has not failed!)
-                Leg leg = pf.createLeg(TransportMode.car); // yyyy needs to be fixed; currently only looking at car
+                Leg leg = pf.createLeg(getTransportModeString(transportMode)); // yyyy needs to be fixed; currently only looking at
+                // car
                 person.getSelectedPlan().addLeg(leg);
 
                 Coord coord = new Coord(point.getX(), point.getY());
-                Activity actWork = pf.createActivityFromCoord("Work Related", homeActivity.getCoord());
+                Activity actWork = pf.createActivityFromCoord("Work Related", coord);
                 person.getSelectedPlan().addActivity(actWork);
 
 //                actWork.setStartTime(activityEndTime("home"));
@@ -386,16 +508,16 @@ public class AddWorkPlacesToPopulation {
 
                 person.getSelectedPlan().addLeg(leg);
 
-                Activity actGoHome = pf.createActivityFromCoord("Go Home", coord);
-                actGoHome.setStartTime(actWork.getEndTime());
+                Activity actGoHome = pf.createActivityFromCoord("Go Home", homeActivity.getCoord());
+//                actGoHome.setStartTime(actWork.getEndTime());
                 person.getSelectedPlan().addActivity(actGoHome);
 
-                // check what we have:
-                System.out.println("plan=" + person.getSelectedPlan());
-
-                for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
-                    System.out.println("pe=" + pe);
-                }
+//                // check what we have:
+//                System.out.println("plan=" + person.getSelectedPlan());
+//
+//                for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
+//                    System.out.println("pe=" + pe);
+//                }
             }
             // we leave it at this; the trip back home we do later.
         }
@@ -418,15 +540,37 @@ public class AddWorkPlacesToPopulation {
         @CsvBindByPosition(position = 1)
         private String mainStatAreaPOW;
 
+        @CsvBindByPosition(position = 2)
+        private String train;
+
+        @CsvBindByPosition(position = 3)
+        private String bus;
+
+        @CsvBindByPosition(position = 4)
+        private String tram;
+
+        @CsvBindByPosition(position = 5)
+        private String taxi;
+
         @CsvBindByPosition(position = 6)
         private String carAsDriver;
 
-        //private int carAsDriverCumulative;
+        @CsvBindByPosition(position = 7)
+        private String carAsPassenger;
 
-//        @CsvBindByPosition(position = 7)
-//        private String carAsPassenger;
+        @CsvBindByPosition(position = 8)
+        private String truck;
 
-        //private int carAsPassengerCumulative;
+        @CsvBindByPosition(position = 9)
+        private String motorbike;
+
+        @CsvBindByPosition(position = 10)
+        private String bicycle;
+
+        @CsvBindByPosition(position = 11)
+        private String other;
+
+
 
     }
 

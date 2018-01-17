@@ -111,7 +111,7 @@ mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.CreateHouseHo
 To generate the MatSim activity plans with planned mode of transport car-as-driver for the Synthetic population, use the command below. 
 It generates the output file saved as `population-with-home-work-trips.xml`
 ```concept
-mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AddWorkPlacesToPopulation"
+mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AddWorkPlacesToPopulation" carAsDriver
 ```
 
 Then to run the simulation with the generated MATSim population, do:

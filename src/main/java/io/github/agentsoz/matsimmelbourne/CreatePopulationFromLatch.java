@@ -151,6 +151,11 @@ public class CreatePopulationFromLatch {
                 LatchPopulationRecord record = it.next();
 
 
+//                In case people are to be added even without a valid sa1code for their household uncomment the lines
+//                 below and remove from the if loop
+//                Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
+//                population.addPerson(person);
+
                 if (hhsa1Code.containsKey(record.HouseholdId)) {
 
                     Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
