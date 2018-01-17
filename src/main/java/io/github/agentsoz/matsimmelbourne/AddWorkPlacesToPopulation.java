@@ -433,6 +433,9 @@ public class AddWorkPlacesToPopulation {
      * scaled from the OD matrix file
      */
     private void parsePopulation(String transportMode) {
+
+        int personsCount = 0;
+
         // TODO: Make the random seed an input param (make sure you use only one instance of Random everywhere)
         //Done declared as class variable
         rnd = new Random(4711);
@@ -441,6 +444,9 @@ public class AddWorkPlacesToPopulation {
 
         for (Person person : scenario.getPopulation().getPersons().values()) {
 
+            //1% break point for mode of transport
+//            if(personsCount++ > scenario.getPopulation().getPersons().size() * 0.0025)
+//                break;
             //Assumption Anyone between the age of 15-84 is working
             if (person.getAttributes().getAttribute("RelationshipStatus").equals("U15Child")
                     || Integer.parseInt(person.getAttributes().getAttribute("Age").toString()) > 85)
