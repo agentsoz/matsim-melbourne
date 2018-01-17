@@ -57,11 +57,16 @@ public class AddWorkPlacesToPopulation {
     Map<String, Map<String, Map<String, Double>>> odMatrix;
     // something like odMatrix.get(origin).get(destination).get(mode)
 
+    Map<String, Map<String, Map<Modes4Melbourne, Double>>> fractions ;
+    // something like fractions.get(origin).get(destination).get(mode)
+    
+
     private Random rnd;
     
     private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
     // yyyyyy the "from" of this is probably not right; should be GCS_GDA_1994 (EPSG:4283)
     
+    public static enum Modes4Melbourne{ car, pt }
     
     /**
      * Constructor for the AddWorkPlacesToPopulation class
@@ -94,7 +99,7 @@ public class AddWorkPlacesToPopulation {
         abc.readShapefile();
         abc.readCorrespondences();
         abc.readODMatrix(args[0].toLowerCase());
-        abc.parsePopulation(args[0].toLowerCase());
+        abc.parsePopulation();
     }
 
     /*
@@ -432,7 +437,7 @@ public class AddWorkPlacesToPopulation {
      * using the home starting coordinates, and random selection of work trip destination
      * scaled from the OD matrix file
      */
-    private void parsePopulation(String transportMode) {
+    private void parsePopulation() {
         // TODO: Make the random seed an input param (make sure you use only one instance of Random everywhere)
         //Done declared as class variable
         rnd = new Random(4711);
@@ -447,6 +452,8 @@ public class AddWorkPlacesToPopulation {
                 continue;
 
             String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
+            // (sa1 code of home location)
+            
             Gbl.assertNotNull(sa1Id);
 
             // get corresponding sa2name (which comes from the correspondences file):
@@ -457,14 +464,62 @@ public class AddWorkPlacesToPopulation {
             Map<String, Map<String, Double>> destinations = odMatrix.get(sa2name);
 
             // sum over all destinations
-            double sum = 0;
-            for (Map<String, Double> nTripsByMode : destinations.values()) {
-                sum += nTripsByMode.get(transportMode);
+//            double sum = 0;
+//            for (Map<String, Double> nTripsByMode : destinations.values()) {
+//                sum += nTripsByMode.get(transportMode);
+//            }
+            
+            // sum up all trips over all modes and all destinations:
+            Map<Modes4Melbourne,Double> sumsByMode = new HashMap<>() ;
+            double overallSum = 0. ;
+            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
+                double sum = 0. ;
+                for (Map<String, Double> nTripsByMode : destinations.values()) {
+                    sum += nTripsByMode.get(mode);
+                }
+                sumsByMode.put( mode, sum ) ;
+                overallSum += sum ;
             }
+            
 
-            // throw random number
-            int tripToTake = rnd.nextInt((int) sum + 1);
+            // throw random number between zero and number of such trips:
+            long tripToTake = rnd.nextInt((int) overallSum + 1);
+            
+            // find mode:
+            String transportMode = null ;
+            double sumMode = 0 ;
+            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
+                sumMode += sumsByMode.get( mode ) ;
+                    if ( sumMode > tripToTake ) {
+                    transportMode = mode.name() ;
+                    break ;
+                }
+            }
+            
+            // find the number of trips by the modes which come "before" the mode we have now selected and deduct:
+            double offset = 0. ;
+            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
+                if ( transportMode.equals( mode.name() ) ) {
+                    break ;
+                }
+                offset += sumsByMode.get(mode) ;
+            }
+    
+            // situation now: e.g.
+            // numberOfCarTrips=10000
+            // numberPtTrips=5000
+            // numberOfBikeTrips=3000
+            //
+            // tripToTake eg. 16001 so it is a bicycle trip.
+            // find destination by first deducting 10000 und 5000 from 16001 (resulting in 1001),
+            // and then take the 1001th bicycle trip
 
+            double newRandomTripNumber = sumMode - offset ;
+            
+            // alternatively just throw a new random number:
+//            long newRandomTripNumber = rnd.nextInt((int) (tripToTake - offset) );
+            
+            
             // variable to store destination name:
             String destinationSa2Name = null;
             double sum2 = 0;
@@ -473,7 +528,7 @@ public class AddWorkPlacesToPopulation {
                 Map<String, Double> nTripsByMode = entry.getValue();
 
                 sum2 += nTripsByMode.get(transportMode);
-                if (sum2 >= tripToTake) {
+                if (sum2 >= newRandomTripNumber ) {
 
                     // this our trip!
                     destinationSa2Name = entry.getKey();
@@ -481,12 +536,15 @@ public class AddWorkPlacesToPopulation {
                 }
 
             }
-            if (destinationSa2Name != null) {
-                double numWorkingPeople = destinations.get(destinationSa2Name).get(transportMode);
-                if (numWorkingPeople > 0)
-                    destinations.get(destinationSa2Name).put(transportMode, --numWorkingPeople);
-
-            }
+            
+            
+//            if (destinationSa2Name != null) {
+//                double numWorkingPeople = destinations.get(destinationSa2Name).get(transportMode);
+//                if (numWorkingPeople > 0)
+//                    destinations.get(destinationSa2Name).put(transportMode, --numWorkingPeople);
+//
+//            }
+            // don't do this!  (difference between "sampling with replacement (which is what we do) and sampling without replacement").  kai, jan'18
 
             Gbl.assertNotNull(destinationSa2Name);
 
