@@ -66,7 +66,7 @@ public class AddWorkPlacesToPopulation {
     private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
     // yyyyyy the "from" of this is probably not right; should be GCS_GDA_1994 (EPSG:4283)
     
-    public static enum Modes4Melbourne{ carAsPassenger,carAsDriver}//,tram,train,bus,bicycle,motorbike,other  }
+    public static enum Modes4Melbourne{ carAsPassenger,carAsDriver,tram,train,bus,bicycle,motorbike,other }
     
     /**
      * Constructor for the AddWorkPlacesToPopulation class
