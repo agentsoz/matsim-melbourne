@@ -40,7 +40,7 @@ public class AddWorkPlacesToPopulation {
 
     private Record record;
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
-    private final static String OUTPUT_TRIPS_FILE = "population-with-home-work-trips.xml";
+    private final static String OUTPUT_TRIPS_FILE = "population-with-home-work-trips.xml.gz";
 
     private final static String ZONES_FILE =
             "data/census/2011/shp/2017-12-06-1270055001_sa2_2011_aust_shape/SA2_2011_AUST" +
@@ -57,11 +57,16 @@ public class AddWorkPlacesToPopulation {
     Map<String, Map<String, Map<String, Double>>> odMatrix;
     // something like odMatrix.get(origin).get(destination).get(mode)
 
+    Map<String, Map<String, Map<Modes4Melbourne, Double>>> fractions ;
+    // something like fractions.get(origin).get(destination).get(mode)
+    
+
     private Random rnd;
     
     private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
     // yyyyyy the "from" of this is probably not right; should be GCS_GDA_1994 (EPSG:4283)
     
+    public static enum Modes4Melbourne{ carAsPassenger,carAsDriver}//,tram,train,bus,bicycle,motorbike,other  }
     
     /**
      * Constructor for the AddWorkPlacesToPopulation class
@@ -93,8 +98,8 @@ public class AddWorkPlacesToPopulation {
         AddWorkPlacesToPopulation abc = new AddWorkPlacesToPopulation();
         abc.readShapefile();
         abc.readCorrespondences();
-        abc.readODMatrix(args[0].toLowerCase());
-        abc.parsePopulation(args[0].toLowerCase());
+        abc.readODMatrix();
+        abc.parsePopulation();
     }
 
     /*
@@ -179,7 +184,7 @@ public class AddWorkPlacesToPopulation {
 
     private String getTransportModeString(String transportMode){
 
-        switch (transportMode) {
+        switch (transportMode.toLowerCase()) {
 
             case "train": {
                 //TO CHANGE
@@ -233,11 +238,11 @@ public class AddWorkPlacesToPopulation {
 
     private String getTransportModeRecord(String transportMode) {
 
-        switch (transportMode) {
+        switch (transportMode.toLowerCase()) {
 
-            case "train":
+            case "train": {
                 return record.train;
-
+            }
             case "tram": {
                 return record.tram;
             }
@@ -280,7 +285,7 @@ public class AddWorkPlacesToPopulation {
     /**
      * Method to read the OD matrix which stores the home-work place journeys Victoria (2011)
      */
-    private void readODMatrix(String transportMode) {
+    private void readODMatrix() {
 
         int cnt = 0;
 
@@ -313,81 +318,91 @@ public class AddWorkPlacesToPopulation {
 
                 record = it.next();
 
-                String tMode = getTransportModeRecord(transportMode);
+                for ( Modes4Melbourne transportMode : Modes4Melbourne.values() ) {
+                    String tMode = getTransportModeRecord(transportMode.name());
 
-                if (record.mainStatAreaUR != null) {
-                    //if the file read reaches a new UR
+                    if (record.mainStatAreaUR != null) {
+                        //if the file read reaches a new UR
 
-                    //code below just to display loading status
-                    cnt2++;
-                    System.out.print(".");
-                    if (cnt2 % 80 == 0) {
-                        System.out.println();
+                        //code below just to display loading status
+                        cnt2++;
+                        System.out.print(".");
+                        if (cnt2 % 80 == 0) {
+                            System.out.println();
+                        }
+
+                        currentOrigin = record.mainStatAreaUR;
+
+                        //Skips header line from being read in
+                        if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
+                            continue;
+
+
+                        mode = new HashMap<>();
+
+                        // start new table for all destinations from this new origin ...
+                        destinations = new LinkedHashMap<>();
+
+                        // ... and put it into the OD matrix:
+                        odMatrix.put(currentOrigin, destinations);
+
+
+
                     }
 
-                    currentOrigin = record.mainStatAreaUR;
+                    if(record.mainStatAreaPOW==null)
+                        return;
 
-                    //Skips header line from being read in
-                    if (currentOrigin.equals("Main Statistical Area Structure (Main ASGS) (UR)"))
-                        continue;
+                    if(!record.mainStatAreaPOW.startsWith("POW")) {
 
-
-                    mode = new HashMap<>();
-
-                    // start new table for all destinations from this new origin ...
-                    destinations = new LinkedHashMap<>();
-
-                    // ... and put it into the OD matrix:
-                    odMatrix.put(currentOrigin, destinations);
-
-                    //End reading in if the 'word' total is reached as it contains
-                    if (record.mainStatAreaUR.toLowerCase().equals("total")) {
-
-                        System.out.println("Parsing matrix finished..");
-                        break;
-                    }
-
-
-                }
-
-                //Following lines upto sorting may be an unecessary step linking the destinations directly to the car
-                // as
-                // driver population
-                Map<String, Double> carDriverMap = new LinkedHashMap<>();
-
-                List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
-                for (Map.Entry<String, Map<String, Double>> entry : entries)
-                    carDriverMap.put(entry.getKey(), entry.getValue().get(transportMode));
-
-                List<Map.Entry> carDriverMapEntries = new ArrayList<>(carDriverMap.entrySet());
-
-//TODO CHANGE TO TRANSPORT MODE CLASS STRINGS
-                mode.put(transportMode, Double.parseDouble(tMode));
-
-                destinations = new LinkedHashMap<>();
-
-                boolean isRecordInserted = false;
-
-                //Carry out sorting
-                for (Map.Entry<String, Double> entry : carDriverMapEntries) {
-                    if (Double.parseDouble(tMode) < entry.getValue()) {
-                        isRecordInserted = true;
+                        mode.put(transportMode.name(), Double.parseDouble(tMode));
                         destinations.put(record.mainStatAreaPOW, mode);
+                        odMatrix.put(currentOrigin, destinations);
+
                     }
-                    Map<String, Double> currMode = new HashMap<>();
+//                    System.out.println("UR : "+currentOrigin+" POW : "+record.mainStatAreaPOW+" MODE : " +
+//                            ""+transportMode.name() +" NUM : "+tMode);
 
-//TODO CHANGE TO TRANSPORT MODE CLASS STRINGS
-                    currMode.put(transportMode, entry.getValue());
 
-                    destinations.put(entry.getKey(), currMode);
+//
+//                    //-----------------------------------------------------------------
+//
+//                    //Following lines upto sorting may be an unecessary step linking the destinations directly to the car
+//
+//                    // as
+//                    // driver population
+//                    Map<String, Double> carDriverMap = new LinkedHashMap<>();
+//
+//                    List<Map.Entry> entries = new ArrayList<>(destinations.entrySet());
+//                    for (Map.Entry<String, Map<String, Double>> entry : entries)
+//                        carDriverMap.put(entry.getKey(), entry.getValue().get(transportMode.name()));
+//
+//                    List<Map.Entry> carDriverMapEntries = new ArrayList<>(carDriverMap.entrySet());
+//
+//                    mode.put(transportMode.name(), Double.parseDouble(tMode));
+//
+//                    destinations = new LinkedHashMap<>();
+//
+//                    boolean isRecordInserted = false;
+//
+//                    //Carry out sorting
+//                    for (Map.Entry<String, Double> entry : carDriverMapEntries) {
+//                        if (Double.parseDouble(tMode) < entry.getValue()) {
+//                            isRecordInserted = true;
+//                            destinations.put(record.mainStatAreaPOW, mode);
+//                        }
+//                        Map<String, Double> currMode = new HashMap<>();
+//
+//                        currMode.put(transportMode.name(), entry.getValue());
+//
+//                        destinations.put(entry.getKey(), currMode);
+//
+//                    }
+//                    if (isRecordInserted == false)
+//                        destinations.put(record.mainStatAreaPOW, mode);
+//                    // this is what we need to do for every record:
 
                 }
-                if (isRecordInserted == false)
-                    destinations.put(record.mainStatAreaPOW, mode);
-                // this is what we need to do for every record:
-
-                odMatrix.put(currentOrigin, destinations);
-
 
             }
         } catch (FileNotFoundException e) {
@@ -432,17 +447,16 @@ public class AddWorkPlacesToPopulation {
      * using the home starting coordinates, and random selection of work trip destination
      * scaled from the OD matrix file
      */
-    private void parsePopulation(String transportMode) {
 
-        int personsCount = 0;
-
+    private void parsePopulation() {
         // TODO: Make the random seed an input param (make sure you use only one instance of Random everywhere)
         //Done declared as class variable
         rnd = new Random(4711);
 
         // TODO: Add function to filter out only working population here
-
+        int pcount = 0;
         for (Person person : scenario.getPopulation().getPersons().values()) {
+
 
             //1% break point for mode of transport
 //            if(personsCount++ > scenario.getPopulation().getPersons().size() * 0.0025)
@@ -453,6 +467,8 @@ public class AddWorkPlacesToPopulation {
                 continue;
 
             String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
+            // (sa1 code of home location)
+            
             Gbl.assertNotNull(sa1Id);
 
             // get corresponding sa2name (which comes from the correspondences file):
@@ -463,14 +479,78 @@ public class AddWorkPlacesToPopulation {
             Map<String, Map<String, Double>> destinations = odMatrix.get(sa2name);
 
             // sum over all destinations
-            double sum = 0;
-            for (Map<String, Double> nTripsByMode : destinations.values()) {
-                sum += nTripsByMode.get(transportMode);
+//            double sum = 0;
+//            for (Map<String, Double> nTripsByMode : destinations.values()) {
+//                sum += nTripsByMode.get(transportMode);
+//            }
+            
+            // sum up all trips over all modes and all destinations:
+
+            System.out.print("P : "+pcount++);
+            System.out.print(" DEST : "+sa2name);
+            System.out.println(" SIZE : "+destinations.size());
+
+            Map<Modes4Melbourne,Double> sumsByMode = new HashMap<>() ;
+            double overallSum = 0. ;
+            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
+                double sum = 0. ;
+                for (Map<String, Double> nTripsByMode : destinations.values()) {
+                    for(String tripType : nTripsByMode.keySet())
+                        if(tripType.equals(mode.name()))
+                            sum += nTripsByMode.get(tripType);
+                }
+                sumsByMode.put( mode, sum ) ;
+                overallSum += sum ;
             }
 
-            // throw random number
-            int tripToTake = rnd.nextInt((int) sum + 1);
+            System.out.println("OSUM :"+overallSum);
 
+            // throw random number between zero and number of such trips:
+            long tripToTake = rnd.nextInt((int) overallSum + 1);
+
+
+            System.out.println("TRIPTOTAKE :"+tripToTake);
+
+            // find mode:
+            String transportMode = null ;
+            double sumMode = 0 ;
+            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
+                sumMode += sumsByMode.get( mode ) ;
+                    if ( sumMode >= tripToTake ) {
+                    transportMode = mode.name() ;
+                    break ;
+                }
+            }
+
+            System.out.println("TMODE :"+transportMode);
+            
+            // find the number of trips by the modes which come "before" the mode we have now selected and deduct:
+            double offset = 0. ;
+            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
+                if ( transportMode.equals( mode.name() ) ) {
+                    break ;
+                }
+                offset += sumsByMode.get(mode) ;
+            }
+
+            System.out.println("OFFSET :"+offset);
+    
+            // situation now: e.g.
+            // numberOfCarTrips=10000
+            // numberPtTrips=5000
+            // numberOfBikeTrips=3000
+            //
+            // tripToTake eg. 16001 so it is a bicycle trip.
+            // find destination by first deducting 10000 und 5000 from 16001 (resulting in 1001),
+            // and then take the 1001th bicycle trip
+
+            double newRandomTripNumber = sumMode - offset ;
+            
+            // alternatively just throw a new random number:
+//            long newRandomTripNumber = rnd.nextInt((int) (tripToTake - offset) );
+
+            System.out.println("NRAND :"+newRandomTripNumber);
+            
             // variable to store destination name:
             String destinationSa2Name = null;
             double sum2 = 0;
@@ -479,7 +559,7 @@ public class AddWorkPlacesToPopulation {
                 Map<String, Double> nTripsByMode = entry.getValue();
 
                 sum2 += nTripsByMode.get(transportMode);
-                if (sum2 >= tripToTake) {
+                if (sum2 >= newRandomTripNumber ) {
 
                     // this our trip!
                     destinationSa2Name = entry.getKey();
@@ -487,12 +567,16 @@ public class AddWorkPlacesToPopulation {
                 }
 
             }
-            if (destinationSa2Name != null) {
-                double numWorkingPeople = destinations.get(destinationSa2Name).get(transportMode);
-                if (numWorkingPeople > 0)
-                    destinations.get(destinationSa2Name).put(transportMode, --numWorkingPeople);
 
-            }
+            System.out.println("DEST :"+destinationSa2Name);
+            
+//            if (destinationSa2Name != null) {
+//                double numWorkingPeople = destinations.get(destinationSa2Name).get(transportMode);
+//                if (numWorkingPeople > 0)
+//                    destinations.get(destinationSa2Name).put(transportMode, --numWorkingPeople);
+//
+//            }
+            // don't do this!  (difference between "sampling with replacement (which is what we do) and sampling without replacement").  kai, jan'18
 
             Gbl.assertNotNull(destinationSa2Name);
 
@@ -541,12 +625,12 @@ public class AddWorkPlacesToPopulation {
 			Activity actGoHome = pf.createActivityFromCoord("Go Home", homeActivity.getCoord());
 			person.getSelectedPlan().addActivity(actGoHome);
 
-//                // check what we have:
-//                System.out.println("plan=" + person.getSelectedPlan());
-//
-//                for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
-//                    System.out.println("pe=" + pe);
-//                }
+                // check what we have:
+                System.out.println("plan=" + person.getSelectedPlan());
+
+                for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
+                    System.out.println("pe=" + pe);
+                }
 		}
 
         //Write out the population to xml file
