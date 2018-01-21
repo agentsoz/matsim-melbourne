@@ -20,6 +20,7 @@ import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
+import sun.rmi.runtime.Log;
 
 import java.io.*;
 import java.util.*;
@@ -28,7 +29,7 @@ import java.util.*;
  * Class to add working places to the synthetic population
  */
 public class AddWorkPlacesToPopulation {
-	private static final Logger log = Logger.getLogger(AddWorkPlacesToPopulation.class) ;
+    private static final Logger log = Logger.getLogger(AddWorkPlacesToPopulation.class);
 
     public static final String[] INIT_POPULATION = {
 
@@ -57,17 +58,14 @@ public class AddWorkPlacesToPopulation {
     Map<String, Map<String, Map<String, Double>>> odMatrix;
     // something like odMatrix.get(origin).get(destination).get(mode)
 
-    Map<String, Map<String, Map<Modes4Melbourne, Double>>> fractions ;
-    // something like fractions.get(origin).get(destination).get(mode)
-    
-
     private Random rnd;
-    
-    private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84,"EPSG:28355");
+
+    private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation
+            (TransformationFactory.WGS84, "EPSG:28355");
     // yyyyyy the "from" of this is probably not right; should be GCS_GDA_1994 (EPSG:4283)
-    
-    public static enum Modes4Melbourne{ carAsPassenger,carAsDriver,tram,train,bus,bicycle,motorbike,other }
-    
+
+    public static enum Modes4Melbourne {carAsPassenger, carAsDriver, tram, train, bus, bicycle, motorbike, other}
+
     /**
      * Constructor for the AddWorkPlacesToPopulation class
      * Initialises MATSim population construction after reading in the population file
@@ -91,9 +89,6 @@ public class AddWorkPlacesToPopulation {
      */
     public static void main(String[] args) {
 
-        if (args.length != 1)
-            throw new RuntimeException("Incorrect number of arguments");
-
         createPopulationFromLatch();
         AddWorkPlacesToPopulation abc = new AddWorkPlacesToPopulation();
         abc.readShapefile();
@@ -108,19 +103,26 @@ public class AddWorkPlacesToPopulation {
     *
     * */
     private static void createPopulationFromLatch() {
+
         File fOpen = new File(INPUT_CONFIG_FILE);
 
         if (!fOpen.exists()) {
 
-            System.err.println(INPUT_CONFIG_FILE + "does not exist");
-            System.err.println("Creating population from latch..");
+            log.warn(INPUT_CONFIG_FILE + "does not exist");
+            log.info("Creating population from latch..");
 
             try {
 
                 CreatePopulationFromLatch.main(INIT_POPULATION);
 
-            } catch (IOException ii) {
-                System.err.println(AddWorkPlacesToPopulation.class.getName() + " : Input Output Exception");
+            } catch (FileNotFoundException ee) {
+
+                log.error("File not found : " + INPUT_CONFIG_FILE + ee.getLocalizedMessage());
+
+            } catch (IOException i) {
+
+                log.error("Error creating file : " + INPUT_CONFIG_FILE + i.getLocalizedMessage());
+
             }
         }
     }
@@ -135,7 +137,7 @@ public class AddWorkPlacesToPopulation {
 
         try (final BufferedReader reader = new BufferedReader(new FileReader(CORRESPONDENCE_FILE))) {
 
-            System.out.println("Parsing Correspondences file..");
+            log.info("Parsing Correspondences file..");
 
             final CsvToBeanBuilder<SAMap> builder = new CsvToBeanBuilder<>(reader);
             builder.withType(SAMap.class);
@@ -147,11 +149,14 @@ public class AddWorkPlacesToPopulation {
 
                 sa2NameFromSa1Id.put(saMap.SA1_7DIGITCODE_2011, saMap.SA2_NAME_2011);
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+        } catch (FileNotFoundException f) {
+
+            log.error("File not found : " + CORRESPONDENCE_FILE + f.getLocalizedMessage());
 
         } catch (IOException e) {
-            e.printStackTrace();
+
+            log.error("Error parsing file : " + CORRESPONDENCE_FILE + e.getLocalizedMessage());
+
         }
     }
 
@@ -177,12 +182,18 @@ public class AddWorkPlacesToPopulation {
             }
             it.close();
         } catch (Exception ee) {
+
+            log.error("Error reading shape file features. File : " + ZONES_FILE);
             throw new RuntimeException(ee);
         }
 
     }
 
-    private String getTransportModeString(String transportMode){
+    /*
+    * Method to convert the localized string for the transport method
+    * to a Transport Mode class defined string constant
+    * */
+    private String getTransportModeString(String transportMode) {
 
         switch (transportMode.toLowerCase()) {
 
@@ -236,7 +247,13 @@ public class AddWorkPlacesToPopulation {
         }
     }
 
+    /*
+    *
+    * Method to convert the localized string for the transport method
+    * to a Record class string used while retrieving transport mode fields from the OD_MATRIX file
+    * */
     private String getTransportModeRecord(String transportMode) {
+        //Currently only single mode of transport used multi-mode not handled
 
         switch (transportMode.toLowerCase()) {
 
@@ -318,7 +335,7 @@ public class AddWorkPlacesToPopulation {
 
                 record = it.next();
 
-                for ( Modes4Melbourne transportMode : Modes4Melbourne.values() ) {
+                for (Modes4Melbourne transportMode : Modes4Melbourne.values()) {
                     String tMode = getTransportModeRecord(transportMode.name());
 
                     if (record.mainStatAreaUR != null) {
@@ -347,13 +364,12 @@ public class AddWorkPlacesToPopulation {
                         odMatrix.put(currentOrigin, destinations);
 
 
-
                     }
 
-                    if(record.mainStatAreaPOW==null)
+                    if (record.mainStatAreaPOW == null)
                         return;
 
-                    if(!record.mainStatAreaPOW.startsWith("POW")) {
+                    if (!record.mainStatAreaPOW.startsWith("POW")) {
 
                         mode.put(transportMode.name(), Double.parseDouble(tMode));
                         destinations.put(record.mainStatAreaPOW, mode);
@@ -367,7 +383,8 @@ public class AddWorkPlacesToPopulation {
 //
 //                    //-----------------------------------------------------------------
 //
-//                    //Following lines upto sorting may be an unecessary step linking the destinations directly to the car
+//                    //Following lines upto sorting may be an unecessary step linking the destinations directly to
+// the car
 //
 //                    // as
 //                    // driver population
@@ -422,7 +439,7 @@ public class AddWorkPlacesToPopulation {
         double endTime = 0.0;
         if (actType.equals("work")) {
             /*
-			 * Allow people to leave work between 16.45 and 17.10
+             * Allow people to leave work between 16.45 and 17.10
 			 */
             endTime = 60300 + (60 * 25 * Math.random());
             return endTime;
@@ -432,7 +449,7 @@ public class AddWorkPlacesToPopulation {
         if (actType.equals("home")) {
 
             /*
-			 * Allow people to leave work between
+             * Allow people to leave work between
 			 */
             endTime = 21600 + (60 *
                     rnd.nextInt(180));
@@ -468,7 +485,7 @@ public class AddWorkPlacesToPopulation {
 
             String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
             // (sa1 code of home location)
-            
+
             Gbl.assertNotNull(sa1Id);
 
             // get corresponding sa2name (which comes from the correspondences file):
@@ -483,58 +500,58 @@ public class AddWorkPlacesToPopulation {
 //            for (Map<String, Double> nTripsByMode : destinations.values()) {
 //                sum += nTripsByMode.get(transportMode);
 //            }
-            
+
             // sum up all trips over all modes and all destinations:
 
-            System.out.print("P : "+pcount++);
-            System.out.print(" DEST : "+sa2name);
-            System.out.println(" SIZE : "+destinations.size());
+            System.out.print("P : " + pcount++);
+            System.out.print(" DEST : " + sa2name);
+            System.out.println(" SIZE : " + destinations.size());
 
-            Map<Modes4Melbourne,Double> sumsByMode = new HashMap<>() ;
-            double overallSum = 0. ;
-            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
-                double sum = 0. ;
+            Map<Modes4Melbourne, Double> sumsByMode = new HashMap<>();
+            double overallSum = 0.;
+            for (Modes4Melbourne mode : Modes4Melbourne.values()) {
+                double sum = 0.;
                 for (Map<String, Double> nTripsByMode : destinations.values()) {
-                    for(String tripType : nTripsByMode.keySet())
-                        if(tripType.equals(mode.name()))
+                    for (String tripType : nTripsByMode.keySet())
+                        if (tripType.equals(mode.name()))
                             sum += nTripsByMode.get(tripType);
                 }
-                sumsByMode.put( mode, sum ) ;
-                overallSum += sum ;
+                sumsByMode.put(mode, sum);
+                overallSum += sum;
             }
 
-            System.out.println("OSUM :"+overallSum);
+            System.out.println("OSUM :" + overallSum);
 
             // throw random number between zero and number of such trips:
             long tripToTake = rnd.nextInt((int) overallSum + 1);
 
 
-            System.out.println("TRIPTOTAKE :"+tripToTake);
+            System.out.println("TRIPTOTAKE :" + tripToTake);
 
             // find mode:
-            String transportMode = null ;
-            double sumMode = 0 ;
-            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
-                sumMode += sumsByMode.get( mode ) ;
-                    if ( sumMode >= tripToTake ) {
-                    transportMode = mode.name() ;
-                    break ;
+            String transportMode = null;
+            double sumMode = 0;
+            for (Modes4Melbourne mode : Modes4Melbourne.values()) {
+                sumMode += sumsByMode.get(mode);
+                if (sumMode >= tripToTake) {
+                    transportMode = mode.name();
+                    break;
                 }
             }
 
-            System.out.println("TMODE :"+transportMode);
-            
+            System.out.println("TMODE :" + transportMode);
+
             // find the number of trips by the modes which come "before" the mode we have now selected and deduct:
-            double offset = 0. ;
-            for ( Modes4Melbourne mode : Modes4Melbourne.values() ) {
-                if ( transportMode.equals( mode.name() ) ) {
-                    break ;
+            double offset = 0.;
+            for (Modes4Melbourne mode : Modes4Melbourne.values()) {
+                if (transportMode.equals(mode.name())) {
+                    break;
                 }
-                offset += sumsByMode.get(mode) ;
+                offset += sumsByMode.get(mode);
             }
 
-            System.out.println("OFFSET :"+offset);
-    
+            System.out.println("OFFSET :" + offset);
+
             // situation now: e.g.
             // numberOfCarTrips=10000
             // numberPtTrips=5000
@@ -544,13 +561,13 @@ public class AddWorkPlacesToPopulation {
             // find destination by first deducting 10000 und 5000 from 16001 (resulting in 1001),
             // and then take the 1001th bicycle trip
 
-            double newRandomTripNumber = sumMode - offset ;
-            
+            double newRandomTripNumber = sumMode - offset;
+
             // alternatively just throw a new random number:
 //            long newRandomTripNumber = rnd.nextInt((int) (tripToTake - offset) );
 
-            System.out.println("NRAND :"+newRandomTripNumber);
-            
+            System.out.println("NRAND :" + newRandomTripNumber);
+
             // variable to store destination name:
             String destinationSa2Name = null;
             double sum2 = 0;
@@ -559,7 +576,7 @@ public class AddWorkPlacesToPopulation {
                 Map<String, Double> nTripsByMode = entry.getValue();
 
                 sum2 += nTripsByMode.get(transportMode);
-                if (sum2 >= newRandomTripNumber ) {
+                if (sum2 >= newRandomTripNumber) {
 
                     // this our trip!
                     destinationSa2Name = entry.getKey();
@@ -568,70 +585,73 @@ public class AddWorkPlacesToPopulation {
 
             }
 
-            System.out.println("DEST :"+destinationSa2Name);
-            
+            System.out.println("DEST :" + destinationSa2Name);
+
 //            if (destinationSa2Name != null) {
 //                double numWorkingPeople = destinations.get(destinationSa2Name).get(transportMode);
 //                if (numWorkingPeople > 0)
 //                    destinations.get(destinationSa2Name).put(transportMode, --numWorkingPeople);
 //
 //            }
-            // don't do this!  (difference between "sampling with replacement (which is what we do) and sampling without replacement").  kai, jan'18
+            // don't do this!  (difference between "sampling with replacement (which is what we do) and sampling
+            // without replacement").  kai, jan'18
 
             Gbl.assertNotNull(destinationSa2Name);
 
             // find a coordinate for the destination:
             SimpleFeature ft = this.featureMap.get(destinationSa2Name);
-            
-            if ( ft==null ) {
-				//Null because there are some sa2 locations for which we cannot retrieve a feature
-            	log.warn("There is no feature for " + destinationSa2Name + ".  Possibly this means " +
-								 "that the destination is outside the area that we have covered by shapefiles.  Ignoring the person.")  ;
-            	continue ;
-			}
 
-			Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
-			
-			// ---
+            if (ft == null) {
+                //Null because there are some sa2 locations for which we cannot retrieve a feature
+                log.warn("There is no feature for " + destinationSa2Name + ".  Possibly this means " +
+                        "that the destination is outside the area that we have covered by shapefiles.  Ignoring the " +
+                        "person.");
+                continue;
+            }
 
-			Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
-			homeActivity.setEndTime(activityEndTime("home"));
-   
-			// --- add a leg:
+            Gbl.assertNotNull(ft.getDefaultGeometry()); // otherwise no polygon, cannot get a point.
 
-			Leg leg = pf.createLeg(getTransportModeString(transportMode)); // yyyy needs to be fixed; currently only looking at
-			// car
-			person.getSelectedPlan().addLeg(leg);
-			
-			// --- add work activity:
-	
-			Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
-			Gbl.assertNotNull(point);
-	
-			Coord coord = new Coord(point.getX(), point.getY());
-			Coord coordTransformed = ct.transform(coord) ;
-	
-			Activity actWork = pf.createActivityFromCoord("Work Related", coordTransformed);
-			person.getSelectedPlan().addActivity(actWork);
+            // ---
 
-			actWork.setEndTime(activityEndTime("work"));
-			
-			// --- add leg:
+            Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
+            homeActivity.setEndTime(activityEndTime("home"));
 
-			person.getSelectedPlan().addLeg(leg);
-			
-			// --- add home activity:
+            // --- add a leg:
 
-			Activity actGoHome = pf.createActivityFromCoord("Go Home", homeActivity.getCoord());
-			person.getSelectedPlan().addActivity(actGoHome);
+            Leg leg = pf.createLeg(getTransportModeString(transportMode)); // yyyy needs to be fixed; currently only
+            // looking at
+            // car
+            person.getSelectedPlan().addLeg(leg);
 
-                // check what we have:
-                System.out.println("plan=" + person.getSelectedPlan());
+            // --- add work activity:
 
-                for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
-                    System.out.println("pe=" + pe);
-                }
-		}
+            Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
+            Gbl.assertNotNull(point);
+
+            Coord coord = new Coord(point.getX(), point.getY());
+            Coord coordTransformed = ct.transform(coord);
+
+            Activity actWork = pf.createActivityFromCoord("Work Related", coordTransformed);
+            person.getSelectedPlan().addActivity(actWork);
+
+            actWork.setEndTime(activityEndTime("work"));
+
+            // --- add leg:
+
+            person.getSelectedPlan().addLeg(leg);
+
+            // --- add home activity:
+
+            Activity actGoHome = pf.createActivityFromCoord("Go Home", homeActivity.getCoord());
+            person.getSelectedPlan().addActivity(actGoHome);
+
+            // check what we have:
+            System.out.println("plan=" + person.getSelectedPlan());
+
+            for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
+                System.out.println("pe=" + pe);
+            }
+        }
 
         //Write out the population to xml file
         PopulationWriter writer = new PopulationWriter(scenario.getPopulation());
@@ -680,7 +700,6 @@ public class AddWorkPlacesToPopulation {
 
         @CsvBindByPosition(position = 11)
         private String other;
-
 
 
     }
