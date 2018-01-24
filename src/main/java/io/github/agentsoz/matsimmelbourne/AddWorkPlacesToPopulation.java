@@ -199,20 +199,20 @@ public class AddWorkPlacesToPopulation {
 
             case "train": {
                 //TO CHANGE
-                return TransportMode.other;
+                return TransportMode.pt;
             }
             case "tram": {
                 //TO CHANGE
-                return TransportMode.other;
+                return TransportMode.pt;
             }
             case "bus": {
 
                 //TO CHANGE
-                return TransportMode.other;
+                return TransportMode.pt;
             }
             case "taxi": {
                 //TO CHANGE
-                return TransportMode.other;
+                return TransportMode.car;
             }
             case "carasdriver": {
 
@@ -229,7 +229,7 @@ public class AddWorkPlacesToPopulation {
             }
             case "motorbike": {
 
-                return TransportMode.other;
+                return TransportMode.ride;
             }
             case "bicycle": {
 
