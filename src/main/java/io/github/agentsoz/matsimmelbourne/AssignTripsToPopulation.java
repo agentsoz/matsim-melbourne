@@ -1,6 +1,7 @@
 package io.github.agentsoz.matsimmelbourne;
 
 import com.opencsv.bean.CsvBindByName;
+import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import org.apache.log4j.Logger;
@@ -26,13 +27,15 @@ public class AssignTripsToPopulation {
 
     };
 
+    private Record record;
     private final Config config;
     private final Scenario scenario;
     private final PopulationFactory pf;
 
     Map<String, String> sa2NameFromSa1Id;
+    Map<String, List<PersonChar>> sa2PersonCharGroupsLatch;
+    Map<String, List<PersonChar>> sa2PersonCharGroupsCensus;
 
-    private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
 
     //2016 correspondence file below
     //    private final static String CORRESPONDENCE_FILE =
@@ -43,7 +46,8 @@ public class AssignTripsToPopulation {
     //2016 data is available in the respective folder
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
-
+    private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
+    private final static String SA2_EMPSTATS_FILE = "data/census/2016/population";
 
     private enum AgeGroups {u15, b15n24, b25n39, b40n54, b55n69, b70n84, b85n99, over100}
 
@@ -179,7 +183,8 @@ public class AssignTripsToPopulation {
     public void storeSyntheticPersonCharGroups() {
 
         log.info("Storing person characteristic groups per SA2..");
-        Map<String, List<PersonChar>> sa2PersonCharGroups = new HashMap<>();
+
+        sa2PersonCharGroupsLatch = new HashMap<>();
         for (Person person : scenario.getPopulation().getPersons().values()) {
 
             String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
@@ -192,15 +197,15 @@ public class AssignTripsToPopulation {
 
             Gbl.assertNotNull(sa2name);
 
-            if (!sa2PersonCharGroups.containsKey(sa2name)) {
+            if (!sa2PersonCharGroupsLatch.containsKey(sa2name)) {
 
                 //create new sa2 named list of person characteristic groups
-                sa2PersonCharGroups.put(sa2name, new ArrayList<PersonChar>());
+                sa2PersonCharGroupsLatch.put(sa2name, new ArrayList<PersonChar>());
 
             } else {
 
                 //Retrieve list of Person Characteristic groupings
-                List<PersonChar> pCharGroups = sa2PersonCharGroups.get(sa2name);
+                List<PersonChar> pCharGroups = sa2PersonCharGroupsLatch.get(sa2name);
 
                 String gender = (String) person.getAttributes().getAttribute("Gender");
                 String age = (String) person.getAttributes().getAttribute("Age");
@@ -212,13 +217,13 @@ public class AssignTripsToPopulation {
                 boolean pCharFound = false;
                 for (PersonChar eachPChar : pCharGroups) {
                     if (eachPChar.equals(pChar)) {
-                        pCharFound =true;
+                        pCharFound = true;
                         eachPChar.pCharCount++;
                         break;
                     }
                 }
-                if(pCharFound == false)
-                pCharGroups.add(pChar);
+                if (pCharFound == false)
+                    pCharGroups.add(pChar);
             }
 
 
@@ -226,23 +231,52 @@ public class AssignTripsToPopulation {
 
         //Below prints out number of person groups in each sa2
 
-//        for (String sa2Name : sa2PersonCharGroups.keySet()) {
-//            System.out.println("SA2 NAME : " + sa2Name);
-//            System.out.println("......................");
-//
-//            for (PersonChar pChar : sa2PersonCharGroups.get(sa2Name)) {
-//                StringBuilder str = new StringBuilder();
-//                str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
-//                        pChar.pCharCount);
-//                System.out.println(str);
-//                System.out.println("......................");
-//
-//            }
-//        }
+        for (String sa2Name : sa2PersonCharGroupsLatch.keySet()) {
+            System.out.println("SA2 NAME : " + sa2Name);
+            System.out.println("......................");
+
+            for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa2Name)) {
+                StringBuilder str = new StringBuilder();
+                str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
+                        pChar.pCharCount);
+                System.out.println(str);
+
+            }
+            System.out.println("......................");
+        }
     }
 
-//Store proportion of sa2 population in workforce Map<SA2, prop> from new file downloaded
+    //Store proportion of sa2 population in workforce Map<SA2, prop> from new file downloaded
+    public void readSA2EmploymentStatusCensusFile() throws IOException {
 
+        int lineCount = 0;
+
+        try (final BufferedReader reader = new BufferedReader(new FileReader(SA2_EMPSTATS_FILE))) {
+
+            log.info("Parsing Census SA2 - Person Characteristics - Employment Status file..");
+
+            // csv reader; start at line 12 (or 13) reading only car-as-driver to get started.
+            while (++lineCount < 10) {
+                reader.readLine();
+            }
+
+            final CsvToBeanBuilder<Record> builder = new CsvToBeanBuilder<>(reader);
+            builder.withType(Record.class);
+            builder.withSeparator(',');
+
+            final CsvToBean<Record> reader2 = builder.build();
+
+            for (Iterator<Record> it = reader2.iterator(); it.hasNext(); ) {
+
+                record = it.next();
+                
+
+                //                record.sex
+            }
+
+
+            }
+    }
 
 //Read shape file to store the features for a given sa2
 //Read correspondence file for sa1 7 digit codes to get sa2 names from 2016 census correspondence
@@ -266,7 +300,7 @@ public class AssignTripsToPopulation {
 
     }
 
-    public static class PersonChar extends ArrayList<PersonChar> {
+    public static class PersonChar {
 
         String gender;
         String ageGroup;
@@ -289,4 +323,31 @@ public class AssignTripsToPopulation {
             return false;
         }
     }
+
+    /**
+     * Class to build the records bound by the column header found in the csv file
+     */
+    public final static class Record {
+        // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
+
+        @CsvBindByPosition(position = 0)
+        private String sex;
+
+
+        @CsvBindByPosition(position = 1)
+        private String age;
+
+
+        @CsvBindByPosition(position = 2)
+        private String relStatus;
+
+        @CsvBindByPosition(position = 3)
+
+        private String lfsp;
+
+        @CsvBindByName
+        private String Melbourne;
+
+    }
+
 }
