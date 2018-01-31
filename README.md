@@ -84,6 +84,8 @@ Then choose the correct config file (presumably in the `scenarios' directory), t
 
 Evidently, you could modify the material of a scenario, in particular the config file.
 
+If you are a bit more experienced, you could copy `RunMelbourneTemplate.java`, adjust to your needs, and run that one.
+
 ## Contributors
 
 * Karthikey Surineni, RMIT University
