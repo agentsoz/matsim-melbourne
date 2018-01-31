@@ -3,7 +3,7 @@ package io.github.agentsoz.matsimmelbourne.demand.latch;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
-
+import org.matsim.core.gbl.Gbl;
 import com.opencsv.bean.CsvToBeanBuilder;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
@@ -48,7 +48,7 @@ public class AssignTripsToPopulation {
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
-    private final static String SA2_EMPSTATS_FILE = "data/census/2016/population/VIC - SEXP_AGE5P_LFSP_UR.csv";
+    private final static String SA2_EMPSTATS_FILE = "data/census/2011/population/VIC - SEXP_AGE5P_LFSP_UR_2011.csv";
 
     private enum AgeGroups {u15, b15n24, b25n39, b40n54, b55n69, b70n84, b85n99, over100}
 
@@ -67,10 +67,9 @@ public class AssignTripsToPopulation {
 
     }
 
-    private final static String EMP_PART_TIME = "Employed, part-time and away";
-    private final static String EMP_FULL_TIME = "Employed, worked part-time";
-    private final static String UNEMP = "Unemployed and NA";
-
+    private final static String EMP_PART_TIME = "Employed, worked part-time";
+    private final static String EMP_FULL_TIME = "Employed, worked full-time";
+    private final static String TOTAL_POP = "Total";
 
 //    private enum Sex {male, female}
 //
@@ -103,14 +102,14 @@ public class AssignTripsToPopulation {
 
         AssignTripsToPopulation atp = new AssignTripsToPopulation();
 
-//        createPopulationFromLatch();
-//        atp.readCorrespondences();
-//        atp.storeSyntheticPersonCharGroups();
+        createPopulationFromLatch();
+        atp.readCorrespondences();
+        atp.storeSyntheticPersonCharGroups();
 
         try {
             atp.readSA2EmploymentStatusCensusFile();
-        }catch (IOException ii){
-            log.warn("readSA2EmploymentStatusCensusFile() : "+ii.getLocalizedMessage());
+        } catch (IOException ii) {
+            log.warn("readSA2EmploymentStatusCensusFile() : " + ii.getLocalizedMessage());
         }
         log.info("Assigning trips to population finished");
         log.info("--------------------------------------");
@@ -295,8 +294,20 @@ public class AssignTripsToPopulation {
         }
     }
 
-    //Store proportion of sa2 population in workforce Map<SA2, prop> from new file downloaded
+
     public void readSA2EmploymentStatusCensusFile() throws IOException {
+
+        String sa2Name = "";
+        String gender = "";
+        String ageRange = "";
+        String relStatus = "";
+
+        String fullTimeWorkForce = "";
+        String partTimeWorkForce = "";
+        String totalPopulation = "";
+
+        double partTimeWorkForceProportion;
+        double fullTimeWorkForceProportion;
 
         int lineCount = 0;
 
@@ -304,8 +315,7 @@ public class AssignTripsToPopulation {
 
             log.info("Parsing Census SA2 - Person Characteristics - Employment Status file..");
 
-            // csv reader; start at line 12 (or 13) reading only car-as-driver to get started.
-            while (++lineCount < 10) {
+            while (++lineCount < 12) {
                 reader.readLine();
             }
 
@@ -316,84 +326,68 @@ public class AssignTripsToPopulation {
             final CsvToBean<Record> reader2 = builder.build();
 
             sa2PersonCharGroupsCensus = new HashMap<>();
-            //TODO : Change Alfredton to generic sa2
-            sa2PersonCharGroupsCensus.put("Alfredton", new ArrayList<PersonChar>());
 
             for (Iterator<Record> it = reader2.iterator(); it.hasNext(); ) {
 
-                it.next();
                 record = it.next();
 
-                PersonChar pChar;
-                String gender = "";
-                String ageRange = "";
-                String relStatus = "";
-
-                if (!record.sex.equals(""))
+                if (record.sa2Name != null) {
+                    sa2Name = record.sa2Name;
+                    sa2PersonCharGroupsCensus.put(sa2Name, new ArrayList<PersonChar>());
+                }
+                if (record.sex != null)
                     gender = record.sex;
 
-                if (!record.age.equals(""))
-                    ageRange = record.age.split("\\(")[0];
+                if (record.age != null)
+                    ageRange = record.age;
 
-                if (!record.relStatus.equals(""))
-                    relStatus = record.relStatus.split("\\(")[0];
-
-                String fullTimeWorkForce = "";
-                String partTimeWorkForce = "";
-                String unemployedForce = "";
-                double workForceProportion;
-
-                if (!record.relStatus.equals("")) {
-
-                    //TODO : Change Alfredton to generic sa2
-
-                    int cnt = 0;
-                    while (cnt++ < 3) {
-                        if (record.lfsp.equals(EMP_FULL_TIME))
-                            fullTimeWorkForce = record.Alfredton;
-
-                        if (record.lfsp.equals(EMP_PART_TIME))
-                            partTimeWorkForce = record.Alfredton;
-
-                        if (record.lfsp.equals(UNEMP))
-                            unemployedForce = record.Alfredton;
-
-                        System.out.println(gender+" "+ageRange+" "+relStatus+" "+record.lfsp+" "+record
-                                .Alfredton);
-
-                        record = it.next();
-                    }
-                    workForceProportion = (Double.parseDouble(fullTimeWorkForce) + Double.parseDouble
-                            (partTimeWorkForce)) /
-                            (Double.parseDouble(fullTimeWorkForce) +
-                                    Double.parseDouble(partTimeWorkForce) + Double.parseDouble(unemployedForce));
-
-
-
-                    //Retrieve list of Person Characteristic groupings
-                    List<PersonChar> pCharGroups = sa2PersonCharGroupsCensus.get("Alfredton");
-
-                    AgeGroups ageGroups = binAgeRangeIntoCategory(ageRange);
-                    pChar = new PersonChar(gender, ageGroups.name(), relStatus);
-
-                    pChar.setEmpProportion(workForceProportion);
-
-                    pCharGroups.add(pChar);
+                if (record.relStatus != null) {
+                    relStatus = record.relStatus;
                 }
 
-                //Change if summation removed from file (no totals involved)
-                //it.next();
+//                System.out.println(record.toString());
+                if (record.lfsp != null) {
+                    if (record.lfsp.equals(EMP_FULL_TIME))
+                        fullTimeWorkForce = record.population;
+
+                    if (record.lfsp.equals(EMP_PART_TIME))
+                        partTimeWorkForce = record.population;
+
+                    if (record.lfsp.equals(TOTAL_POP)) {
+                        totalPopulation = record.population;
+
+
+                        fullTimeWorkForceProportion = Double.parseDouble(fullTimeWorkForce) / Double.parseDouble
+                                (totalPopulation);
+                        partTimeWorkForceProportion = Double.parseDouble(partTimeWorkForce) / Double.parseDouble
+                                (totalPopulation);
+
+
+                        //Retrieve list of Person Characteristic groupings
+                        List<PersonChar> pCharGroups = sa2PersonCharGroupsCensus.get(sa2Name);
+                        Gbl.assertNotNull(pCharGroups);
+
+                        AgeGroups ageGroups = binAgeRangeIntoCategory(ageRange);
+                        PersonChar pChar = new PersonChar(gender, ageGroups.name(), relStatus);
+
+                        pChar.setEmpPartTimeProportion(partTimeWorkForceProportion);
+                        pChar.setFullTimeProportion(fullTimeWorkForceProportion);
+
+                        pCharGroups.add(pChar);
+
+                    }
+                }
             }
         }
 
-        for (String sa2Name : sa2PersonCharGroupsCensus.keySet()) {
-            System.out.println("SA2 NAME : " + sa2Name);
+        for (String sa : sa2PersonCharGroupsCensus.keySet()) {
+            System.out.println("SA2 NAME : " + sa);
             System.out.println("-----------------------");
 
-            for (PersonChar pChar : sa2PersonCharGroupsCensus.get(sa2Name)) {
+            for (PersonChar pChar : sa2PersonCharGroupsCensus.get(sa)) {
                 StringBuilder str = new StringBuilder();
                 str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
-                        pChar.empProportion);
+                        pChar.partTimeProportion + " " + pChar.fullTimeProportion);
                 System.out.println(str);
 
             }
@@ -430,7 +424,8 @@ public class AssignTripsToPopulation {
         String ageGroup;
         String relStatus;
         double pCharCount;
-        double empProportion = 0;
+        double partTimeProportion = 0;
+        double fullTimeProportion = 0;
 
         public PersonChar(String gender, String ageGroup, String relStatus) {
 
@@ -448,8 +443,13 @@ public class AssignTripsToPopulation {
             return false;
         }
 
-        public void setEmpProportion(double empProportion) {
-            this.empProportion = empProportion;
+        public void setEmpPartTimeProportion(double empProportion) {
+            this.partTimeProportion = empProportion;
+        }
+
+
+        public void setFullTimeProportion(double empProportion) {
+            this.fullTimeProportion = empProportion;
         }
     }
 
@@ -460,22 +460,29 @@ public class AssignTripsToPopulation {
         // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
 
         @CsvBindByPosition(position = 0)
-        private String sex;
-
+        private String sa2Name;
 
         @CsvBindByPosition(position = 1)
+        private String sex;
+
+        @CsvBindByPosition(position = 2)
         private String age;
 
 
-        @CsvBindByPosition(position = 2)
+        @CsvBindByPosition(position = 3)
         private String relStatus;
 
-        @CsvBindByPosition(position = 3)
+        @CsvBindByPosition(position = 4)
         private String lfsp;
 
-        @CsvBindByName
-        private String Alfredton;
+        @CsvBindByPosition(position = 5)
+        private String population;
 
+        @Override
+        public String toString() {
+
+            return sa2Name + " " + age + " " + relStatus + " " + lfsp + " " + population;
+        }
     }
 
 }
