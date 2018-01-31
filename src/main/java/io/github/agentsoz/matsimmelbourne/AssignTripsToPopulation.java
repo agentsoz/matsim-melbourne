@@ -3,6 +3,7 @@ package io.github.agentsoz.matsimmelbourne;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
+
 import com.opencsv.bean.CsvToBeanBuilder;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
@@ -47,9 +48,29 @@ public class AssignTripsToPopulation {
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
-    private final static String SA2_EMPSTATS_FILE = "data/census/2016/population";
+    private final static String SA2_EMPSTATS_FILE = "data/census/2016/population/VIC - SEXP_AGE5P_LFSP_UR.csv";
 
     private enum AgeGroups {u15, b15n24, b25n39, b40n54, b55n69, b70n84, b85n99, over100}
+
+    private static final Map<String, String> ageCategoryToAgeRange;
+
+    static {
+        ageCategoryToAgeRange = new HashMap<String, String>();
+        ageCategoryToAgeRange.put("u15", "0-14");
+        ageCategoryToAgeRange.put("b15n24", "15-24");
+        ageCategoryToAgeRange.put("b25n39", "25-39");
+        ageCategoryToAgeRange.put("b40n54", "40-54");
+        ageCategoryToAgeRange.put("b55n69", "55-69");
+        ageCategoryToAgeRange.put("b70n84", "70-84");
+        ageCategoryToAgeRange.put("b85n99", "85-99");
+        ageCategoryToAgeRange.put("over100", "100 years and over");
+
+    }
+
+    private final static String EMP_PART_TIME = "Employed, part-time and away";
+    private final static String EMP_FULL_TIME = "Employed, worked part-time";
+    private final static String UNEMP = "Unemployed and NA";
+
 
 //    private enum Sex {male, female}
 //
@@ -82,10 +103,15 @@ public class AssignTripsToPopulation {
 
         AssignTripsToPopulation atp = new AssignTripsToPopulation();
 
-        createPopulationFromLatch();
-        atp.readCorrespondences();
-        atp.storeSyntheticPersonCharGroups();
+//        createPopulationFromLatch();
+//        atp.readCorrespondences();
+//        atp.storeSyntheticPersonCharGroups();
 
+        try {
+            atp.readSA2EmploymentStatusCensusFile();
+        }catch (IOException ii){
+            log.warn("readSA2EmploymentStatusCensusFile() : "+ii.getLocalizedMessage());
+        }
         log.info("Assigning trips to population finished");
         log.info("--------------------------------------");
 
@@ -124,7 +150,7 @@ public class AssignTripsToPopulation {
     }
 
 
-    public AgeGroups binAgeCategory(String age) {
+    public AgeGroups binAgeIntoCategory(String age) {
         int ageInt = Integer.parseInt(age);
 
         if (ageInt >= 15 && ageInt <= 24)
@@ -144,6 +170,29 @@ public class AssignTripsToPopulation {
 
         return AgeGroups.u15;
     }
+
+    public AgeGroups binAgeRangeIntoCategory(String ageRange) {
+
+        if (ageRange.equals("0-14"))
+            return AgeGroups.u15;
+        else if (ageRange.equals("15-24"))
+            return AgeGroups.b15n24;
+        else if (ageRange.equals("25-39"))
+            return AgeGroups.b25n39;
+        else if (ageRange.equals("40-54"))
+            return AgeGroups.b40n54;
+        else if (ageRange.equals("55-69"))
+            return AgeGroups.b55n69;
+        else if (ageRange.equals("70-84"))
+            return AgeGroups.b70n84;
+        else if (ageRange.equals("85-99"))
+            return AgeGroups.b85n99;
+        else if (ageRange.equals("100 years and over"))
+            return AgeGroups.over100;
+
+        return AgeGroups.u15;
+    }
+
 
     /**
      * Method to read the look up correspondence file
@@ -209,7 +258,7 @@ public class AssignTripsToPopulation {
 
                 String gender = (String) person.getAttributes().getAttribute("Gender");
                 String age = (String) person.getAttributes().getAttribute("Age");
-                AgeGroups ageGroups = binAgeCategory(age);
+                AgeGroups ageGroups = binAgeIntoCategory(age);
                 String relStatus = (String) person.getAttributes().getAttribute("RelationshipStatus");
 
                 PersonChar pChar = new PersonChar(gender, ageGroups.name(), relStatus);
@@ -266,17 +315,92 @@ public class AssignTripsToPopulation {
 
             final CsvToBean<Record> reader2 = builder.build();
 
+            sa2PersonCharGroupsCensus = new HashMap<>();
+            //TODO : Change Alfredton to generic sa2
+            sa2PersonCharGroupsCensus.put("Alfredton", new ArrayList<PersonChar>());
+
             for (Iterator<Record> it = reader2.iterator(); it.hasNext(); ) {
 
+                it.next();
                 record = it.next();
-                
 
-                //                record.sex
+                PersonChar pChar;
+                String gender = "";
+                String ageRange = "";
+                String relStatus = "";
+
+                if (!record.sex.equals(""))
+                    gender = record.sex;
+
+                if (!record.age.equals(""))
+                    ageRange = record.age.split("\\(")[0];
+
+                if (!record.relStatus.equals(""))
+                    relStatus = record.relStatus.split("\\(")[0];
+
+                String fullTimeWorkForce = "";
+                String partTimeWorkForce = "";
+                String unemployedForce = "";
+                double workForceProportion;
+
+                if (!record.relStatus.equals("")) {
+
+                    //TODO : Change Alfredton to generic sa2
+
+                    int cnt = 0;
+                    while (cnt++ < 3) {
+                        if (record.lfsp.equals(EMP_FULL_TIME))
+                            fullTimeWorkForce = record.Alfredton;
+
+                        if (record.lfsp.equals(EMP_PART_TIME))
+                            partTimeWorkForce = record.Alfredton;
+
+                        if (record.lfsp.equals(UNEMP))
+                            unemployedForce = record.Alfredton;
+
+                        System.out.println(gender+" "+ageRange+" "+relStatus+" "+record.lfsp+" "+record
+                                .Alfredton);
+
+                        record = it.next();
+                    }
+                    workForceProportion = (Double.parseDouble(fullTimeWorkForce) + Double.parseDouble
+                            (partTimeWorkForce)) /
+                            (Double.parseDouble(fullTimeWorkForce) +
+                                    Double.parseDouble(partTimeWorkForce) + Double.parseDouble(unemployedForce));
+
+
+
+                    //Retrieve list of Person Characteristic groupings
+                    List<PersonChar> pCharGroups = sa2PersonCharGroupsCensus.get("Alfredton");
+
+                    AgeGroups ageGroups = binAgeRangeIntoCategory(ageRange);
+                    pChar = new PersonChar(gender, ageGroups.name(), relStatus);
+
+                    pChar.setEmpProportion(workForceProportion);
+
+                    pCharGroups.add(pChar);
+                }
+
+                //Change if summation removed from file (no totals involved)
+                //it.next();
             }
+        }
 
+        for (String sa2Name : sa2PersonCharGroupsCensus.keySet()) {
+            System.out.println("SA2 NAME : " + sa2Name);
+            System.out.println("-----------------------");
+
+            for (PersonChar pChar : sa2PersonCharGroupsCensus.get(sa2Name)) {
+                StringBuilder str = new StringBuilder();
+                str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
+                        pChar.empProportion);
+                System.out.println(str);
 
             }
+            System.out.println("-----------------------");
+        }
     }
+
 
 //Read shape file to store the features for a given sa2
 //Read correspondence file for sa1 7 digit codes to get sa2 names from 2016 census correspondence
@@ -305,7 +429,8 @@ public class AssignTripsToPopulation {
         String gender;
         String ageGroup;
         String relStatus;
-        int pCharCount;
+        double pCharCount;
+        double empProportion = 0;
 
         public PersonChar(String gender, String ageGroup, String relStatus) {
 
@@ -321,6 +446,10 @@ public class AssignTripsToPopulation {
                     .relStatus.equals(relStatus))
                 return true;
             return false;
+        }
+
+        public void setEmpProportion(double empProportion) {
+            this.empProportion = empProportion;
         }
     }
 
@@ -342,11 +471,10 @@ public class AssignTripsToPopulation {
         private String relStatus;
 
         @CsvBindByPosition(position = 3)
-
         private String lfsp;
 
         @CsvBindByName
-        private String Melbourne;
+        private String Alfredton;
 
     }
 
