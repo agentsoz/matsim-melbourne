@@ -41,54 +41,21 @@ public class RunMelbourne {
 
 	public static void main(String[] args) {
 		// yyyyyy increase memory!
+		
+		Config config = prepareConfig(args);
+		
+		Scenario scenario = prepareScenario(config);
 
-		Config config = ConfigUtils.loadConfig("scenarios/2017-11-scenario-by-kai-from-vista/baseConfig.xml") ;
-		config.controler().setOverwriteFileSetting(OverwriteFileSetting.deleteDirectoryIfExists);
-
-//		{
-//			config.network().setInputFile("mergedGmelbNetwork.xml.gz");
-//			config.plans().setInputFile("pop.xml.gz") ; // indep of network
-//		}
-		{
-					config.network().setInputFile("net.xml.gz");
-					config.plans().setInputFile("../../population-with-home-work-trips.xml.gz") ;
-//					config.plans().setInputFile("plans-file-new-29-nov.xml.gz") ;
-//					config.plans().setInputFile("pop-routed.xml.gz") ;
-//					config.plans().setInputFile("pop-routed-accessegress.xml.gz") ;
-		}
-
-		config.controler().setLastIteration(0);
-
-		config.controler().setRoutingAlgorithmType( RoutingAlgorithmType.FastAStarLandmarks);
-
-		config.plansCalcRoute().setInsertingAccessEgressWalk(true);
-
-		{
-			StrategySettings stratSets = new StrategySettings( ) ;
-			stratSets.setStrategyName( DefaultStrategy.ReRoute.name() );
-			stratSets.setWeight(0.1);
-			config.strategy().addStrategySettings(stratSets);
-		}
-		{
-			StrategySettings stratSets = new StrategySettings( ) ;
-			stratSets.setStrategyName( DefaultSelector.ChangeExpBeta ) ;
-			stratSets.setWeight(0.9);
-			config.strategy().addStrategySettings(stratSets);
-		}
-
-		config.global().setNumberOfThreads(4);
-		config.qsim().setNumberOfThreads(4);
-		config.qsim().setEndTime(36.*3600.);
-
-		config.qsim().setFlowCapFactor(0.01);
-		config.qsim().setStorageCapFactor(0.01);
-		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
-
-		config.vspExperimental().setVspDefaultsCheckingLevel(VspDefaultsCheckingLevel.warn);
-
-		// ---
-
-		Scenario scenario = ScenarioUtils.loadScenario(config) ;
+		Controler controler = prepareControler(scenario);
+		
+		controler.run();
+	}
+	
+	static Controler prepareControler(Scenario scenario) {
+		return new Controler( scenario ) ;
+	}
+	
+	static Scenario prepareScenario(Config config) {
 
 //		log.info("number of links before simplifying=" + scenario.getNetwork().getLinks().size() ) ;
 //		List<Id<Link>> keysToRemove = new ArrayList<>() ;
@@ -107,13 +74,58 @@ public class RunMelbourne {
 //		log.info("number of links after simplifying=" + scenario.getNetwork().getLinks().size() ) ;
 //
 //		NetworkUtils.writeNetwork( scenario.getNetwork(), "net.xml.gz" ) ;
-
-		// ---
-
-		Controler controler = new Controler( scenario ) ;
-
-		controler.run();
-
+		return ScenarioUtils.loadScenario(config);
 	}
+	
+	static Config prepareConfig(String[] args) {
+		Config config = null;
+		
+		if (args != null && args.length >= 1) {
+			config = ConfigUtils.loadConfig(args[0]);
+		} else {
+			// === default config start (if no config file provided)
+			
+			config = ConfigUtils.loadConfig("scenarios/2017-11-scenario-by-kai-from-vista/baseConfig.xml");
+			config.controler().setOverwriteFileSetting(OverwriteFileSetting.deleteDirectoryIfExists);
 
+			config.controler().setLastIteration(0);
+			
+			config.global().setNumberOfThreads(4);
+			config.qsim().setNumberOfThreads(4);
+			config.qsim().setEndTime(36.*3600.);
+			
+			config.qsim().setFlowCapFactor(0.01);
+			config.qsim().setStorageCapFactor(0.01);
+			
+			// === default config end
+		}
+		// === everything from here on applies to _all_ runs, that is, it overrides the base config.
+		
+		config.vspExperimental().setVspDefaultsCheckingLevel(VspDefaultsCheckingLevel.warn);
+		
+		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
+		
+		config.controler().setRoutingAlgorithmType( RoutingAlgorithmType.FastAStarLandmarks);
+		
+		config.plansCalcRoute().setInsertingAccessEgressWalk(true);
+		
+		{
+			StrategySettings stratSets = new StrategySettings( ) ;
+			stratSets.setStrategyName( DefaultStrategy.ReRoute.name() );
+			stratSets.setWeight(0.1);
+			config.strategy().addStrategySettings(stratSets);
+		}
+		{
+			StrategySettings stratSets = new StrategySettings( ) ;
+			stratSets.setStrategyName( DefaultSelector.ChangeExpBeta ) ;
+			stratSets.setWeight(0.9);
+			config.strategy().addStrategySettings(stratSets);
+		}
+		
+		// === overriding config is loaded at end.  Allows to override config settings at the very end.  Could, for example, switch off kinematic waves,
+		// or set the weight of re-routing to zero.  Not really recommended, but there may be cases where this is needed. kai, jan'18
+		ConfigUtils.loadConfig(config,"scenarios/shared/overridingConfig.xml");
+		return config;
+	}
+	
 }

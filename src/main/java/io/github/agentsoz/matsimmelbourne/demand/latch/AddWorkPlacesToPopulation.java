@@ -1,10 +1,11 @@
-package io.github.agentsoz.matsimmelbourne;
+package io.github.agentsoz.matsimmelbourne.demand.latch;
 
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.vividsolutions.jts.geom.Point;
+import io.github.agentsoz.matsimmelbourne.utils.MMUtils;
 import org.apache.log4j.Logger;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -20,7 +21,6 @@ import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
-import sun.rmi.runtime.Log;
 
 import java.io.*;
 import java.util.*;
@@ -625,7 +625,7 @@ public class AddWorkPlacesToPopulation {
 
             // --- add work activity:
 
-            Point point = CreateDemandFromVISTA.getRandomPointInFeature(rnd, ft);
+            Point point = MMUtils.getRandomPointInFeature(rnd, ft);
             Gbl.assertNotNull(point);
 
             Coord coord = new Coord(point.getX(), point.getY());

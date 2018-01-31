@@ -16,9 +16,8 @@
  *   See also COPYING, LICENSE and WARRANTY file                           *
  *                                                                         *
  * *********************************************************************** */
-package io.github.agentsoz.matsimmelbourne;
+package io.github.agentsoz.matsimmelbourne.demand.vista;
 
-import io.github.agentsoz.matsimmelbourne.CreateDemandFromVISTA;
 import org.junit.Test;
 
 import java.io.IOException;

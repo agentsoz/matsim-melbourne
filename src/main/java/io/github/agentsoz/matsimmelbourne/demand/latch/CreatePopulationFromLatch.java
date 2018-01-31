@@ -1,4 +1,4 @@
-package io.github.agentsoz.matsimmelbourne;
+package io.github.agentsoz.matsimmelbourne.demand.latch;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
@@ -12,14 +12,10 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.households.Household;
-import org.matsim.households.Households;
-import org.matsim.households.HouseholdsFactory;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.*;
 
 /**
@@ -97,7 +93,7 @@ public class CreatePopulationFromLatch {
         // See example in https://github.com/agentsoz/jill/blob/master/jill/src/main/java/io/github/agentsoz/jill
         // /util/ArgumentsLoader.java
 
-        Map<String, String> config = MMUtils.parse(args);
+        Map<String, String> config = LatchUtils.parse(args);
 
         String oDir = null;
         String rrMode = null;
@@ -105,20 +101,20 @@ public class CreatePopulationFromLatch {
         String samplePop = null;
         String fName = null;
 
-        if (config.containsKey(MMUtils.OUTPUT_DIRECTORY_INDICATOR))
-            oDir = config.get(MMUtils.OUTPUT_DIRECTORY_INDICATOR);
+        if (config.containsKey(LatchUtils.OUTPUT_DIRECTORY_INDICATOR))
+            oDir = config.get(LatchUtils.OUTPUT_DIRECTORY_INDICATOR);
 
-        if (config.containsKey(MMUtils.RUN_MODE))
-            rrMode = config.get(MMUtils.RUN_MODE);
+        if (config.containsKey(LatchUtils.RUN_MODE))
+            rrMode = config.get(LatchUtils.RUN_MODE);
 
         if (rrMode.equals("d"))
-            samplePop = config.get(MMUtils.SAMPLE_POPULATION);
+            samplePop = config.get(LatchUtils.SAMPLE_POPULATION);
 
-        if (config.containsKey(MMUtils.FILE_FORMAT))
-            fFormat = config.get(MMUtils.FILE_FORMAT);
+        if (config.containsKey(LatchUtils.FILE_FORMAT))
+            fFormat = config.get(LatchUtils.FILE_FORMAT);
 
-        if (config.containsKey((MMUtils.FILE_NAME)))
-            fName = config.get(MMUtils.FILE_NAME);
+        if (config.containsKey((LatchUtils.FILE_NAME)))
+            fName = config.get(LatchUtils.FILE_NAME);
 
 
         CreatePopulationFromLatch createPop = new CreatePopulationFromLatch(oDir, rrMode, samplePop, fFormat, fName);

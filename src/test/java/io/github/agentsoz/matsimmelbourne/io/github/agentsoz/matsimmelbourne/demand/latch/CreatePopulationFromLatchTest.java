@@ -1,5 +1,6 @@
-package io.github.agentsoz.matsimmelbourne;
+package io.github.agentsoz.matsimmelbourne.io.github.agentsoz.matsimmelbourne.demand.latch;
 
+import io.github.agentsoz.matsimmelbourne.demand.latch.CreatePopulationFromLatch;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 

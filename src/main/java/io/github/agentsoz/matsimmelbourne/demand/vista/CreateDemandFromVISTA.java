@@ -1,10 +1,10 @@
-package io.github.agentsoz.matsimmelbourne;
+package io.github.agentsoz.matsimmelbourne.demand.vista;
 
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
-import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
+import io.github.agentsoz.matsimmelbourne.utils.MMUtils;
 import org.apache.log4j.Logger;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -22,7 +22,6 @@ import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
-import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
@@ -38,12 +37,38 @@ import java.util.*;
  * @author (of documentation) kainagel
  *
  */
-public class CreateDemandFromVISTA {
+final class CreateDemandFromVISTA {
 	private static final String pusTripsFile = "data/vista/2017-11-01-vista2009/Trips_VISTA09_v3_VISTA_Online.csv" ;
 	private static final String pusPersonsFile = "data/vista/2017-11-01-vista2009/Persons_VISTA09_v3_VISTA_Online.csv" ;
 	private static final String zonesFile = "data/census/2006/shp/2017-11-08-1259030002_cd06avic_shape/CD06aVIC.shp";
 	private static final Logger log = Logger.getLogger( CreateDemandFromVISTA.class ) ;
+	
+	public static Coord createRandomCoordinateInCcdZone(Random rnd, Map<String, SimpleFeature> featureMap,
+														String ccdCode, CreateDemandFromVISTA.Visitors record, CoordinateTransformation ct) {
 
+		// get corresponding feature:
+		SimpleFeature ft = featureMap.get(ccdCode) ;
+		if ( ft==null ) {
+			log.error("unknown ccdCode=" + ccdCode ); // yyyyyy look at this again
+			log.error( record.toString() );
+			double xmin = 271704. ; double xmax = 421000. ;
+			double xx = xmin + rnd.nextDouble()*(xmax-xmin) ;
+			double ymin = 5784843. ; double ymax = 5866000. ;
+			double yy =ymin + rnd.nextDouble()*(ymax-ymin) ;
+			return CoordUtils.createCoord( xx, yy) ;
+			
+//			return CoordUtils.createCoord(271704., 5784843. ) ; // dummy coordinate; should be around Geelong.  kai, nov'17
+		}
+
+		// get random coordinate in feature:
+		Point point = MMUtils.getRandomPointInFeature(rnd, ft) ;
+
+		Coord coordInOrigCRS = CoordUtils.createCoord( point.getX(), point.getY() ) ;
+
+		Coord coordOrigin = ct.transform(coordInOrigCRS) ;
+		return coordOrigin;
+	}
+	
 	public final static class Visitors {
 		// needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
 
@@ -134,7 +159,7 @@ public class CreateDemandFromVISTA {
 		System.out.println("population done" + "\n" + population);
 	} // end of createPUSPersons
 
-	public void createPUSPlans() throws IOException {
+	void createPUSPlans() throws IOException {
 		// ===
 
 		/*
@@ -190,7 +215,7 @@ public class CreateDemandFromVISTA {
 				if (!personId.equals(previousPersonId) ) { // a new person
 
 					//add the original place
-					coordOrigin = createRandomCoordinateInCcdZone(rnd, featureMap, record.ORIGCCD.trim(), record );
+					coordOrigin = createRandomCoordinateInCcdZone(rnd, featureMap, record.ORIGCCD.trim(), record, ct );
 
 					final String actType = record.ORIGPURP1.trim();
 					activityTypes.add(actType) ; 
@@ -227,7 +252,7 @@ public class CreateDemandFromVISTA {
 		plan.addLeg(pf.createLeg(mode));
 
 		// add the destination
-		Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, record.DESTCCD.trim(), record );
+		Coord coordDestination = createRandomCoordinateInCcdZone(rnd, featureMap, record.DESTCCD.trim(), record, ct );
 		String activityType = record.DESTPURP1.trim();
 		activityTypes.add(activityType) ;
 		Activity activity1 = pf.createActivityFromCoord(activityType, coordDestination);
@@ -238,37 +263,10 @@ public class CreateDemandFromVISTA {
 		}
 		plan.addActivity(activity1);
 	}
-
-	private Coord createRandomCoordinateInCcdZone(Random rnd, Map<String, SimpleFeature> featureMap,
-			String ccdCode, Visitors record ) {
-
-		// get corresponding feature:
-		SimpleFeature ft = featureMap.get(ccdCode) ;
-		if ( ft==null ) {
-			log.error("unknown ccdCode=" + ccdCode ); // yyyyyy look at this again
-			log.error( record.toString() );
-			double xmin = 271704. ; double xmax = 421000. ;
-			double xx = xmin + this.random.nextDouble()*(xmax-xmin) ; 
-			double ymin = 5784843. ; double ymax = 5866000. ;
-			double yy =ymin + this.random.nextDouble()*(ymax-ymin) ;
-			return CoordUtils.createCoord( xx, yy) ;
-			
-//			return CoordUtils.createCoord(271704., 5784843. ) ; // dummy coordinate; should be around Geelong.  kai, nov'17
-		}
-
-		// get random coordinate in feature:
-		Point point = getRandomPointInFeature(rnd, ft) ;
-
-		Coord coordInOrigCRS = CoordUtils.createCoord( point.getX(), point.getY() ) ;
-
-		Coord coordOrigin = ct.transform(coordInOrigCRS) ;
-		return coordOrigin;
-	}
 	
-	public void populationWriting(){
+	void populationWriting(){
 		PopulationWriter populationWriter = new PopulationWriter(this.scenario.getPopulation(), this.scenario.getNetwork());
 		populationWriter.write("plansCoM.xml.gz");
-		//		new ObjectAttributesXmlWriter(this.scenarioPUS.getPopulation().getPersonAttributes()).writeFile("C:/Users/znavidikasha/Dropbox/1-PhDProject/YarraRanges/demand/zahra's/YRsPlansSubAtts.xml");
 		
 		Config config = ConfigUtils.createConfig() ;
 		
@@ -291,31 +289,18 @@ public class CreateDemandFromVISTA {
 		ConfigUtils.writeMinimalConfig(config,"config.xml");
 		
 		System.out.println("writing done");
-	}//end of writing
-
-	public static Point getRandomPointInFeature(Random rnd, SimpleFeature ft) {
-		Gbl.assertNotNull(ft);
-		Point p = null;
-		double x, y;
-		// generate a random point until a point inside the feature geometry is found
-		do {
-			x = ft.getBounds().getMinX() + rnd.nextDouble() * (ft.getBounds().getMaxX() - ft.getBounds().getMinX());
-			y = ft.getBounds().getMinY() + rnd.nextDouble() * (ft.getBounds().getMaxY() - ft.getBounds().getMinY());
-			p = MGC.xy2Point(x, y);
-		} while ( ! (((Geometry) ft.getDefaultGeometry()).contains(p)) );
-		return p;
-	} 
-
+	}
+	
 	public static void main(String[] args) throws IOException {
 
-//		CreateDemandFromVISTA createDemand = new CreateDemandFromVISTA();
-//		Config config = ConfigUtils.createConfig();
-//		Scenario scenario = ScenarioUtils.createScenario(config);
-//		createDemand.run();
-//		System.out.println("DONE");
+		CreateDemandFromVISTA createDemand = new CreateDemandFromVISTA();
+		Config config = ConfigUtils.createConfig();
+		Scenario scenario = ScenarioUtils.createScenario(config);
+		createDemand.run();
+		System.out.println("DONE");
 
 	}
 
 
 
-} // end of class
+}

@@ -1,5 +1,6 @@
-package io.github.agentsoz.matsimmelbourne;
+package io.github.agentsoz.matsimmelbourne.io.github.agentsoz.matsimmelbourne.demand.latch;
 
+import io.github.agentsoz.matsimmelbourne.demand.latch.AddWorkPlacesToPopulation;
 import org.junit.Test;
 
 import java.io.IOException;
