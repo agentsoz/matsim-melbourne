@@ -3,6 +3,7 @@
 * [About this project](#about-this-project)
 * [Getting started](#getting-started)
 * [Input Data](#input-data)
+* [How to build and run](#how-to-build-and-run)
 * [Contributors](#contributors)
 * [License](#license)
 
