@@ -25,7 +25,6 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ControlerConfigGroup.RoutingAlgorithmType;
 import org.matsim.core.config.groups.QSimConfigGroup.TrafficDynamics;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
-import org.matsim.core.config.groups.VspExperimentalConfigGroup.VspDefaultsCheckingLevel;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule.DefaultSelector;
@@ -43,6 +42,7 @@ public class RunMelbourne {
 		// yyyyyy increase memory!
 		
 		Config config = prepareConfig(args);
+		config.controler().setOverwriteFileSetting(OverwriteFileSetting.deleteDirectoryIfExists);
 		
 		Scenario scenario = prepareScenario(config);
 
@@ -85,7 +85,7 @@ public class RunMelbourne {
 		} else {
 			// === default config start (if no config file provided)
 			
-			config = ConfigUtils.loadConfig("scenarios/2017-11-scenario-by-kai-from-vista/baseConfig.xml");
+			config = ConfigUtils.loadConfig("scenarios/2017-11-scenario-by-kai-from-vista/config.xml");
 			config.controler().setOverwriteFileSetting(OverwriteFileSetting.deleteDirectoryIfExists);
 
 			config.controler().setLastIteration(0);
@@ -94,16 +94,9 @@ public class RunMelbourne {
 			config.qsim().setNumberOfThreads(4);
 			config.qsim().setEndTime(36.*3600.);
 			
-			config.qsim().setFlowCapFactor(0.01);
-			config.qsim().setStorageCapFactor(0.01);
-			
 			// === default config end
 		}
 		// === everything from here on applies to _all_ runs, that is, it overrides the base config.
-		
-		config.vspExperimental().setVspDefaultsCheckingLevel(VspDefaultsCheckingLevel.warn);
-		
-		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
 		
 		config.controler().setRoutingAlgorithmType( RoutingAlgorithmType.FastAStarLandmarks);
 		
@@ -122,9 +115,11 @@ public class RunMelbourne {
 			config.strategy().addStrategySettings(stratSets);
 		}
 		
+		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
+		
 		// === overriding config is loaded at end.  Allows to override config settings at the very end.  Could, for example, switch off kinematic waves,
 		// or set the weight of re-routing to zero.  Not really recommended, but there may be cases where this is needed. kai, jan'18
-		ConfigUtils.loadConfig(config,"scenarios/shared/overridingConfig.xml");
+		ConfigUtils.loadConfig(config,"overridingConfig.xml");
 		return config;
 	}
 	

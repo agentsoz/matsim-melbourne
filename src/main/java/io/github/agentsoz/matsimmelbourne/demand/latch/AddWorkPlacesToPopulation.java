@@ -5,6 +5,7 @@ import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.vividsolutions.jts.geom.Point;
+import io.github.agentsoz.matsimmelbourne.utils.DefaultActivityTypes;
 import io.github.agentsoz.matsimmelbourne.utils.MMUtils;
 import org.apache.log4j.Logger;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -437,7 +438,7 @@ public class AddWorkPlacesToPopulation {
      */
     private double activityEndTime(String actType) {
         double endTime = 0.0;
-        if (actType.equals("work")) {
+        if (actType.equals(DefaultActivityTypes.work)) {
             /*
              * Allow people to leave work between 16.45 and 17.10
 			 */
@@ -446,7 +447,7 @@ public class AddWorkPlacesToPopulation {
         }
 
         Random rnd = new Random();
-        if (actType.equals("home")) {
+        if (actType.equals(DefaultActivityTypes.home)) {
 
             /*
              * Allow people to leave work between
@@ -614,7 +615,7 @@ public class AddWorkPlacesToPopulation {
             // ---
 
             Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
-            homeActivity.setEndTime(activityEndTime("home"));
+            homeActivity.setEndTime(activityEndTime(DefaultActivityTypes.home));
 
             // --- add a leg:
 
@@ -631,10 +632,10 @@ public class AddWorkPlacesToPopulation {
             Coord coord = new Coord(point.getX(), point.getY());
             Coord coordTransformed = ct.transform(coord);
 
-            Activity actWork = pf.createActivityFromCoord("Work Related", coordTransformed);
+            Activity actWork = pf.createActivityFromCoord( DefaultActivityTypes.work, coordTransformed);
             person.getSelectedPlan().addActivity(actWork);
 
-            actWork.setEndTime(activityEndTime("work"));
+            actWork.setEndTime(activityEndTime(DefaultActivityTypes.work));
 
             // --- add leg:
 
@@ -642,7 +643,7 @@ public class AddWorkPlacesToPopulation {
 
             // --- add home activity:
 
-            Activity actGoHome = pf.createActivityFromCoord("Go Home", homeActivity.getCoord());
+            Activity actGoHome = pf.createActivityFromCoord(DefaultActivityTypes.home, homeActivity.getCoord());
             person.getSelectedPlan().addActivity(actGoHome);
 
             // check what we have:

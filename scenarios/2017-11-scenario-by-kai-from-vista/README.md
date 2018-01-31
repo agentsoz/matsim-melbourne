@@ -9,15 +9,15 @@
 
 Very initial scenario, trying to be maximally pragmatic.  Elements:
 * VISTA data translated 1:1 to MATSim plans.  All activity types 
-and modes are retained and automatically copied into a file which
-now shows up as baseConfig.xml .
+and modes are retained and automatically copied into a file.  `config.xml` is then 
+constructed from that.
 * VISTA persons do not have weight one; that aspect is ignored. 
 
 ### Files contained
 
 The following list describes the files contained in the directory
 
-* baseConfig.xml -- see above
+* config.xml -- see above
 
 * comparisonConfigDump.xml -- cannot remember what this is
 
