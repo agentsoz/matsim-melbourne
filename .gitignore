@@ -33,7 +33,7 @@ hs_err_pid*
 **/*.iml
 
 # ignore outputs
-config.xml
+/config.xml
 plansCoM.xml.gz
 population-from-latch.xml
 **/output
