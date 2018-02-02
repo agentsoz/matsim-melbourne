@@ -3,6 +3,7 @@ package io.github.agentsoz.matsimmelbourne.demand.latch;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.core.gbl.Gbl;
 import com.opencsv.bean.CsvToBeanBuilder;
 import org.apache.log4j.Logger;
@@ -29,6 +30,7 @@ public class AssignTripsToPopulation {
     };
 
     private Record record;
+    private MTWPRecord mtwpRecord;
     private final Config config;
     private final Scenario scenario;
     private final PopulationFactory pf;
@@ -36,6 +38,7 @@ public class AssignTripsToPopulation {
     Map<String, String> sa2NameFromSa1Id;
     Map<String, List<PersonChar>> sa2PersonCharGroupsLatch;
     Map<String, List<PersonChar>> sa2PersonCharGroupsCensus;
+    Map<String, List<PersonChar>> sa2PersonCharGroupsMTWP;
 
 
     //2016 correspondence file below
@@ -49,6 +52,7 @@ public class AssignTripsToPopulation {
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
     private final static String SA2_EMPSTATS_FILE = "data/census/2011/population/VIC - SEXP_AGE5P_LFSP_UR_2011.csv";
+    private final static String MTWP_FILE = "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv";
 
     private enum AgeGroups {u15, b15n24, b25n39, b40n54, b55n69, b70n84, b85n99, over100}
 
@@ -111,8 +115,25 @@ public class AssignTripsToPopulation {
         } catch (IOException ii) {
             log.warn("readSA2EmploymentStatusCensusFile() : " + ii.getLocalizedMessage());
         }
+
+        try {
+            atp.storeLatchWorkingProportionNumbers();
+        } catch (RuntimeException r) {
+            log.warn("storeLatchWorkingProportionNumbers() : " + r.getLocalizedMessage());
+        }
+
+        try {
+            atp.readMTWPFile();
+        } catch (IOException ii) {
+            log.warn("readMTWPFile() : " + ii.getLocalizedMessage());
+
+        }
+
+        atp.storeMTWPProportionsInLatch();
+
         log.info("Assigning trips to population finished");
         log.info("--------------------------------------");
+
 
     }
 
@@ -279,19 +300,25 @@ public class AssignTripsToPopulation {
 
         //Below prints out number of person groups in each sa2
 
-        for (String sa2Name : sa2PersonCharGroupsLatch.keySet()) {
-            System.out.println("SA2 NAME : " + sa2Name);
-            System.out.println("......................");
-
-            for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa2Name)) {
-                StringBuilder str = new StringBuilder();
-                str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
-                        pChar.pCharCount);
-                System.out.println(str);
-
-            }
-            System.out.println("......................");
-        }
+        System.out.println();
+//        for (String sa2Name : sa2PersonCharGroupsLatch.keySet()) {
+//
+//            System.out.println("SA2 NAME : " + sa2Name);
+//            System.out.println("......................");
+//
+//            int total = 0;
+//            for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa2Name)) {
+//                StringBuilder str = new StringBuilder();
+//                str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
+//                        pChar.pCharCount);
+//                System.out.println(str);
+//                total += pChar.pCharCount;
+//            }
+//
+//            System.out.println("TOTAL : " + total);
+//
+//            System.out.println("......................");
+//        }
     }
 
 
@@ -380,16 +407,290 @@ public class AssignTripsToPopulation {
             }
         }
 
-        for (String sa : sa2PersonCharGroupsCensus.keySet()) {
+//        for (String sa : sa2PersonCharGroupsCensus.keySet()) {
+//            System.out.println("SA2 NAME : " + sa);
+//            System.out.println("-----------------------");
+//
+//            for (PersonChar pChar : sa2PersonCharGroupsCensus.get(sa)) {
+//                StringBuilder str = new StringBuilder();
+//                str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
+//                        pChar.partTimeProportion + " " + pChar.fullTimeProportion);
+//                System.out.println(str);
+//
+//            }
+//            System.out.println("-----------------------");
+//        }
+    }
+
+    //Store the proportionate number of working full-time and working part-time people in the latch data using the
+    // proportions from the census data
+    public void storeLatchWorkingProportionNumbers() {
+
+        log.info("Storing workforce proportions in Latch Data");
+
+        List<PersonChar> censusPCharList = null;
+        List<PersonChar> latchPCharList = null;
+        boolean sa2NameFound = false;
+
+        for (String sa2NameLatch : sa2PersonCharGroupsLatch.keySet()) {
+            for (String sa2NameCensus : sa2PersonCharGroupsCensus.keySet()) {
+                if (sa2NameCensus.equals(sa2NameLatch)) {
+
+                    sa2NameFound = true;
+                    censusPCharList = sa2PersonCharGroupsCensus.get(sa2NameCensus);
+                    latchPCharList = sa2PersonCharGroupsLatch.get(sa2NameLatch);
+                    break;
+                }
+            }
+        }
+
+        if (sa2NameFound == false) {
+            log.warn("Bad SA2 name or latch SA2 name not found in census data");
+            throw new RuntimeException("SA2 name not found");
+        }
+
+        Gbl.assertNotNull(censusPCharList);
+        Gbl.assertNotNull(latchPCharList);
+
+        for (PersonChar pCharCensus : censusPCharList) {
+            for (PersonChar pCharLatch : latchPCharList) {
+
+                if (pCharCensus.equals(pCharLatch)) {
+                    pCharLatch.setEmpPartTimeProportion(pCharCensus.partTimeProportion);
+                    pCharLatch.setFullTimeProportion(pCharCensus.fullTimeProportion);
+                }
+            }
+        }
+
+    }
+
+    public void calcMTWPProportion(PersonChar pChar, String lfsp) {
+
+        Double totalPersonCharacTrips = 0.;
+
+        for (String eachSA2Work : pChar.sa2TransportMode.get(lfsp)
+                .keySet())
+            for (String eachTMode : pChar.sa2TransportMode.get(lfsp).get
+                    (eachSA2Work).keySet())
+                if (eachTMode.equals("TotalMode"))
+                    totalPersonCharacTrips += pChar.sa2TransportMode.get(lfsp).get
+                            (eachSA2Work).get(eachTMode);
+
+//        System.out.println(pChar.gender+ " " + pChar.ageGroup + " " + pChar.relStatus+ " " + lfsp);
+//        System.out.println("TOTAL OF TOTALMODES : "+totalPersonCharacTrips);
+
+        //Get the proportion of individual modes to the total calculated above
+        for (String eachSA2Work : pChar.sa2TransportMode.get(lfsp).keySet())
+            for (String eachTMode : pChar.sa2TransportMode.get(lfsp).get
+                    (eachSA2Work).keySet()) {
+
+                //Just to print out proportions
+//        if(pChar.sa2TransportMode
+//                .get(lfsp).get(eachSA2Work).get(eachTMode)>0){
+//            System.out.println(pChar.gender+ " " + pChar.ageGroup + " " + pChar.relStatus+ " " + lfsp + " " +
+//                    eachSA2Work + " " + eachTMode);
+//            System.out.println(eachTMode+" : " +pChar.sa2TransportMode
+//                    .get(lfsp).get(eachSA2Work).get(eachTMode));
+//            System.out.println("TOTAL OF TOTALMODE : "+totalPersonCharacTrips);
+//            System.out.println(pChar.sa2TransportMode
+//                    .get(lfsp).get(eachSA2Work).get(eachTMode) / totalPersonCharacTrips);
+//
+//        }
+
+                if (!eachTMode.equals("TotalMode"))
+                    pChar.sa2TransportMode.get(lfsp).get(eachSA2Work).put(eachTMode, pChar.sa2TransportMode
+                            .get(lfsp).get(eachSA2Work).get(eachTMode) / totalPersonCharacTrips);
+            }
+    }
+    //
+
+    public void readMTWPFile() throws IOException {
+
+        String sa2Name = "";
+        String gender = "";
+        String ageRange = "";
+        String relStatus = "";
+        String lfsp = "";
+        String sa2Work = "";
+
+
+//        String fullTimeWorkForce = "";
+//        String partTimeWorkForce = "";
+//        String totalPopulation = "";
+//
+//        double partTimeWorkForceProportion;
+//        double fullTimeWorkForceProportion;
+
+        PersonChar pChar = null;
+        AgeGroups ageGroups = null;
+        int lineCount = 0;
+
+        try (final BufferedReader reader = new BufferedReader(new FileReader(MTWP_FILE))) {
+
+            log.info("Parsing MTWP file : " + MTWP_FILE);
+
+            while (++lineCount < 12) {
+                reader.readLine();
+            }
+
+            final CsvToBeanBuilder<MTWPRecord> builder = new CsvToBeanBuilder<>(reader);
+            builder.withType(MTWPRecord.class);
+            builder.withSeparator(',');
+
+            final CsvToBean<MTWPRecord> reader2 = builder.build();
+
+            sa2PersonCharGroupsMTWP = new HashMap<>();
+
+            for (Iterator<MTWPRecord> it = reader2.iterator(); it.hasNext(); ) {
+
+                mtwpRecord = it.next();
+
+                if (mtwpRecord.sa2Name == null && mtwpRecord.workForce == null)
+                    break;
+
+
+//                mtwpRecord.toString();
+
+                if (mtwpRecord.sa2Name != null) {
+                    sa2Name = mtwpRecord.sa2Name;
+                    sa2PersonCharGroupsMTWP.put(sa2Name, new ArrayList<PersonChar>());
+                }
+
+                List<PersonChar> pCharGroups = sa2PersonCharGroupsMTWP.get(sa2Name);
+                Gbl.assertNotNull(pCharGroups);
+
+                if (mtwpRecord.sex != null)
+                    gender = mtwpRecord.sex;
+
+                if (mtwpRecord.age != null) {
+                    ageRange = mtwpRecord.age;
+                    ageGroups = binAgeRangeIntoCategory(ageRange);
+                }
+                if (mtwpRecord.relStatus != null) {
+
+                    relStatus = mtwpRecord.relStatus;
+                    Gbl.assertNotNull(ageGroups);
+
+                    if (!lfsp.equals("")) {
+                        calcMTWPProportion(pChar, lfsp);
+//                        log.info(pChar.toString());
+                    }
+
+                    pChar = new PersonChar(gender, ageGroups.name(), relStatus);
+                    pCharGroups.add(pChar);
+
+                }
+
+                if (mtwpRecord.lfsp != null) {
+
+                    Double totalPersonCharacTrips = 0.;
+
+                    if (!lfsp.equals("") && mtwpRecord.relStatus == null) {
+                        calcMTWPProportion(pChar, lfsp);
+//                        log.info(pChar.toString());
+
+                    }
+
+                    lfsp = mtwpRecord.lfsp;
+                    pChar.sa2TransportMode.put(lfsp, new HashMap<>());
+
+                }
+
+
+                if (mtwpRecord.sa2Work != null) {
+
+                    sa2Work = mtwpRecord.sa2Work;
+
+                    pChar.sa2TransportMode.get(lfsp).put(sa2Work, new HashMap<>());
+
+                }
+
+                pChar.sa2TransportMode.get(lfsp).get(sa2Work).put(mtwpRecord.transportMode,
+                        Double.parseDouble(mtwpRecord.workForce));
+
+
+            }
+        }
+
+
+    }
+
+    //Store the proportions in the mapped latcha data for the person characteristic grouping
+    public void storeMTWPProportionsInLatch() {
+
+        String sa2NameUR = "";
+        log.info("Storing MTWP proportions in Latch Data");
+
+        List<PersonChar> mtwpCharList = null;
+        List<PersonChar> latchPCharList = null;
+        boolean sa2NameFound = false;
+
+        for (String sa2NameMTWP : sa2PersonCharGroupsMTWP.keySet()) {
+            for (String sa2NameLatch : sa2PersonCharGroupsLatch.keySet()) {
+                if (sa2NameMTWP.equals(sa2NameLatch)) {
+
+                    sa2NameFound = true;
+                    mtwpCharList = sa2PersonCharGroupsMTWP.get(sa2NameMTWP);
+                    latchPCharList = sa2PersonCharGroupsLatch.get(sa2NameLatch);
+                    sa2NameUR = sa2NameLatch;
+                    break;
+                }
+            }
+        }
+
+        if (sa2NameFound == false) {
+            log.warn("Bad SA2 name or latch SA2 name not found in census data");
+            throw new RuntimeException("SA2 name not found");
+        }
+
+        Gbl.assertNotNull(mtwpCharList);
+        Gbl.assertNotNull(latchPCharList);
+
+        for (PersonChar pCharMTWP : mtwpCharList) {
+            for (PersonChar pCharLatch : latchPCharList) {
+
+                if (pCharMTWP.equals(pCharLatch)) {
+
+                    for (String lfsp : pCharMTWP.sa2TransportMode.keySet()) {
+
+                        //Assigning the same work status
+                        pCharLatch.sa2TransportMode.put(lfsp, new HashMap<>());
+
+                        for (String sa2Work : pCharMTWP.sa2TransportMode.get(lfsp).keySet()) {
+
+                            //Assigning the same destination sa2
+                            pCharLatch.sa2TransportMode.get(lfsp).put(sa2Work, new HashMap<>());
+
+                            for (String mode : pCharMTWP.sa2TransportMode.get(lfsp).get(sa2Work).keySet()) {
+
+                                if(!mode.equals("TotalMode")){
+                                //Scaling the proportion from MTWP to Latch using the pre-existing proportion and
+                                // total count
+                                if(lfsp.equals("Employed, worked part-time"))
+                                    pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode, pCharMTWP
+                                            .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch.pCharCount *
+                                            pCharLatch.partTimeProportion);
+
+                                    if (lfsp.equals("Employed, worked full-time"))
+                                        pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode, pCharMTWP
+                                                .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch.pCharCount *
+
+                                                pCharLatch.fullTimeProportion);
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for (String sa : sa2PersonCharGroupsLatch.keySet()) {
             System.out.println("SA2 NAME : " + sa);
             System.out.println("-----------------------");
 
-            for (PersonChar pChar : sa2PersonCharGroupsCensus.get(sa)) {
-                StringBuilder str = new StringBuilder();
-                str.append(pChar.ageGroup).append(" " + pChar.gender).append(" " + pChar.relStatus).append(" " +
-                        pChar.partTimeProportion + " " + pChar.fullTimeProportion);
-                System.out.println(str);
-
+            for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa)) {
+                System.out.println(pChar.toString());
             }
             System.out.println("-----------------------");
         }
@@ -426,13 +727,47 @@ public class AssignTripsToPopulation {
         double pCharCount;
         double partTimeProportion = 0;
         double fullTimeProportion = 0;
+        Map<String, Map<String, Map<String, Double>>> sa2TransportMode = new HashMap<>();
 
+
+        @Override
+        public String toString() {
+
+            StringBuilder str = new StringBuilder();
+
+
+            for (String lfsp : sa2TransportMode.keySet()) {
+                str.append(gender).append(" ").append(ageGroup).append(" ").append(relStatus).append("\n");
+                str.append(lfsp).append("\n");
+                str.append("----------------").append("\n");
+                for (String sa2Name : sa2TransportMode.get(lfsp).keySet()) {
+                    str.append(sa2Name).append("\n");
+                    str.append("----------------").append("\n");
+                    for (String mode : sa2TransportMode.get(lfsp).get(sa2Name).keySet()) {
+                        if(sa2TransportMode.get(lfsp).get(sa2Name).get(mode)>0)
+                        str.append(mode).append(" : ").append(sa2TransportMode.get(lfsp).get(sa2Name).get(mode)).append
+                                ("\n");
+                    }
+                    str.append("----------------").append("\n");
+                }
+
+            }
+            return str.toString();
+
+        }
+
+        //Constructor for reading employment status Census file storing workforce proportions or latch data count
+        //lfsp and mtwp Map not used
         public PersonChar(String gender, String ageGroup, String relStatus) {
 
             this.gender = gender;
             this.ageGroup = ageGroup;
             this.relStatus = relStatus;
             this.pCharCount = 1;
+        }
+
+        public void setSa2TransportMode() {
+
         }
 
         public boolean equals(PersonChar p) {
@@ -485,4 +820,40 @@ public class AssignTripsToPopulation {
         }
     }
 
+    /**
+     * Class to build the records bound by the column header found in the csv file
+     */
+    public final static class MTWPRecord {
+        // needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
+
+        @CsvBindByPosition(position = 0)
+        private String sa2Name;
+
+        @CsvBindByPosition(position = 1)
+        private String sex;
+
+        @CsvBindByPosition(position = 2)
+        private String age;
+
+        @CsvBindByPosition(position = 3)
+        private String relStatus;
+
+        @CsvBindByPosition(position = 4)
+        private String lfsp;
+
+        @CsvBindByPosition(position = 5)
+        private String sa2Work;
+
+        @CsvBindByPosition(position = 6)
+        private String transportMode;
+
+        @CsvBindByPosition(position = 7)
+        private String workForce;
+
+        @Override
+        public String toString() {
+
+            return sa2Name + " " + age + " " + relStatus + " " + lfsp + " " + sa2Work + " " + transportMode;
+        }
+    }
 }
