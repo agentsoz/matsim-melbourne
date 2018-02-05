@@ -74,7 +74,7 @@ mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AddWorkPlaces
 
 ### Run MATSim
 
-Then to run the simulation with the generated MATSim population, run MATSimGUI in the matsim-melbourne project.  This can
+Then to run the simulation with the generated MATSim population, run `MATSimGUI` in the matsim-melbourne project.  This can
 * either be done from the IDE
 * or be done from the command line as follows:
 ```concept

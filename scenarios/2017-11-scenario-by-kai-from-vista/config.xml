@@ -6,18 +6,19 @@
 	<module name="network" >
 		<param name="inputNetworkFile" value="net.xml.gz" />
 	</module>
-
 	<!-- ====================================================================== -->
-
 	<module name="plans" >
 		<param name="inputPlansFile" value="plans-file-new-29-nov.xml.gz" />
 	</module>
-
 	<!-- ====================================================================== -->
 	<module name="qsim" >
 		<param name="flowCapacityFactor" value="0.01" />
 		<param name="storageCapacityFactor" value="0.01" />
 		<param name="endTime" value="36:00:00" />
+	</module>
+	<!-- ====================================================================== -->
+	<module name="controler" >
+		<param name="lastiteration" value="100" />
 	</module>
 	<!-- ====================================================================== -->
 
