@@ -15,9 +15,13 @@
 
 	<!-- ====================================================================== -->
 	<module name="qsim" >
-		<param name="flowCapacityFactor" value="0.01" />
-		<param name="storageCapacityFactor" value="0.01" />
+		<param name="flowCapacityFactor" value="1" />
+		<param name="storageCapacityFactor" value="1" />
 		<param name="endTime" value="36:00:00" />
+	</module>
+	<!-- ====================================================================== -->
+	<module name="controler" >
+		<param name="lastIteration" value="100" />
 	</module>
 	<!-- ====================================================================== -->
 
