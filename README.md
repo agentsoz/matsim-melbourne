@@ -82,7 +82,7 @@ mvn exec:java -Dexec.mainClass="org.matsim.gui/MATSimGUI"
 ```
 Then choose the correct config file (presumably in the `scenarios' directory), then run.
 
-Evidently, you could modify the material of a scenario, in particular the config file.
+Evidently, you could modify the material of a scenario, in particular the config file.  For example, you may want to set `lastIteration` first to 0 and then to 1 until everything is running smoothly.
 
 If you are a bit more experienced, you could copy `RunMelbourneTemplate.java`, adjust to your needs, and run that one.
 
