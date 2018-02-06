@@ -34,7 +34,7 @@ public class AssignTripsToPopulation {
 
             "--output-dir", ".",
             "--run-mode", "f",
-            "--file-format", "x",
+            "--file-format", "z",
 
     };
 
@@ -60,8 +60,8 @@ public class AssignTripsToPopulation {
     //2016 data is available in the respective folder
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
-    private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
-    private final static String OUTPUT_TRIPS_FILE = "population-with-Northcote-work-trips.xml";
+    private final static String INPUT_CONFIG_FILE = "population-from-latch.xml.gz";
+    private final static String OUTPUT_TRIPS_FILE = "population-with-Northcote-work-trips.xml.gz";
     private final static String SA2_EMPSTATS_FILE = "data/census/2011/population/VIC - SEXP_AGE5P_LFSP_UR_2011.csv";
     private final static String MTWP_FILE = "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv";
     private final static String ZONES_FILE =
@@ -121,9 +121,8 @@ public class AssignTripsToPopulation {
 
     public static void main(String args[]) {
 
-        AssignTripsToPopulation atp = new AssignTripsToPopulation();
-
         createPopulationFromLatch();
+        AssignTripsToPopulation atp = new AssignTripsToPopulation();
         atp.readCorrespondences();
         atp.storeSyntheticPersonCharGroups();
 

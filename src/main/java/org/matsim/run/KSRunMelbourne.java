@@ -21,11 +21,11 @@ public class KSRunMelbourne {
 	public static void main(String[] args) {
 		// yyyyyy increase memory!
 		
-		Config config = ConfigUtils.loadConfig("scenarios/2018-02-scenario-by-karthik-from-latch/config.xml");
+		Config config = ConfigUtils.loadConfig("scenarios/2018-02-scenario-by-karthik-from-latch/config-modified_from_kai-06-02-2018.xml");
 		config.controler().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
 		
 		config.network().setInputFile("net.xml.gz");
-		config.plans().setInputFile("population-with-home-work-trips.xml.gz");
+		config.plans().setInputFile("../../population-with-Northcote-work-trips.xml.gz");
 		
 		config.controler().setLastIteration(0);
 		
