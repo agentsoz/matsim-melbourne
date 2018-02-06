@@ -3,6 +3,10 @@
 <config>
 
 	<!-- ====================================================================== -->
+	<module name="global">
+	  <param name="coordinateSystem" value="EPSG:28355"/>
+	</module>
+	<!-- ====================================================================== -->
 	<module name="network" >
 		<param name="inputNetworkFile" value="net.xml.gz" />
 	</module>
