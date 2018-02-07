@@ -3,17 +3,26 @@ package io.github.agentsoz.matsimmelbourne.demand.latch;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
+import com.vividsolutions.jts.geom.Point;
+import io.github.agentsoz.matsimmelbourne.utils.DefaultActivityTypes;
+import io.github.agentsoz.matsimmelbourne.utils.MMUtils;
+import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.data.simple.SimpleFeatureSource;
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.TransportMode;
+import org.matsim.api.core.v01.population.*;
 import org.matsim.core.gbl.Gbl;
 import com.opencsv.bean.CsvToBeanBuilder;
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
-import org.matsim.api.core.v01.population.Person;
-import org.matsim.api.core.v01.population.PopulationFactory;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordinateTransformation;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
+import org.matsim.core.utils.gis.ShapeFileReader;
+import org.opengis.feature.simple.SimpleFeature;
 
 import java.io.*;
 import java.util.*;
@@ -25,7 +34,7 @@ public class AssignTripsToPopulation {
 
             "--output-dir", ".",
             "--run-mode", "f",
-            "--file-format", "x",
+            "--file-format", "z",
 
     };
 
@@ -36,6 +45,7 @@ public class AssignTripsToPopulation {
     private final PopulationFactory pf;
 
     Map<String, String> sa2NameFromSa1Id;
+    Map<String, SimpleFeature> featureMap;
     Map<String, List<PersonChar>> sa2PersonCharGroupsLatch;
     Map<String, List<PersonChar>> sa2PersonCharGroupsCensus;
     Map<String, List<PersonChar>> sa2PersonCharGroupsMTWP;
@@ -50,9 +60,13 @@ public class AssignTripsToPopulation {
     //2016 data is available in the respective folder
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
-    private final static String INPUT_CONFIG_FILE = "population-from-latch.xml";
+    private final static String INPUT_CONFIG_FILE = "population-from-latch.xml.gz";
+    private final static String OUTPUT_TRIPS_FILE = "population-with-Northcote-work-trips.xml.gz";
     private final static String SA2_EMPSTATS_FILE = "data/census/2011/population/VIC - SEXP_AGE5P_LFSP_UR_2011.csv";
     private final static String MTWP_FILE = "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv";
+    private final static String ZONES_FILE =
+            "data/census/2011/shp/2017-12-06-1270055001_sa2_2011_aust_shape/SA2_2011_AUST" +
+                    ".shp";
 
     private enum AgeGroups {u15, b15n24, b25n39, b40n54, b55n69, b70n84, b85n99, over100}
 
@@ -71,9 +85,12 @@ public class AssignTripsToPopulation {
 
     }
 
+    private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation
+            (TransformationFactory.WGS84, "EPSG:28355");
     private final static String EMP_PART_TIME = "Employed, worked part-time";
     private final static String EMP_FULL_TIME = "Employed, worked full-time";
     private final static String TOTAL_POP = "Total";
+    private Random rnd;
 
 //    private enum Sex {male, female}
 //
@@ -81,7 +98,7 @@ public class AssignTripsToPopulation {
 //
 //    private enum EmpStats {employedFull, employedPart, unemployed}
 
-//    private class PersonChar {
+    //    private class PersonChar {
 //
 //        AgeGroups ageGroups;
 //        Sex sex;
@@ -104,9 +121,8 @@ public class AssignTripsToPopulation {
 
     public static void main(String args[]) {
 
-        AssignTripsToPopulation atp = new AssignTripsToPopulation();
-
         createPopulationFromLatch();
+        AssignTripsToPopulation atp = new AssignTripsToPopulation();
         atp.readCorrespondences();
         atp.storeSyntheticPersonCharGroups();
 
@@ -130,6 +146,8 @@ public class AssignTripsToPopulation {
         }
 
         atp.storeMTWPProportionsInLatch();
+        atp.readShapefile();
+        atp.assignTripsToLatchPopulation();
 
         log.info("Assigning trips to population finished");
         log.info("--------------------------------------");
@@ -663,17 +681,19 @@ public class AssignTripsToPopulation {
 
                             for (String mode : pCharMTWP.sa2TransportMode.get(lfsp).get(sa2Work).keySet()) {
 
-                                if(!mode.equals("TotalMode")){
-                                //Scaling the proportion from MTWP to Latch using the pre-existing proportion and
-                                // total count
-                                if(lfsp.equals("Employed, worked part-time"))
-                                    pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode, pCharMTWP
-                                            .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch.pCharCount *
-                                            pCharLatch.partTimeProportion);
-
-                                    if (lfsp.equals("Employed, worked full-time"))
+                                if (!mode.equals("TotalMode")) {
+                                    //Scaling the proportion from MTWP to Latch using the pre-existing proportion and
+                                    // total count
+                                    if (lfsp.equals(EMP_PART_TIME))
                                         pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode, pCharMTWP
-                                                .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch.pCharCount *
+                                                .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch
+                                                .pCharCount *
+                                                pCharLatch.partTimeProportion);
+
+                                    if (lfsp.equals(EMP_FULL_TIME))
+                                        pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode, pCharMTWP
+                                                .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch
+                                                .pCharCount *
 
                                                 pCharLatch.fullTimeProportion);
 
@@ -697,12 +717,258 @@ public class AssignTripsToPopulation {
     }
 
 
-//Read shape file to store the features for a given sa2
-//Read correspondence file for sa1 7 digit codes to get sa2 names from 2016 census correspondence
-//Find proportion of trips from the total number of people with those characteristics in the mtwp file and apply it
-// to the proportion of synthetic population with that characteristic
 //Check round-off
 
+    /**
+     * Method to read the shape file and store all the features associated with a given sa2 name (2011)
+     */
+    private void readShapefile() {
+
+        log.info("Storing features from shapefile..");
+
+        //reads the shape file in
+        SimpleFeatureSource fts = ShapeFileReader.readDataFile(ZONES_FILE);
+
+        featureMap = new LinkedHashMap<>();
+
+        //Iterator to iterate over the features from the shape file
+        try (SimpleFeatureIterator it = fts.getFeatures().features()) {
+            while (it.hasNext()) {
+
+                // get feature
+                SimpleFeature ft = it.next();
+
+                // store the feature by SA2 name (because that is the way in which we will need it later)
+                featureMap.put((String) ft.getAttribute("SA2_NAME11"), ft);
+            }
+            it.close();
+        } catch (Exception ee) {
+
+            log.error("Error reading shape file features. File : " + ZONES_FILE);
+            throw new RuntimeException(ee);
+        }
+
+    }
+
+    /**
+     * Copied from bdi project synthetic population
+     *
+     * @param actType
+     * @return
+     */
+    private double activityEndTime(String actType) {
+        double endTime = 0.0;
+        if (actType.equals(DefaultActivityTypes.work)) {
+            /*
+             * Allow people to leave work between 16.45 and 17.10
+			 */
+            endTime = 60300 + (60 * 25 * Math.random());
+            return endTime;
+        }
+
+        Random rnd = new Random();
+        if (actType.equals(DefaultActivityTypes.home)) {
+
+            /*
+             * Allow people to leave work between
+			 */
+            endTime = 21600 + (60 *
+                    rnd.nextInt(180));
+            return endTime;
+        }
+
+        return 21600;
+    }
+
+    /*
+    * Method to convert the localized string for the transport method
+    * to a Transport Mode class defined string constant
+    * */
+    private String getTransportModeString(String transportMode) {
+
+        switch (transportMode.toLowerCase()) {
+
+            case "train": {
+                //TO CHANGE
+                return TransportMode.pt;
+            }
+            case "tram": {
+                //TO CHANGE
+                return TransportMode.pt;
+            }
+            case "bus": {
+
+                //TO CHANGE
+                return TransportMode.pt;
+            }
+            case "taxi": {
+                //TO CHANGE
+                return TransportMode.car;
+            }
+            case "car, as driver": {
+
+                return TransportMode.car;
+            }
+            case "car, as passenger": {
+
+                //TO CHANGE
+                return TransportMode.car;
+            }
+            case "truck": {
+
+                return TransportMode.other;
+            }
+            case "motorbike/scooter": {
+
+                return TransportMode.ride;
+            }
+            case "bicycle": {
+
+                return TransportMode.bike;
+            }
+            case "other": {
+
+                return TransportMode.other;
+            }
+
+            default: {
+
+                return TransportMode.other;
+            }
+        }
+    }
+
+//Assign trips to population
+
+    public void assignTripsToLatchPopulation() {
+
+        rnd = new Random(4711);
+
+        log.info("Assigning trips to population");
+
+        for (Person person : scenario.getPopulation().getPersons().values()) {
+
+            boolean tripAssigned = false;
+            String ageRange = binAgeIntoCategory((String) person.getAttributes().getAttribute("Age")).name();
+            String gender = (String) person.getAttributes().getAttribute("Gender");
+            String relStatus = (String) person.getAttributes().getAttribute("RelationshipStatus");
+            PersonChar pChar = new PersonChar(gender, ageRange, relStatus);
+
+            boolean pCharFound = false;
+            for (String sa2Name : sa2PersonCharGroupsLatch.keySet()) {
+                String sa1Id = (String) person.getAttributes().getAttribute("sa1_7digitcode_2011");
+                // (sa1 code of home location)
+
+                Gbl.assertNotNull(sa1Id);
+
+                // get corresponding sa2name (which comes from the correspondences file):
+                String sa2name = this.sa2NameFromSa1Id.get(sa1Id);
+
+                Gbl.assertNotNull(sa2name);
+
+                if (sa2Name.equals(sa2name)) {
+
+                    PersonChar personChar = null;
+
+                    for (PersonChar eachPersonChar : sa2PersonCharGroupsLatch.get(sa2Name)) {
+                        if (eachPersonChar.equals(pChar)) {
+                            pCharFound = true;
+                            personChar = eachPersonChar;
+                            break;
+                        }
+                    }
+                    if (pCharFound == false) {
+                        log.warn("Person Char not found :\n" + pChar.toString());
+                    }
+
+                    if (pCharFound == true) {
+
+                        Gbl.assertNotNull(personChar);
+                        for (String lfsp : personChar.sa2TransportMode.keySet()) {
+                            for (String sa2Dest : personChar.sa2TransportMode.get(lfsp).keySet()) {
+                                for(String tMode : personChar.sa2TransportMode.get(lfsp).get(sa2Dest).keySet()) {
+
+                                    if (tMode.equals("TotalMode") || tMode.equals("Total")) {
+                                        continue;
+                                    }
+
+                                    Double numTripsbyDestMode = personChar.sa2TransportMode.get(lfsp).get
+                                            (sa2Dest).get
+                                            (tMode);
+                                    if (numTripsbyDestMode >= 1 && tripAssigned == false) {
+
+                                        Gbl.assertNotNull(sa2Dest);
+
+                                        // find a coordinate for the destination:
+                                        SimpleFeature ft = this.featureMap.get(sa2Dest);
+
+                                        //Gbl.assertNotNull(ft.getDefaultGeometry());
+
+                                        if (ft == null) {
+                                            //Null because there are some sa2 locations for which we cannot retrieve a feature
+                                            log.warn("There is no feature for " + sa2Dest + ".  Possibly this means " +
+                                                    "that the destination is outside the area that we have covered by shapefiles.  Ignoring the " +
+                                                    "person.");
+                                            continue;
+                                        }
+
+                                        Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
+                                        homeActivity.setEndTime(activityEndTime(DefaultActivityTypes.home));
+
+                                        // --- add a leg:
+
+                                        Leg leg = pf.createLeg(getTransportModeString(tMode)); // yyyy needs to be
+                                        // fixed; currently only
+                                        // looking at
+                                        // car
+                                        person.getSelectedPlan().addLeg(leg);
+
+                                        // --- add work activity:
+                                        Point point = MMUtils.getRandomPointInFeature(rnd, ft);
+                                        Gbl.assertNotNull(point);
+
+                                        Coord coord = new Coord(point.getX(), point.getY());
+                                        Coord coordTransformed = ct.transform(coord);
+
+                                        Activity actWork = pf.createActivityFromCoord( DefaultActivityTypes.work, coordTransformed);
+                                        person.getSelectedPlan().addActivity(actWork);
+
+                                        actWork.setEndTime(activityEndTime(DefaultActivityTypes.work));
+
+                                        // --- add leg:
+
+                                        person.getSelectedPlan().addLeg(leg);
+
+                                        // --- add home activity:
+
+                                        Activity actGoHome = pf.createActivityFromCoord(DefaultActivityTypes.home, homeActivity.getCoord());
+                                        person.getSelectedPlan().addActivity(actGoHome);
+
+                                        // check what we have:
+                                        System.out.println("plan=" + person.getSelectedPlan());
+
+                                        for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
+                                            System.out.println("pe=" + pe);
+                                        }
+
+                                        tripAssigned = true;
+                                        personChar.sa2TransportMode.get(lfsp).get(sa2Dest).put(tMode,
+                                                numTripsbyDestMode-1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        //Write out the population to xml file
+        PopulationWriter writer = new PopulationWriter(scenario.getPopulation());
+        writer.write(OUTPUT_TRIPS_FILE);
+
+    }
 
     /**
      * Class to build the correspondence for SA1 ids to SA2 names bound by the column header found in the csv file
@@ -744,9 +1010,10 @@ public class AssignTripsToPopulation {
                     str.append(sa2Name).append("\n");
                     str.append("----------------").append("\n");
                     for (String mode : sa2TransportMode.get(lfsp).get(sa2Name).keySet()) {
-                        if(sa2TransportMode.get(lfsp).get(sa2Name).get(mode)>0)
-                        str.append(mode).append(" : ").append(sa2TransportMode.get(lfsp).get(sa2Name).get(mode)).append
-                                ("\n");
+                        if (sa2TransportMode.get(lfsp).get(sa2Name).get(mode) > 0)
+                            str.append(mode).append(" : ").append(sa2TransportMode.get(lfsp).get(sa2Name).get(mode))
+                                    .append
+                                    ("\n");
                     }
                     str.append("----------------").append("\n");
                 }
@@ -756,6 +1023,7 @@ public class AssignTripsToPopulation {
 
         }
 
+
         //Constructor for reading employment status Census file storing workforce proportions or latch data count
         //lfsp and mtwp Map not used
         public PersonChar(String gender, String ageGroup, String relStatus) {
@@ -764,10 +1032,6 @@ public class AssignTripsToPopulation {
             this.ageGroup = ageGroup;
             this.relStatus = relStatus;
             this.pCharCount = 1;
-        }
-
-        public void setSa2TransportMode() {
-
         }
 
         public boolean equals(PersonChar p) {

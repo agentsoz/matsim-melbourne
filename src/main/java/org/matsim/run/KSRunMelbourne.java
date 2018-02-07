@@ -15,17 +15,17 @@ import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import static org.matsim.run.RunMelbourne.prepareControler;
 import static org.matsim.run.RunMelbourne.prepareScenario;
 
-class KSRunMelbourne {
+public class KSRunMelbourne {
 	private static final Logger log = Logger.getLogger(KSRunMelbourne.class) ;
 	
 	public static void main(String[] args) {
 		// yyyyyy increase memory!
 		
-		Config config = ConfigUtils.loadConfig("scenarios/2017-11-scenario-by-kai-from-vista/config.xml");
+		Config config = ConfigUtils.loadConfig("scenarios/2018-02-scenario-by-karthik-from-latch/config-modified_from_kai-06-02-2018.xml");
 		config.controler().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
 		
 		config.network().setInputFile("net.xml.gz");
-		config.plans().setInputFile("../../population-with-home-work-trips.xml.gz");
+		config.plans().setInputFile("../../population-with-Northcote-work-trips.xml.gz");
 		
 		config.controler().setLastIteration(0);
 		

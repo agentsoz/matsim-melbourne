@@ -443,6 +443,8 @@ public class AddWorkPlacesToPopulation {
              * Allow people to leave work between 16.45 and 17.10
 			 */
             endTime = 60300 + (60 * 25 * Math.random());
+            // yyyy replace by "controllable" random sequence ("rnd").  kai, feb'18
+            
             return endTime;
         }
 
@@ -454,6 +456,9 @@ public class AddWorkPlacesToPopulation {
 			 */
             endTime = 21600 + (60 *
                     rnd.nextInt(180));
+            // yyyy why is it a "double" random above, and an integer here?
+            // Will not make much of a difference, but feels unsystematic.  kai, feb'18
+            
             return endTime;
         }
 
