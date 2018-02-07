@@ -25,7 +25,7 @@ public class KSRunMelbourne {
 		config.controler().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
 		
 		config.network().setInputFile("net.xml.gz");
-		config.plans().setInputFile("../../population-with-Northcote-work-trips.xml.gz");
+		config.plans().setInputFile("../../population-with-home-work-trips.xml.gz");
 		
 		config.controler().setLastIteration(0);
 		

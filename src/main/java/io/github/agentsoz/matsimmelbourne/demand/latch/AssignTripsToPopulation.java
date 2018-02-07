@@ -30,6 +30,12 @@ import java.util.*;
 public class AssignTripsToPopulation {
 
     private static final Logger log = Logger.getLogger(AssignTripsToPopulation.class);
+    public static final String[] FILE_NAMES = {
+
+            "NORTHCOTE","data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv",
+            "ALPHINGTON","data/census/2011/mtwp/ALPHINGTON_PCHAR_POW_MTWP.csv",
+    };
+
     public static final String[] INIT_POPULATION = {
 
             "--output-dir", ".",
@@ -46,9 +52,9 @@ public class AssignTripsToPopulation {
 
     Map<String, String> sa2NameFromSa1Id;
     Map<String, SimpleFeature> featureMap;
-    Map<String, List<PersonChar>> sa2PersonCharGroupsLatch;
-    Map<String, List<PersonChar>> sa2PersonCharGroupsCensus;
-    Map<String, List<PersonChar>> sa2PersonCharGroupsMTWP;
+    Map<String, List<PersonChar>> sa2PersonCharGroupsLatch = new HashMap<>();
+    Map<String, List<PersonChar>> sa2PersonCharGroupsCensus = new HashMap<>();
+    Map<String, List<PersonChar>> sa2PersonCharGroupsMTWP = new HashMap<>();
 
 
     //2016 correspondence file below
@@ -61,9 +67,9 @@ public class AssignTripsToPopulation {
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
     private final static String INPUT_CONFIG_FILE = "population-from-latch.xml.gz";
-    private final static String OUTPUT_TRIPS_FILE = "population-with-Northcote-work-trips.xml.gz";
+    private final static String OUTPUT_TRIPS_FILE = "population-with-home-work-trips.xml.gz";
     private final static String SA2_EMPSTATS_FILE = "data/census/2011/population/VIC - SEXP_AGE5P_LFSP_UR_2011.csv";
-    private final static String MTWP_FILE = "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv";
+    private static String MTWP_FILE = "";
     private final static String ZONES_FILE =
             "data/census/2011/shp/2017-12-06-1270055001_sa2_2011_aust_shape/SA2_2011_AUST" +
                     ".shp";
@@ -138,11 +144,17 @@ public class AssignTripsToPopulation {
             log.warn("storeLatchWorkingProportionNumbers() : " + r.getLocalizedMessage());
         }
 
-        try {
-            atp.readMTWPFile();
-        } catch (IOException ii) {
-            log.warn("readMTWPFile() : " + ii.getLocalizedMessage());
+        for(int i=0; i<FILE_NAMES.length ; i=i+2) {
 
+            MTWP_FILE = FILE_NAMES[i+1];
+
+            try {
+                log.info("Reading SA2 - "+FILE_NAMES[i]);
+                atp.readMTWPFile();
+            } catch (IOException ii) {
+                log.warn("readMTWPFile() : " + ii.getLocalizedMessage());
+
+            }
         }
 
         atp.storeMTWPProportionsInLatch();
@@ -404,9 +416,16 @@ public class AssignTripsToPopulation {
 
                         fullTimeWorkForceProportion = Double.parseDouble(fullTimeWorkForce) / Double.parseDouble
                                 (totalPopulation);
+
                         partTimeWorkForceProportion = Double.parseDouble(partTimeWorkForce) / Double.parseDouble
                                 (totalPopulation);
 
+                        if(Double.parseDouble(fullTimeWorkForce)==0. && Double.parseDouble(partTimeWorkForce)==0.) {
+
+                            fullTimeWorkForceProportion = 1.;
+                            partTimeWorkForceProportion = 1.;
+
+                        }
 
                         //Retrieve list of Person Characteristic groupings
                         List<PersonChar> pCharGroups = sa2PersonCharGroupsCensus.get(sa2Name);
@@ -556,9 +575,6 @@ public class AssignTripsToPopulation {
             builder.withSeparator(',');
 
             final CsvToBean<MTWPRecord> reader2 = builder.build();
-
-            sa2PersonCharGroupsMTWP = new HashMap<>();
-
             for (Iterator<MTWPRecord> it = reader2.iterator(); it.hasNext(); ) {
 
                 mtwpRecord = it.next();
@@ -712,8 +728,11 @@ public class AssignTripsToPopulation {
             for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa)) {
                 System.out.println(pChar.toString());
             }
-            System.out.println("-----------------------");
+//            System.out.println("-----------------------");
         }
+
+        System.out.println("-----------------------");
+
     }
 
 

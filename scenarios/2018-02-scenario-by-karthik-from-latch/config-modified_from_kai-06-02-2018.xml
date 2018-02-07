@@ -10,7 +10,7 @@
 	<!-- ====================================================================== -->
 
 	<module name="plans" >
-		<param name="inputPlansFile" value="../../population-with-Northcote-work-trips.xml.gz" />
+		<param name="inputPlansFile" value="../../population-with-home-work-trips.xml.gz" />
 	</module>
 
 	<!-- ====================================================================== -->
@@ -18,9 +18,12 @@
 		<param name="flowCapacityFactor" value="1.0" />
 		<param name="storageCapacityFactor" value="1.0" />
 		<param name="endTime" value="36:00:00" />
+	</module>	
+	<!-- ====================================================================== -->
+	<module name="controler" >
+		<param name="lastIteration" value="100" />
 	</module>
 	<!-- ====================================================================== -->
-
 	<module name="planCalcScore" >
 
 		<!-- write a plans file in each iteration directory which contains what each agent actually did, and the score it received. -->
