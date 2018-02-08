@@ -32,8 +32,11 @@ public class AssignTripsToPopulation {
     private static final Logger log = Logger.getLogger(AssignTripsToPopulation.class);
     public static final String[] FILE_NAMES = {
 
-            "NORTHCOTE","data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv",
-            "ALPHINGTON","data/census/2011/mtwp/ALPHINGTON_PCHAR_POW_MTWP.csv",
+            "NORTHCOTE", "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv",
+            "ALPHINGTON", "data/census/2011/mtwp/ALPHINGTON_PCHAR_POW_MTWP.csv",
+            "BUNDOORA-EAST", "data/census/2011/mtwp/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
+            "THORNBURY", "data/census/2011/mtwp/THORNBURY_PCHAR_POW_MTWP.csv"
+
     };
 
     public static final String[] INIT_POPULATION = {
@@ -144,18 +147,22 @@ public class AssignTripsToPopulation {
             log.warn("storeLatchWorkingProportionNumbers() : " + r.getLocalizedMessage());
         }
 
-        for(int i=0; i<FILE_NAMES.length ; i=i+2) {
+        for (int i = 0; i < FILE_NAMES.length; i = i + 2) {
 
-            MTWP_FILE = FILE_NAMES[i+1];
+            MTWP_FILE = FILE_NAMES[i + 1];
 
             try {
-                log.info("Reading SA2 - "+FILE_NAMES[i]);
+                log.info("Reading SA2 - " + FILE_NAMES[i]);
                 atp.readMTWPFile();
+
             } catch (IOException ii) {
                 log.warn("readMTWPFile() : " + ii.getLocalizedMessage());
 
             }
         }
+
+        for (String sa2Home : atp.sa2PersonCharGroupsMTWP.keySet())
+            System.out.println(sa2Home + " " + atp.sa2PersonCharGroupsMTWP.get(sa2Home).size());
 
         atp.storeMTWPProportionsInLatch();
         atp.readShapefile();
@@ -330,7 +337,7 @@ public class AssignTripsToPopulation {
 
         //Below prints out number of person groups in each sa2
 
-        System.out.println();
+//        System.out.println();
 //        for (String sa2Name : sa2PersonCharGroupsLatch.keySet()) {
 //
 //            System.out.println("SA2 NAME : " + sa2Name);
@@ -420,12 +427,18 @@ public class AssignTripsToPopulation {
                         partTimeWorkForceProportion = Double.parseDouble(partTimeWorkForce) / Double.parseDouble
                                 (totalPopulation);
 
-                        if(Double.parseDouble(fullTimeWorkForce)==0. && Double.parseDouble(partTimeWorkForce)==0.) {
 
-                            fullTimeWorkForceProportion = 1.;
-                            partTimeWorkForceProportion = 1.;
+                        if (Double.parseDouble(totalPopulation) == 0.0) {
 
+                            fullTimeWorkForceProportion = 0.0;
+                            partTimeWorkForceProportion = 0.0;
                         }
+
+                        //part-time and full-time should be zero too and avoid being stored as NaN
+
+//                          if(Double.parseDouble(fullTimeWorkForce) == 0.0)  fullTimeWorkForceProportion = 0.0;
+//                          if(Double.parseDouble(partTimeWorkForce) == 0.0)  partTimeWorkForceProportion = 0.0;
+
 
                         //Retrieve list of Person Characteristic groupings
                         List<PersonChar> pCharGroups = sa2PersonCharGroupsCensus.get(sa2Name);
@@ -534,9 +547,14 @@ public class AssignTripsToPopulation {
 //
 //        }
 
-                if (!eachTMode.equals("TotalMode"))
-                    pChar.sa2TransportMode.get(lfsp).get(eachSA2Work).put(eachTMode, pChar.sa2TransportMode
-                            .get(lfsp).get(eachSA2Work).get(eachTMode) / totalPersonCharacTrips);
+                if (!eachTMode.equals("TotalMode")) {
+                    if (totalPersonCharacTrips == 0.)
+                        pChar.sa2TransportMode.get(lfsp).get(eachSA2Work).put(eachTMode, 0.);
+                    else
+                        pChar.sa2TransportMode.get(lfsp).get(eachSA2Work).put(eachTMode, pChar.sa2TransportMode
+                                .get(lfsp).get(eachSA2Work).get(eachTMode) / totalPersonCharacTrips);
+
+                }
             }
     }
     //
@@ -663,67 +681,77 @@ public class AssignTripsToPopulation {
             for (String sa2NameLatch : sa2PersonCharGroupsLatch.keySet()) {
                 if (sa2NameMTWP.equals(sa2NameLatch)) {
 
-                    sa2NameFound = true;
+//                    sa2NameFound = true;
                     mtwpCharList = sa2PersonCharGroupsMTWP.get(sa2NameMTWP);
                     latchPCharList = sa2PersonCharGroupsLatch.get(sa2NameLatch);
-                    sa2NameUR = sa2NameLatch;
-                    break;
-                }
-            }
-        }
 
-        if (sa2NameFound == false) {
-            log.warn("Bad SA2 name or latch SA2 name not found in census data");
-            throw new RuntimeException("SA2 name not found");
-        }
+//                    if (sa2NameFound == true) {
 
-        Gbl.assertNotNull(mtwpCharList);
-        Gbl.assertNotNull(latchPCharList);
+                    Gbl.assertNotNull(mtwpCharList);
+                    Gbl.assertNotNull(latchPCharList);
 
-        for (PersonChar pCharMTWP : mtwpCharList) {
-            for (PersonChar pCharLatch : latchPCharList) {
+                    for (PersonChar pCharMTWP : mtwpCharList) {
+                        for (PersonChar pCharLatch : latchPCharList) {
 
-                if (pCharMTWP.equals(pCharLatch)) {
+                            if (pCharMTWP.equals(pCharLatch)) {
 
-                    for (String lfsp : pCharMTWP.sa2TransportMode.keySet()) {
+                                for (String lfsp : pCharMTWP.sa2TransportMode.keySet()) {
 
-                        //Assigning the same work status
-                        pCharLatch.sa2TransportMode.put(lfsp, new HashMap<>());
+                                    //Assigning the same work status
+                                    pCharLatch.sa2TransportMode.put(lfsp, new HashMap<>());
 
-                        for (String sa2Work : pCharMTWP.sa2TransportMode.get(lfsp).keySet()) {
+                                    for (String sa2Work : pCharMTWP.sa2TransportMode.get(lfsp).keySet()) {
 
-                            //Assigning the same destination sa2
-                            pCharLatch.sa2TransportMode.get(lfsp).put(sa2Work, new HashMap<>());
+                                        //Assigning the same destination sa2
+                                        pCharLatch.sa2TransportMode.get(lfsp).put(sa2Work, new HashMap<>());
 
-                            for (String mode : pCharMTWP.sa2TransportMode.get(lfsp).get(sa2Work).keySet()) {
+                                        for (String mode : pCharMTWP.sa2TransportMode.get(lfsp).get(sa2Work)
+                                                .keySet()) {
 
-                                if (!mode.equals("TotalMode")) {
-                                    //Scaling the proportion from MTWP to Latch using the pre-existing proportion and
-                                    // total count
-                                    if (lfsp.equals(EMP_PART_TIME))
-                                        pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode, pCharMTWP
-                                                .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch
-                                                .pCharCount *
-                                                pCharLatch.partTimeProportion);
+                                            if (!mode.equals("TotalMode")) {
+                                                //Scaling the proportion from MTWP to Latch using the pre-existing
 
-                                    if (lfsp.equals(EMP_FULL_TIME))
-                                        pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode, pCharMTWP
-                                                .sa2TransportMode.get(lfsp).get(sa2Work).get(mode) * pCharLatch
-                                                .pCharCount *
+                                                // proportion and
+                                                // total count
+                                                if (lfsp.equals(EMP_PART_TIME))
+                                                    pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode,
+                                                            pCharMTWP
+                                                                    .sa2TransportMode.get(lfsp).get(sa2Work).get
+                                                                    (mode) *
+                                                                    pCharLatch
+                                                                            .pCharCount *
+                                                                    pCharLatch.partTimeProportion);
 
-                                                pCharLatch.fullTimeProportion);
+                                                if (lfsp.equals(EMP_FULL_TIME))
+                                                    pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode,
+                                                            pCharMTWP
+                                                                    .sa2TransportMode.get(lfsp).get(sa2Work).get
+                                                                    (mode) *
+                                                                    pCharLatch
+                                                                            .pCharCount *
 
+                                                                    pCharLatch.fullTimeProportion);
+
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+                    break;
                 }
             }
         }
+//        if (sa2NameFound == false) {
+//            log.warn("Bad SA2 name or latch SA2 name not found in census data");
+//            throw new RuntimeException("SA2 name not found");
+//        }
+
 
         for (String sa : sa2PersonCharGroupsLatch.keySet()) {
             System.out.println("SA2 NAME : " + sa);
-            System.out.println("-----------------------");
+            System.out.println("-----+++++   +++++-------");
 
             for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa)) {
                 System.out.println(pChar.toString());
@@ -731,7 +759,7 @@ public class AssignTripsToPopulation {
 //            System.out.println("-----------------------");
         }
 
-        System.out.println("-----------------------");
+        System.out.println("-----+++++   +++++-------");
 
     }
 
@@ -905,7 +933,7 @@ public class AssignTripsToPopulation {
                         Gbl.assertNotNull(personChar);
                         for (String lfsp : personChar.sa2TransportMode.keySet()) {
                             for (String sa2Dest : personChar.sa2TransportMode.get(lfsp).keySet()) {
-                                for(String tMode : personChar.sa2TransportMode.get(lfsp).get(sa2Dest).keySet()) {
+                                for (String tMode : personChar.sa2TransportMode.get(lfsp).get(sa2Dest).keySet()) {
 
                                     if (tMode.equals("TotalMode") || tMode.equals("Total")) {
                                         continue;
@@ -924,22 +952,25 @@ public class AssignTripsToPopulation {
                                         //Gbl.assertNotNull(ft.getDefaultGeometry());
 
                                         if (ft == null) {
-                                            //Null because there are some sa2 locations for which we cannot retrieve a feature
-                                            log.warn("There is no feature for " + sa2Dest + ".  Possibly this means " +
-                                                    "that the destination is outside the area that we have covered by shapefiles.  Ignoring the " +
-                                                    "person.");
+                                            //Null because there are some sa2 locations for which we cannot retrieve
+                                            // a feature
+//                                            log.warn("There is no feature for " + sa2Dest + ".  Possibly this means
+// " +
+//                                                    "that the destination is outside the area that we have covered
+// by" +
+//                                                    " shapefiles.  Ignoring the " +
+//                                                    "person.");
                                             continue;
                                         }
 
-                                        Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
+                                        Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements()
+                                                .get(0);
                                         homeActivity.setEndTime(activityEndTime(DefaultActivityTypes.home));
 
                                         // --- add a leg:
 
-                                        Leg leg = pf.createLeg(getTransportModeString(tMode)); // yyyy needs to be
-                                        // fixed; currently only
-                                        // looking at
-                                        // car
+                                        Leg leg = pf.createLeg(getTransportModeString(tMode));
+
                                         person.getSelectedPlan().addLeg(leg);
 
                                         // --- add work activity:
@@ -949,7 +980,8 @@ public class AssignTripsToPopulation {
                                         Coord coord = new Coord(point.getX(), point.getY());
                                         Coord coordTransformed = ct.transform(coord);
 
-                                        Activity actWork = pf.createActivityFromCoord( DefaultActivityTypes.work, coordTransformed);
+                                        Activity actWork = pf.createActivityFromCoord(DefaultActivityTypes.work,
+                                                coordTransformed);
                                         person.getSelectedPlan().addActivity(actWork);
 
                                         actWork.setEndTime(activityEndTime(DefaultActivityTypes.work));
@@ -960,19 +992,20 @@ public class AssignTripsToPopulation {
 
                                         // --- add home activity:
 
-                                        Activity actGoHome = pf.createActivityFromCoord(DefaultActivityTypes.home, homeActivity.getCoord());
+                                        Activity actGoHome = pf.createActivityFromCoord(DefaultActivityTypes.home,
+                                                homeActivity.getCoord());
                                         person.getSelectedPlan().addActivity(actGoHome);
 
                                         // check what we have:
-                                        System.out.println("plan=" + person.getSelectedPlan());
-
-                                        for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
-                                            System.out.println("pe=" + pe);
-                                        }
+//                                        System.out.println("plan=" + person.getSelectedPlan());
+//
+//                                        for (PlanElement pe : person.getSelectedPlan().getPlanElements()) {
+//                                            System.out.println("pe=" + pe);
+//                                        }
 
                                         tripAssigned = true;
                                         personChar.sa2TransportMode.get(lfsp).get(sa2Dest).put(tMode,
-                                                numTripsbyDestMode-1);
+                                                numTripsbyDestMode - 1);
                                     }
                                 }
                             }
@@ -1022,17 +1055,25 @@ public class AssignTripsToPopulation {
 
 
             for (String lfsp : sa2TransportMode.keySet()) {
-                str.append(gender).append(" ").append(ageGroup).append(" ").append(relStatus).append("\n");
-                str.append(lfsp).append("\n");
-                str.append("----------------").append("\n");
+//                str.append(gender).append(" ").append(ageGroup).append(" ").append(relStatus).append("\n");
+//                str.append(lfsp).append("\n");
+//                str.append("----------------").append("\n");
                 for (String sa2Name : sa2TransportMode.get(lfsp).keySet()) {
-                    str.append(sa2Name).append("\n");
-                    str.append("----------------").append("\n");
+//                    str.append(sa2Name).append("\n");
+//                    str.append("----------------").append("\n");
                     for (String mode : sa2TransportMode.get(lfsp).get(sa2Name).keySet()) {
-                        if (sa2TransportMode.get(lfsp).get(sa2Name).get(mode) > 0)
+                        if (sa2Name.equals("Preston")) {
+
+                            str.append(gender).append(" ").append(ageGroup).append(" ").append(relStatus).append("\n");
+                            str.append(lfsp).append("\n");
+                            str.append("----------------").append("\n");
+                            str.append(sa2Name).append("\n");
+                            str.append("----------------").append("\n");
+
                             str.append(mode).append(" : ").append(sa2TransportMode.get(lfsp).get(sa2Name).get(mode))
                                     .append
-                                    ("\n");
+                                            ("\n");
+                        }
                     }
                     str.append("----------------").append("\n");
                 }
