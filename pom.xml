@@ -100,6 +100,7 @@
 			<artifactId>jaxb-impl</artifactId>
 			<version>2.3.0</version>
 		</dependency>
+<!--see https://stackoverflow.com/questions/46493613/what-is-the-replacement-for-javax-activation-package-in-java-9-->
 		<dependency>
 			<groupId>com.sun.activation</groupId>
 			<artifactId>javax.activation</artifactId>
