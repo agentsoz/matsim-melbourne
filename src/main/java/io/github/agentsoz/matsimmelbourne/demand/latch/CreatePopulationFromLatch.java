@@ -12,6 +12,8 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordinateTransformation;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -29,13 +31,15 @@ public class CreatePopulationFromLatch {
     private static final String PARAM_OUTPUT_FORMAT = "x";
 
     //Path for the LATCH file
-    private static final String LATCH_PERSONS = "data/census/2011/latch/2017-11-30-files-from-bhagya/AllAgents.csv";
+    private static final String LATCH_PERSONS = "data/census/2011/latch/2018-02-01-files-from-bhagya/AllAgents.csv";
     private final static String SYNTHETIC_HMAP_FILE_PATH =
-            "data/census/2011/latch/2017-11-30-files-from-bhagya/Hh-mapped-address.json";
+            "data/census/2011/latch/2018-02-01-files-from-bhagya/Hh-mapped-address.json";
     public static final String DEFAULT_OFNAME = "population-from-latch";
     public static final String XML_OUT = ".xml";
     public static final String ZIPPED_OUT = ".xml.gz";
 
+    private final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation
+            (TransformationFactory.WGS84, "EPSG:28355");
 
     private final Scenario scenario;
     private final Population population;
@@ -152,7 +156,9 @@ public class CreatePopulationFromLatch {
 //                Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
 //                population.addPerson(person);
 
-                if (hhsa1Code.containsKey(record.HouseholdId)) {
+
+                //Changed from hhsa1Code.containsKey(record.HouseholdId)
+                if (hhsa1Code.containsKey(record.GroupId)) {
 
                     Person person = populationFactory.createPerson(Id.createPersonId(record.AgentId));
                     population.addPerson(person);
@@ -161,11 +167,15 @@ public class CreatePopulationFromLatch {
                     person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
                     person.getAttributes().putAttribute("Age", record.Age);
                     person.getAttributes().putAttribute("Gender", record.Gender);
-                    person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
+//                    person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
+                    person.getAttributes().putAttribute("HouseHoldId", record.GroupId);
 
                     //*********FIXED**************FIXME: null sa1code for householdid error in MATSim
+//                    person.getAttributes().putAttribute("sa1_7digitcode_2011",
+//                            hhsa1Code.get(record.HouseholdId));// hhsa1Code.contains(record.HouseholdId)? hhsa1Code.get
                     person.getAttributes().putAttribute("sa1_7digitcode_2011",
-                            hhsa1Code.get(record.HouseholdId));// hhsa1Code.contains(record.HouseholdId)? hhsa1Code.get
+                            hhsa1Code.get(record.GroupId));// hhsa1Code.contains(record.HouseholdId)? hhsa1Code.get
+
                     // (record.HouseholdId) : "NULL");
 
                     Plan plan = populationFactory.createPlan();
@@ -173,7 +183,7 @@ public class CreatePopulationFromLatch {
                     person.setSelectedPlan(plan);
 
 
-                    Coord coord = hhs.get(record.HouseholdId);
+                    Coord coord = hhs.get(record.GroupId);
 
 
                     Activity activity = populationFactory.createActivityFromCoord("At Home", coord);
@@ -197,13 +207,13 @@ public class CreatePopulationFromLatch {
 
             } // end of for loop
 
-            int cnt2 = 0;
+//            int cnt2 = 0;
             System.out.println("TOTAL EXCLUDED PERSONS = " + nullsa1Count);
             System.out.println("##########################");
-            for (String eachPerson : excludedPersons) {
-                cnt2++;
-                System.out.println("P" + cnt2 + " : " + eachPerson);
-            }
+//            for (String eachPerson : excludedPersons) {
+//                cnt2++;
+//                System.out.println("P" + cnt2 + " : " + eachPerson);
+//            }
         }
 
 //            System.out.println("COUNT : " + cnt);
@@ -237,18 +247,34 @@ public class CreatePopulationFromLatch {
             Gson gson = new Gson();
             HouseholdsFromJson data = gson.fromJson(json.toString(), HouseholdsFromJson.class);
 
+
+            int hhcount = 0;
             for (HouseholdFromJson feature : data.features) {
-                String hhIdString = feature.householdID;
-                List<Float> coords = feature.hgeometry.coordinates;
+//                String hhIdString = feature.householdID;
+
+                if(feature.householdID == null)
+                    continue;
+
+                hhcount++;
+                List<String> hhIDStrings = feature.householdID;
+
+//                System.out.println(hhIDStrings.size());
+                String hhIdString = hhIDStrings.get(0);
+//                System.out.println(hhIdString);
+
+                 List<Float> coords = feature.hgeometry.coordinates;
 
                 if (hhIdString != null) {
 
                     hhsa1Code.put(hhIdString, feature.hproperty.SA1_7DIG11);
-                    hhs.put(hhIdString, new Coord(coords.get(0), coords.get(1)));
+                    Coord cd = new Coord(coords.get(0), coords.get(1));
+                    Coord cdTransform = ct.transform(cd);
+                    hhs.put(hhIdString,cdTransform);
 //                    System.out.println("just stored hh w id=" + hhIdString);
                 }
             }
-            System.out.println("House-Hold JSON file mapping complete..");
+
+            System.out.println("House-Hold JSON file mapping complete.. "+hhcount);
 
         } catch (IOException e) {
 
@@ -274,6 +300,8 @@ public class CreatePopulationFromLatch {
         private String Gender;
         @CsvBindByName
         private String HouseholdId;
+        @CsvBindByName
+        private String GroupId;
         @CsvBindByName
         private String homeCoords;
         @CsvBindByName
@@ -321,48 +349,75 @@ public class CreatePopulationFromLatch {
 
         @SerializedName("HOUSEHOLD_ID")
         @Expose
-        private String householdID;
+//        private String householdID;
+        private List<String> householdID;
 
         @Override
         public String toString() {
 
-            return hproperty.toString() + "," + hgeometry.toString() + householdID;
+            return hproperty.toString() + "," + hgeometry.toString() + householdID.toString();
         }
     }
 
     /*Clas to store information about the property fields in the household JSON address file*/
     private static class HProperty {
 
+        @SerializedName("duplicate_OF")
+        @Expose
+        private String duplicate_OF;
+
+        @SerializedName("CENSUS_HHSIZE")
+        @Expose
+        private String census_hhsize;
+
+        @SerializedName("BUILDING_TYPE")
+        @Expose
+        private String building_type;
+
+        @SerializedName("SA1_MAINCODE_2011")
+        @Expose
+        private String sa1_maincode_2011;
+
         @SerializedName("EZI_ADD")
         @Expose
         private String EZI_ADD;
+
         @SerializedName("STATE")
         @Expose
         private String state;
+
         @SerializedName("POSTCODE")
         @Expose
         private String postCode;
+
         @SerializedName("LGA_CODE")
         @Expose
         private String LGA_Code;
+
         @SerializedName("LOCALITY")
         @Expose
         private String locality;
+
         @SerializedName("ADD_CLASS")
         @Expose
         private String add_class;
+
         @SerializedName("SA1_7DIG11")
         @Expose
         private String SA1_7DIG11;
+
         @SerializedName("BEDD")
         @Expose
         private String bedd;
+
         @SerializedName("STRD")
         @Expose
         private String strd;
+
         @SerializedName("TENLLD")
         @Expose
         private String tenlld;
+
         @SerializedName("TYPE")
         @Expose
         private String type;
@@ -379,6 +434,10 @@ public class CreatePopulationFromLatch {
 
     /*Class to store the household geometry information*/
     private static class HGeometry {
+
+        @SerializedName("type")
+        @Expose
+        private String type;
 
         @SerializedName("coordinates")
         @Expose

@@ -32,12 +32,12 @@ public class AssignTripsToPopulation {
     private static final Logger log = Logger.getLogger(AssignTripsToPopulation.class);
     public static final String[] FILE_NAMES = {
 
+            "ALPHINGTON", "data/census/2011/mtwp/ALPHINGTON_PCHAR_POW_MTWP.csv",
+            "NORTHCOTE", "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv",
             "IVANHOE","data/census/2011/mtwp/IVANHOE_PCHAR_POW_MTWP.csv",
             "HEIDELBERG-WEST","data/census/2011/mtwp/HEIDELBERG-WEST_PCHAR_POW_MTWP.csv",
             "HEIDELBERG-ROSANNA","data/census/2011/mtwp/HEIDELBERG-ROSANNA_PCHAR_POW_MTWP.csv",
             "GREENSBOROUGH","data/census/2011/mtwp/GREENSBOROUGH_PCHAR_POW_MTWP.csv",
-            "NORTHCOTE", "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv",
-            "ALPHINGTON", "data/census/2011/mtwp/ALPHINGTON_PCHAR_POW_MTWP.csv",
             "BUNDOORA-EAST", "data/census/2011/mtwp/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
             "THORNBURY", "data/census/2011/mtwp/THORNBURY_PCHAR_POW_MTWP.csv"
 
@@ -126,6 +126,7 @@ public class AssignTripsToPopulation {
         config = ConfigUtils.createConfig();
 
         config.plans().setInputFile(INPUT_CONFIG_FILE);
+
 
         scenario = ScenarioUtils.loadScenario(config);
         pf = scenario.getPopulation().getFactory();
@@ -984,6 +985,8 @@ public class AssignTripsToPopulation {
                                         Coord coord = new Coord(point.getX(), point.getY());
                                         Coord coordTransformed = ct.transform(coord);
 
+//                                        Coord coordTransformed = coord;
+
                                         Activity actWork = pf.createActivityFromCoord(DefaultActivityTypes.work,
                                                 coordTransformed);
                                         person.getSelectedPlan().addActivity(actWork);
@@ -1079,7 +1082,7 @@ public class AssignTripsToPopulation {
                                             ("\n");
                         }
                     }
-                    str.append("----------------").append("\n");
+//                    str.append("----------------").append("\n");
                 }
 
             }
