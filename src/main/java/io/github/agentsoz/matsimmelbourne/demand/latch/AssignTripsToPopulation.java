@@ -32,14 +32,14 @@ public class AssignTripsToPopulation {
     private static final Logger log = Logger.getLogger(AssignTripsToPopulation.class);
     public static final String[] FILE_NAMES = {
 
-            "ALPHINGTON", "data/census/2011/mtwp/ALPHINGTON_PCHAR_POW_MTWP.csv",
-            "NORTHCOTE", "data/census/2011/mtwp/NORTHCOTE_PCHAR_POW_MTWP.csv",
-            "IVANHOE","data/census/2011/mtwp/IVANHOE_PCHAR_POW_MTWP.csv",
-            "HEIDELBERG-WEST","data/census/2011/mtwp/HEIDELBERG-WEST_PCHAR_POW_MTWP.csv",
-            "HEIDELBERG-ROSANNA","data/census/2011/mtwp/HEIDELBERG-ROSANNA_PCHAR_POW_MTWP.csv",
-            "GREENSBOROUGH","data/census/2011/mtwp/GREENSBOROUGH_PCHAR_POW_MTWP.csv",
-            "BUNDOORA-EAST", "data/census/2011/mtwp/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
-            "THORNBURY", "data/census/2011/mtwp/THORNBURY_PCHAR_POW_MTWP.csv"
+            "ALPHINGTON", "data/census/2011/mtwp/2018-02-16-mtwp-files/ALPHINGTON_PCHAR_POW_MTWP.csv",
+            "NORTHCOTE", "data/census/2011/mtwp/2018-02-16-mtwp-files/NORTHCOTE_PCHAR_POW_MTWP.csv",
+            "IVANHOE","data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE_PCHAR_POW_MTWP.csv",
+            "HEIDELBERG-WEST","data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-WEST_PCHAR_POW_MTWP.csv",
+            "HEIDELBERG-ROSANNA","data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-ROSANNA_PCHAR_POW_MTWP.csv",
+            "GREENSBOROUGH","data/census/2011/mtwp/2018-02-16-mtwp-files/GREENSBOROUGH_PCHAR_POW_MTWP.csv",
+            "BUNDOORA-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
+            "THORNBURY", "data/census/2011/mtwp/2018-02-16-mtwp-files/THORNBURY_PCHAR_POW_MTWP.csv"
 
     };
 
