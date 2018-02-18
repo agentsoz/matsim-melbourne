@@ -20,16 +20,19 @@ package org.matsim.run;
 
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.network.Link;
 import org.matsim.contrib.emissions.EmissionModule;
 import org.matsim.contrib.emissions.utils.EmissionsConfigGroup;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ControlerConfigGroup.RoutingAlgorithmType;
+import org.matsim.core.config.groups.QSimConfigGroup;
 import org.matsim.core.config.groups.QSimConfigGroup.TrafficDynamics;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule.DefaultSelector;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule.DefaultStrategy;
 import org.matsim.core.scenario.ScenarioUtils;
@@ -69,7 +72,9 @@ public class RunMelbourne {
 	}
 	
 	static Scenario prepareScenario(Config config) {
-
+		
+		final Scenario scenario = ScenarioUtils.loadScenario(config);
+		
 //		log.info("number of links before simplifying=" + scenario.getNetwork().getLinks().size() ) ;
 //		List<Id<Link>> keysToRemove = new ArrayList<>() ;
 //		for ( Link link : scenario.getNetwork().getLinks().values() ) {
@@ -87,7 +92,12 @@ public class RunMelbourne {
 //		log.info("number of links after simplifying=" + scenario.getNetwork().getLinks().size() ) ;
 //
 //		NetworkUtils.writeNetwork( scenario.getNetwork(), "net.xml.gz" ) ;
-		return ScenarioUtils.loadScenario(config);
+		
+		for ( Link link : scenario.getNetwork().getLinks().values() ) {
+			NetworkUtils.setType(link,"URB/Local/50"); // for emissions; should be more differentiated
+		}
+		
+		return scenario;
 	}
 	
 	static Config prepareConfig(String[] args) {
@@ -141,6 +151,7 @@ public class RunMelbourne {
 		// one also needs to have an appropriate vehicles file:
 		
 		config.vehicles().setVehiclesFile("sample_emissionVehicles_v2.xml");
+		config.qsim().setVehiclesSource(QSimConfigGroup.VehiclesSource.modeVehicleTypesFromVehiclesData);
 		
 		// === overriding config is loaded at end.  Allows to override config settings at the very end.  Could, for example, switch off kinematic waves,
 		// or set the weight of re-routing to zero.  Not really recommended, but there may be cases where this is needed. kai, jan'18

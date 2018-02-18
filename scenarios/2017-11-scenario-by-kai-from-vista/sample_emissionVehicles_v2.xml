@@ -3,7 +3,7 @@
 <vehicleDefinitions xmlns="http://www.matsim.org/files/dtd"
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://www.matsim.org/files/dtd http://www.matsim.org/files/dtd/vehicleDefinitions_v1.0.xsd">
-	<vehicleType id="defaultVehicleType">
+	<vehicleType id="car">
 		<description>
 			BEGIN_EMISSIONSPASSENGER_CAR;average;average;averageEND_EMISSIONS
 		</description>
