@@ -20,11 +20,14 @@ package org.matsim.run;
 
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.contrib.emissions.EmissionModule;
+import org.matsim.contrib.emissions.utils.EmissionsConfigGroup;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ControlerConfigGroup.RoutingAlgorithmType;
 import org.matsim.core.config.groups.QSimConfigGroup.TrafficDynamics;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
+import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.OutputDirectoryHierarchy.OverwriteFileSetting;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule.DefaultSelector;
@@ -52,7 +55,17 @@ public class RunMelbourne {
 	}
 	
 	static Controler prepareControler(Scenario scenario) {
-		return new Controler( scenario ) ;
+		final Controler controler = new Controler(scenario);
+
+		// add emissions:
+		controler.addOverridingModule(new AbstractModule() {
+			@Override
+			public void install() {
+				bind(EmissionModule.class).asEagerSingleton();
+			}
+		});
+		
+		return controler;
 	}
 	
 	static Scenario prepareScenario(Config config) {
@@ -116,6 +129,18 @@ public class RunMelbourne {
 		}
 		
 		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
+		
+		EmissionsConfigGroup emissionsConfig = ConfigUtils.addOrGetModule(config, EmissionsConfigGroup.class);
+		emissionsConfig.setEmissionRoadTypeMappingFile("sample_roadTypeMapping.txt");
+		emissionsConfig.setAverageWarmEmissionFactorsFile("sample_EFA_HOT_vehcat_2005average.txt");
+		emissionsConfig.setAverageColdEmissionFactorsFile("sample_EFA_ColdStart_vehcat_2005average.txt");
+		emissionsConfig.setUsingDetailedEmissionCalculation(false);
+		emissionsConfig.setWritingEmissionsEvents(true);
+		emissionsConfig.setUsingVehicleTypeIdAsVehicleDescription(false);
+		
+		// one also needs to have an appropriate vehicles file:
+		
+		config.vehicles().setVehiclesFile("sample_emissionVehicles_v2.xml");
 		
 		// === overriding config is loaded at end.  Allows to override config settings at the very end.  Could, for example, switch off kinematic waves,
 		// or set the weight of re-routing to zero.  Not really recommended, but there may be cases where this is needed. kai, jan'18
