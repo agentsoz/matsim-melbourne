@@ -99,20 +99,38 @@ Find the `CreateDemandFromVISTA` class somewhere under `src/main` and look there
 #### (Re)create MATSim plans based on LATCH
 
 To convert the Synthetic population generated using the latch algorithm to the MatSim syntax, use the command below. It
-generates the output file saved as `population-from-latch.xml`
+generates the output file saved as `population-from-latch.xml.gz` (use --file-format x to save in the xml format)
+
+To parse the entire synthetic population
 ```concept
-mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.CreatePopulationFromLatch" --output-dir . --run-mode f --file-format x
+mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.CreatePopulationFromLatch" --output-dir . --run-mode
+f --file-format z
 ```
+To parse 100 people only from the synthetic population
+```concept
+mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.CreatePopulationFromLatch" --output-dir . --run-mode
+d --sample-population 100 --file-format z
+```
+
 To convert the Synthetic households generated using the latch algorithm to the MatSim syntax, use the command below. It
 generates the output file saved as `households-from-latch.xml`
 ```concept
 mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.CreateHouseHoldFromLatch"
 ```
 
-To generate the MatSim activity plans with planned mode of transport car-as-driver for the Synthetic population, use the command below.
-It generates the output file saved as `population-with-home-work-trips.xml`
+To generate the MatSim activity plans for the Synthetic population, use the command below.
+It generates the output file for certain residence locations (progressive build-up by uploading MTWP files
+generated from ABS Table builder and stored under data/census/2011/mtwp/2018-02-16-mtwp-files/)saved as
+`population-with-home-work-trips.xml.gz`
 ```concept
-mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AddWorkPlacesToPopulation" carAsDriver
+mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AssignTripsToPopulation"
+```
+
+UNUSED - To generate the MatSim activity plans using probabilistic calculation for transport mode and destination
+location (considers people between the age of 15 and 84 to be working and, does not factor in person characteristics in
+assigning trips), use the command below. It generates the output file saved as `population-with-home-work-trips.xml.gz`
+```concept
+mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AddWorkPlacesToPopulation"
 ```
 
 #### Run MATSim

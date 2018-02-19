@@ -35,7 +35,7 @@ public class CreateHouseHoldFromLatch {
         households = scenario.getHouseholds();
         householdsFactory = households.getFactory();
         
-        oFile.append(DEFAULT_OFNAME+XML_OUT);
+        oFile.append(DEFAULT_OFNAME+ZIPPED_OUT);
     }
     
     public static void main(String[] args) throws IOException{
