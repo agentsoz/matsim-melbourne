@@ -44,7 +44,7 @@ final class CreateDemandFromVISTA {
 	private static final Logger log = Logger.getLogger( CreateDemandFromVISTA.class ) ;
 	
 	public static Coord createRandomCoordinateInCcdZone(Random rnd, Map<String, SimpleFeature> featureMap,
-														String ccdCode, CreateDemandFromVISTA.Visitors record, CoordinateTransformation ct) {
+														String ccdCode, Record record, CoordinateTransformation ct) {
 
 		// get corresponding feature:
 		SimpleFeature ft = featureMap.get(ccdCode) ;
@@ -69,7 +69,7 @@ final class CreateDemandFromVISTA {
 		return coordOrigin;
 	}
 	
-	public final static class Visitors {
+	public final static class Record {
 		// needs to be public, otherwise one gets some incomprehensible exception.  kai, nov'17
 
 		@CsvBindByName private String TRIPID ;
@@ -196,16 +196,16 @@ final class CreateDemandFromVISTA {
 		// ===
 
 		try ( final FileReader reader = new FileReader(pusTripsFile) ) { 
-			final CsvToBeanBuilder<Visitors> builder = new CsvToBeanBuilder<>(reader)  ;
-			builder.withType(Visitors.class);
+			final CsvToBeanBuilder<Record> builder = new CsvToBeanBuilder<>(reader)  ;
+			builder.withType(Record.class);
 			builder.withSeparator(',') ;
-			final CsvToBean<Visitors> reader2 = builder.build();
+			final CsvToBean<Record> reader2 = builder.build();
 //			int ii=0 ;
 			Id<Person> previousPersonId = null;
 			Coord coordOrigin = null ;
-			for ( Iterator<Visitors> it = reader2.iterator() ; it.hasNext() ; ) {
+			for (Iterator<Record> it = reader2.iterator(); it.hasNext() ; ) {
 //				ii++ ; if ( ii>10 ) break ;
-				Visitors record = it.next() ;
+				Record record = it.next() ;
 				Id<Person> personId = Id.createPersonId(record.PERSID);
 				Person person = population.getPersons().get(personId);
 				Gbl.assertNotNull(person);
@@ -242,7 +242,7 @@ final class CreateDemandFromVISTA {
 	}
 
 	private void addLegActPair(PopulationFactory pf, Random rnd, Map<String, SimpleFeature> featureMap,
-			Visitors record, Plan plan) {
+							   Record record, Plan plan) {
 		// and the first travel leg
 		String mode = record.Mode_Group;
 		if ( "Vehicle Driver".equals(mode) ) {
