@@ -94,7 +94,10 @@ public class RunMelbourne {
 //		NetworkUtils.writeNetwork( scenario.getNetwork(), "net.xml.gz" ) ;
 		
 		for ( Link link : scenario.getNetwork().getLinks().values() ) {
-			NetworkUtils.setType(link,"URB/Local/50"); // for emissions; should be more differentiated
+//			NetworkUtils.setType(link,"URB/Local/50"); // for emissions; should be more differentiated
+			// roadType is an index from roadTypeMapping file and 'URB/Local/50' is HBEFA road type.
+			// In current setup, links get indices and mapped to HBEFA road type later using 'roadTypeMapping.txt' file. (see https://matsim.atlassian.net/browse/MATSIM-785) Amit, Feb'18
+			NetworkUtils.setType(link,"43");
 		}
 		
 		return scenario;
