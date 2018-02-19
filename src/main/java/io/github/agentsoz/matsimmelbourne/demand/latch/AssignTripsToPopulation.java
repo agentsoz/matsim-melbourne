@@ -32,12 +32,13 @@ public class AssignTripsToPopulation {
     private static final Logger log = Logger.getLogger(AssignTripsToPopulation.class);
     public static final String[] FILE_NAMES = {
 
+            "IVANHOE-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE-EAST_PCHAR_POW_MTWP.csv",
             "ALPHINGTON", "data/census/2011/mtwp/2018-02-16-mtwp-files/ALPHINGTON_PCHAR_POW_MTWP.csv",
             "NORTHCOTE", "data/census/2011/mtwp/2018-02-16-mtwp-files/NORTHCOTE_PCHAR_POW_MTWP.csv",
-            "IVANHOE","data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE_PCHAR_POW_MTWP.csv",
-            "HEIDELBERG-WEST","data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-WEST_PCHAR_POW_MTWP.csv",
-            "HEIDELBERG-ROSANNA","data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-ROSANNA_PCHAR_POW_MTWP.csv",
-            "GREENSBOROUGH","data/census/2011/mtwp/2018-02-16-mtwp-files/GREENSBOROUGH_PCHAR_POW_MTWP.csv",
+            "IVANHOE", "data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE_PCHAR_POW_MTWP.csv",
+            "HEIDELBERG-WEST", "data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-WEST_PCHAR_POW_MTWP.csv",
+            "HEIDELBERG-ROSANNA", "data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-ROSANNA_PCHAR_POW_MTWP.csv",
+            "GREENSBOROUGH", "data/census/2011/mtwp/2018-02-16-mtwp-files/GREENSBOROUGH_PCHAR_POW_MTWP.csv",
             "BUNDOORA-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
             "THORNBURY", "data/census/2011/mtwp/2018-02-16-mtwp-files/THORNBURY_PCHAR_POW_MTWP.csv"
 
@@ -211,7 +212,9 @@ public class AssignTripsToPopulation {
         }
     }
 
-
+    /*
+    * Method to bin age into enum age-range groups
+    * */
     public AgeGroups binAgeIntoCategory(String age) {
         int ageInt = Integer.parseInt(age);
 
@@ -233,6 +236,9 @@ public class AssignTripsToPopulation {
         return AgeGroups.u15;
     }
 
+    /*
+    * Method to bin age range strings from the mtwp files into the enum age-range groups
+    * */
     public AgeGroups binAgeRangeIntoCategory(String ageRange) {
 
         if (ageRange.equals("0-14"))
@@ -258,7 +264,7 @@ public class AssignTripsToPopulation {
 
     /**
      * Method to read the look up correspondence file
-     * to map the sa1 7 digit codes (2011) to the corresponding sa2 names (2016)
+     * and maps the sa1 7 digit codes (2011) to the corresponding sa2 names (2016)
      */
     private void readCorrespondences() {
 
@@ -290,7 +296,9 @@ public class AssignTripsToPopulation {
     }
 
 
-    /*Method to store the number of synthetic person groups for each SA2 location*/
+    /**
+     * Method to store the number of synthetic person groups for each SA2 location
+     */
     public void storeSyntheticPersonCharGroups() {
 
         log.info("Storing person characteristic groups per SA2..");
@@ -363,7 +371,10 @@ public class AssignTripsToPopulation {
 //        }
     }
 
-
+    /*
+    * Method to read the file containing information about the employed and part-time workforce
+    * numbers grouped by person characteristic traits and residence SA2 location in Victoria.
+    * */
     public void readSA2EmploymentStatusCensusFile() throws IOException {
 
         String sa2Name = "";
@@ -414,7 +425,6 @@ public class AssignTripsToPopulation {
                     relStatus = record.relStatus;
                 }
 
-//                System.out.println(record.toString());
                 if (record.lfsp != null) {
                     if (record.lfsp.equals(EMP_FULL_TIME))
                         fullTimeWorkForce = record.population;
@@ -439,12 +449,6 @@ public class AssignTripsToPopulation {
                             partTimeWorkForceProportion = 0.0;
                         }
 
-                        //part-time and full-time should be zero too and avoid being stored as NaN
-
-//                          if(Double.parseDouble(fullTimeWorkForce) == 0.0)  fullTimeWorkForceProportion = 0.0;
-//                          if(Double.parseDouble(partTimeWorkForce) == 0.0)  partTimeWorkForceProportion = 0.0;
-
-
                         //Retrieve list of Person Characteristic groupings
                         List<PersonChar> pCharGroups = sa2PersonCharGroupsCensus.get(sa2Name);
                         Gbl.assertNotNull(pCharGroups);
@@ -462,6 +466,8 @@ public class AssignTripsToPopulation {
             }
         }
 
+//Below commented code to be used in debugging
+
 //        for (String sa : sa2PersonCharGroupsCensus.keySet()) {
 //            System.out.println("SA2 NAME : " + sa);
 //            System.out.println("-----------------------");
@@ -477,8 +483,10 @@ public class AssignTripsToPopulation {
 //        }
     }
 
-    //Store the proportionate number of working full-time and working part-time people in the latch data using the
-    // proportions from the census data
+    /**
+     * Store the proportionate number of working full-time and working part-time people in the latch data using the
+     * proportions from the census data
+     */
     public void storeLatchWorkingProportionNumbers() {
 
         log.info("Storing workforce proportions in Latch Data");
@@ -519,6 +527,11 @@ public class AssignTripsToPopulation {
 
     }
 
+    /*
+    * Method to calculate the proportions of different transport modes calculated from the total workforce for each
+    * employment status type per sa2 work location
+     *
+    * */
     public void calcMTWPProportion(PersonChar pChar, String lfsp) {
 
         Double totalPersonCharacTrips = 0.;
@@ -562,8 +575,13 @@ public class AssignTripsToPopulation {
                 }
             }
     }
-    //
 
+    /*
+    * Method to read the census mtwp file and store the workforce number per person characteristic, labour force
+    * status and SA2 work location grouping
+    * The fraction of the number of working people using a specific mode of transport is calculated out of the total
+    * number of people in the labour force status type (working part-time or working full-time)
+    * */
     public void readMTWPFile() throws IOException {
 
         String sa2Name = "";
@@ -572,14 +590,6 @@ public class AssignTripsToPopulation {
         String relStatus = "";
         String lfsp = "";
         String sa2Work = "";
-
-
-//        String fullTimeWorkForce = "";
-//        String partTimeWorkForce = "";
-//        String totalPopulation = "";
-//
-//        double partTimeWorkForceProportion;
-//        double fullTimeWorkForceProportion;
 
         PersonChar pChar = null;
         AgeGroups ageGroups = null;
@@ -605,9 +615,6 @@ public class AssignTripsToPopulation {
                 if (mtwpRecord.sa2Name == null && mtwpRecord.workForce == null)
                     break;
 
-
-//                mtwpRecord.toString();
-
                 if (mtwpRecord.sa2Name != null) {
                     sa2Name = mtwpRecord.sa2Name;
                     sa2PersonCharGroupsMTWP.put(sa2Name, new ArrayList<PersonChar>());
@@ -630,7 +637,6 @@ public class AssignTripsToPopulation {
 
                     if (!lfsp.equals("")) {
                         calcMTWPProportion(pChar, lfsp);
-//                        log.info(pChar.toString());
                     }
 
                     pChar = new PersonChar(gender, ageGroups.name(), relStatus);
@@ -640,12 +646,8 @@ public class AssignTripsToPopulation {
 
                 if (mtwpRecord.lfsp != null) {
 
-                    Double totalPersonCharacTrips = 0.;
-
                     if (!lfsp.equals("") && mtwpRecord.relStatus == null) {
                         calcMTWPProportion(pChar, lfsp);
-//                        log.info(pChar.toString());
-
                     }
 
                     lfsp = mtwpRecord.lfsp;
@@ -672,7 +674,11 @@ public class AssignTripsToPopulation {
 
     }
 
-    //Store the proportions in the mapped latcha data for the person characteristic grouping
+    /**
+     * Store the corresponding proportions for the synthetic population using the census data proportions
+     * A fraction of the working synthetic population is assigned a specific transport mode using the proportions
+     * from the census mtwp population
+     */
     public void storeMTWPProportionsInLatch() {
 
         String sa2NameUR = "";
@@ -684,13 +690,11 @@ public class AssignTripsToPopulation {
 
         for (String sa2NameMTWP : sa2PersonCharGroupsMTWP.keySet()) {
             for (String sa2NameLatch : sa2PersonCharGroupsLatch.keySet()) {
+
                 if (sa2NameMTWP.equals(sa2NameLatch)) {
 
-//                    sa2NameFound = true;
                     mtwpCharList = sa2PersonCharGroupsMTWP.get(sa2NameMTWP);
                     latchPCharList = sa2PersonCharGroupsLatch.get(sa2NameLatch);
-
-//                    if (sa2NameFound == true) {
 
                     Gbl.assertNotNull(mtwpCharList);
                     Gbl.assertNotNull(latchPCharList);
@@ -737,39 +741,31 @@ public class AssignTripsToPopulation {
 
                                                                     pCharLatch.fullTimeProportion);
 
-                                            }
-                                        }
-                                    }
-                                }
+                                            }//closing the loop for assigning mode based proportions
+                                        }//closing the SA2 work location loop
+                                    }//closing the labour force status loop
+                                }//closing the SA2 residence location loop
                             }
-                        }
-                    }
+                        }//closing loop for iterating through synthetic person characteristic groupings
+                    }//closing loop for iterating through census mtwp person characteristic groupings
                     break;
                 }
             }
         }
-//        if (sa2NameFound == false) {
-//            log.warn("Bad SA2 name or latch SA2 name not found in census data");
-//            throw new RuntimeException("SA2 name not found");
+
+        //Print out stored workforce transport mode numbers for the synthetic population
+//        for (String sa : sa2PersonCharGroupsLatch.keySet()) {
+//            System.out.println("SA2 NAME : " + sa);
+//            System.out.println("-----+++++   +++++-------");
+//
+//            for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa)) {
+//                System.out.println(pChar.toString());
+//            }
 //        }
-
-
-        for (String sa : sa2PersonCharGroupsLatch.keySet()) {
-            System.out.println("SA2 NAME : " + sa);
-            System.out.println("-----+++++   +++++-------");
-
-            for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa)) {
-                System.out.println(pChar.toString());
-            }
-//            System.out.println("-----------------------");
-        }
-
-        System.out.println("-----+++++   +++++-------");
+//
+//        System.out.println("-----+++++   +++++-------");
 
     }
-
-
-//Check round-off
 
     /**
      * Method to read the shape file and store all the features associated with a given sa2 name (2011)
@@ -841,20 +837,19 @@ public class AssignTripsToPopulation {
         switch (transportMode.toLowerCase()) {
 
             case "train": {
-                //TO CHANGE
+
                 return TransportMode.pt;
             }
             case "tram": {
-                //TO CHANGE
+
                 return TransportMode.pt;
             }
             case "bus": {
 
-                //TO CHANGE
                 return TransportMode.pt;
             }
             case "taxi": {
-                //TO CHANGE
+
                 return TransportMode.car;
             }
             case "car, as driver": {
@@ -863,7 +858,6 @@ public class AssignTripsToPopulation {
             }
             case "car, as passenger": {
 
-                //TO CHANGE
                 return TransportMode.car;
             }
             case "truck": {
@@ -890,8 +884,11 @@ public class AssignTripsToPopulation {
         }
     }
 
-//Assign trips to population
-
+/*
+* Method to assign trips to the synthetic population using the stored proportions in the previous steps
+* Iterating through each person stored in the population file, the residence sa2 location and person
+* characteristic is used to determine which person characteristic grouping, sa2 work location and transport mode to c
+* */
     public void assignTripsToLatchPopulation() {
 
         rnd = new Random(4711);
@@ -957,8 +954,10 @@ public class AssignTripsToPopulation {
                                         //Gbl.assertNotNull(ft.getDefaultGeometry());
 
                                         if (ft == null) {
-                                            //Null because there are some sa2 locations for which we cannot retrieve
-                                            // a feature
+                                            //Null because there are some sa2 locations in the mtwp file for which we
+                                            // cannot retrieve a feature eg: POW State/Territory undefined and POW -
+                                            // No Fixed Address
+
 //                                            log.warn("There is no feature for " + sa2Dest + ".  Possibly this means
 // " +
 //                                                    "that the destination is outside the area that we have covered
@@ -1044,6 +1043,9 @@ public class AssignTripsToPopulation {
 
     }
 
+    /*
+    * Class to include person characteristc grouping based on the format used in the mtwp files
+    * */
     public static class PersonChar {
 
         String gender;
@@ -1069,7 +1071,6 @@ public class AssignTripsToPopulation {
 //                    str.append(sa2Name).append("\n");
 //                    str.append("----------------").append("\n");
                     for (String mode : sa2TransportMode.get(lfsp).get(sa2Name).keySet()) {
-                        if (sa2Name.equals("Preston")) {
 
                             str.append(gender).append(" ").append(ageGroup).append(" ").append(relStatus).append("\n");
                             str.append(lfsp).append("\n");
@@ -1080,9 +1081,8 @@ public class AssignTripsToPopulation {
                             str.append(mode).append(" : ").append(sa2TransportMode.get(lfsp).get(sa2Name).get(mode))
                                     .append
                                             ("\n");
-                        }
+
                     }
-//                    str.append("----------------").append("\n");
                 }
 
             }
