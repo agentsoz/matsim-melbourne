@@ -127,6 +127,28 @@ public class CreatePopulationFromLatch {
 
     }
 
+    public String convRelStatusStringFormat(String relStatus){
+
+        if(relStatus.equals("LONE_PERSON"))
+            return "LonePerson";
+        if(relStatus.equals("GROUP_HOUSEHOLD"))
+            return "GroupHhold";
+        if(relStatus.equals("LONE_PARENT"))
+            return "LoneParent";
+        if(relStatus.equals("MARRIED"))
+            return "Married";
+        if(relStatus.equals("O15_CHILD"))
+            return "O15Child";
+        if(relStatus.equals("STUDENT"))
+            return "Student";
+        if(relStatus.equals("U15_CHILD"))
+            return "U15Child";
+        if(relStatus.equals("RELATIVE"))
+            return "Relative";
+
+        return null;
+    }
+
     /**
      * Method to read the LATCH Persons file, creates a record for each person
      * and creates a MatSIM output with each attribute in the record for the corresponding person
@@ -164,7 +186,9 @@ public class CreatePopulationFromLatch {
                     population.addPerson(person);
 
                     // TODO: for now put in a heuristic to calculate the 'LabourForceStatus' attribute for the person
-                    person.getAttributes().putAttribute("RelationshipStatus", record.RelationshipStatus);
+
+                    person.getAttributes().putAttribute("RelationshipStatus", convRelStatusStringFormat(record
+                            .RelationshipStatus));
                     person.getAttributes().putAttribute("Age", record.Age);
                     person.getAttributes().putAttribute("Gender", record.Gender);
 //                    person.getAttributes().putAttribute("HouseHoldId", record.HouseholdId);
