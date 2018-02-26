@@ -32,6 +32,10 @@ public class AssignTripsToPopulationv1 {
     private static final Logger log = Logger.getLogger(AssignTripsToPopulation.class);
     public static final String[] FILE_NAMES = {
 
+            "VIEWBANK-YALLAMBIE", "data/census/2011/mtwp/2018-02-16-mtwp-files/VIEWBANK-YALLAMBIE_PCHAR_POW_MTWP.csv",
+            "WATSONIA", "data/census/2011/mtwp/2018-02-16-mtwp-files/WATSONIA_PCHAR_POW_MTWP.csv",
+            "MONTMORENCY-BRIARHILL", "data/census/2011/mtwp/2018-02-16-mtwp-files/MONTMORENCY" +
+            "-BRIARHILL_PCHAR_POW_MTWP.csv",
             "BUNDOORA-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
             "NORTHCOTE", "data/census/2011/mtwp/2018-02-16-mtwp-files/NORTHCOTE_PCHAR_POW_MTWP.csv",
             "IVANHOE-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE-EAST_PCHAR_POW_MTWP.csv",
