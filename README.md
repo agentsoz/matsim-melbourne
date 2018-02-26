@@ -123,8 +123,12 @@ It generates the output file for certain residence locations (progressive build-
 generated from ABS Table builder and stored under data/census/2011/mtwp/2018-02-16-mtwp-files/)saved as
 `population-with-home-work-trips.xml.gz`
 ```concept
-mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AssignTripsToPopulation"
+mvn exec:java -Dexec.mainClass="io.github.agentsoz.matsimmelbourne.AssignTripsToPopulationv1"
 ```
+
+"NOTE - The file 'AssignTripsToPopulation.java' was developed in an effort to calculate residence workforce proportions
+to decide the proportionate number of trips to destination locations. Significant number of trips are not assigned in
+using proportions and tying residence and workforce proportions"
 
 UNUSED - To generate the MatSim activity plans using probabilistic calculation for transport mode and destination
 location (considers people between the age of 15 and 84 to be working and, does not factor in person characteristics in
