@@ -21,7 +21,8 @@ public class KSRunMelbourne {
 	public static void main(String[] args) {
 		// yyyyyy increase memory!
 		
-		Config config = ConfigUtils.loadConfig("scenarios/2018-02-scenario-by-karthik-from-latch/config-modified_from_kai-06-02-2018.xml");
+		Config config = ConfigUtils.loadConfig
+				("scenarios/2018-02-scenario-by-karthik-from-latch/config-modified_from_kai-06-02-2018.xml");
 		config.controler().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
 		
 		config.network().setInputFile("net.xml.gz");
