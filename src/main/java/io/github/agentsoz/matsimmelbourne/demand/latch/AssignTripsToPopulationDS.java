@@ -1,14 +1,24 @@
 package io.github.agentsoz.matsimmelbourne.demand.latch;
 
 
+import com.vividsolutions.jts.geom.Point;
+import io.github.agentsoz.matsimmelbourne.utils.DefaultActivityTypes;
+import io.github.agentsoz.matsimmelbourne.utils.MMUtils;
+import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.data.simple.SimpleFeatureSource;
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
-import org.matsim.api.core.v01.population.Person;
-import org.matsim.api.core.v01.population.PopulationWriter;
+import org.matsim.api.core.v01.TransportMode;
+import org.matsim.api.core.v01.population.*;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordinateTransformation;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
+import org.matsim.core.utils.gis.ShapeFileReader;
+import org.opengis.feature.simple.SimpleFeature;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -40,7 +50,9 @@ public class AssignTripsToPopulationDS {
     ;
     private final static String CORRESPONDENCE_FILE =
             "data/census/2011/correspondences/2017-12-06-1270055001_sa2_sa1_2011_mapping_aust_shape/SA1_2011_AUST.csv";
-
+    private final static String ZONES_FILE =
+            "data/census/2011/shp/2017-12-06-1270055001_sa2_2011_aust_shape/SA2_2011_AUST" +
+                    ".shp";
 
     private enum AgeGroups {u15, b15n24, b25n39, b40n54, b55n69, b70n84, b85n99, over100}
     private static final Map<String, String> ageCategoryToAgeRange;
@@ -108,35 +120,103 @@ public class AssignTripsToPopulationDS {
                 worker.writeMATSimPopulationFor(sa2File[0], inFilePath, outFilePath);
             }
 
-            // read the SA2 MATSim population and write out the trips
+            // read the SA2 MATSim population and write out the work SA2
             inFilePath = Paths.get(sa2File[0] + "-3-matsim-popn.xml.gz");
-            outFilePath = Paths.get(sa2File[0] + "-4-matsim-trips.xml.gz");
-            Path noTripsMATSimFilePath = Paths.get(sa2File[0] + "-4-matsim-notrips.csv.gz");
-            Path noTripsMTWPFilePath = Paths.get(sa2File[0] + "-4-mtwp-notrips.csv.gz");
+            outFilePath = Paths.get(sa2File[0] + "-4-matsim-work-dest.xml.gz");
+            Path noTripsMATSimFilePath = Paths.get(sa2File[0] + "-4-matsim-no-work-dest.csv.gz");
+            Path noTripsMTWPFilePath = Paths.get(sa2File[0] + "-4-mtwp-unassigned-work-dest.csv.gz");
             if (outFilePath.toFile().exists()) {
                 worker.log(displayReuseWarningMessage(outFilePath));
             } else {
                 worker.log("writing MATSim population trips to " + outFilePath);
-                worker.writeMATSimTripsFor(sa2File[0], inFilePath, outFilePath, noTripsMATSimFilePath, noTripsMTWPFilePath);
+                worker.writeMATSimWorkDestinationsFor(sa2File[0], inFilePath, outFilePath, noTripsMATSimFilePath, noTripsMTWPFilePath);
             }
 
             // do a second pass trips assignment for MTWP trips that we did not find an accurate match for
-            inFilePath = Paths.get(sa2File[0] + "-4-matsim-trips.xml.gz");
-            outFilePath = Paths.get(sa2File[0] + "-5-matsim-trips.xml.gz");
-            noTripsMATSimFilePath = Paths.get(sa2File[0] + "-5-matsim-notrips.csv.gz");
-            noTripsMTWPFilePath = Paths.get(sa2File[0] + "-5-mtwp-notrips.csv.gz");
+            inFilePath = Paths.get(sa2File[0] + "-4-matsim-work-dest.xml.gz");
+            outFilePath = Paths.get(sa2File[0] + "-5-matsim-work-dest.xml.gz");
+            noTripsMATSimFilePath = Paths.get(sa2File[0] + "-5-matsim-no-work-dest.csv.gz");
+            noTripsMTWPFilePath = Paths.get(sa2File[0] + "-5-mtwp-unassigned-work-dest.csv.gz");
             if (outFilePath.toFile().exists()) {
                 worker.log(displayReuseWarningMessage(outFilePath));
             } else {
                 worker.log("writing second pass MATSim population trips to " + outFilePath);
-                worker.writeRandomMATSimTripsFor(sa2File[0], inFilePath, outFilePath, noTripsMATSimFilePath, noTripsMTWPFilePath);
+                worker.writeRandomMATSimWorkDestinationsFor(sa2File[0], inFilePath, outFilePath, noTripsMATSimFilePath, noTripsMTWPFilePath);
             }
 
-
+            // add trips to random coords in work SA2 areas
+            inFilePath = Paths.get(sa2File[0] + "-5-matsim-work-dest.xml.gz");
+            outFilePath = Paths.get(sa2File[0] + "-6-matsim-work-trips.xml.gz");
+            if (outFilePath.toFile().exists()) {
+                worker.log(displayReuseWarningMessage(outFilePath));
+            } else {
+                Map<String, SimpleFeature> zones = worker.readShapefile(Paths.get(ZONES_FILE));
+                worker.writeMATSimWorkTripsFor(sa2File[0], zones.get(sa2File[0].toLowerCase()), inFilePath, outFilePath);
+            }
         }
     }
 
-    private void writeRandomMATSimTripsFor(String sa2, Path inFilePath, Path outFilePath, Path noTripsMATSimFilePath, Path noTripsMTWPFilePath) {
+    private void writeMATSimWorkTripsFor(String sa2, SimpleFeature ft, Path inFilePath, Path outFilePath) {
+
+        Random random = new Random(12345);
+
+        final CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation
+                (TransformationFactory.WGS84, "EPSG:28355");
+
+
+        try {
+            Config config = ConfigUtils.createConfig();
+            config.plans().setInputFile(inFilePath.toString());
+            Scenario scenario = ScenarioUtils.loadScenario(config);
+            PopulationFactory pf = scenario.getPopulation().getFactory();
+
+            for (Person person : scenario.getPopulation().getPersons().values()) {
+                String sa2_work= (String)person.getAttributes().getAttribute("sa2_work");
+                String tMode = (String)person.getAttributes().getAttribute("transport_mode");
+
+                if (sa2_work == null || sa2_work.isEmpty() || tMode == null || tMode.isEmpty()) {
+                    continue;
+                }
+
+                Activity homeActivity = (Activity) person.getSelectedPlan().getPlanElements().get(0);
+                homeActivity.setEndTime(activityEndTime(DefaultActivityTypes.home));
+
+                // --- add a leg:
+                Leg leg = pf.createLeg(getTransportModeString(tMode));
+                person.getSelectedPlan().addLeg(leg);
+
+                // --- add work activity:
+                Point point = MMUtils.getRandomPointInFeature(random, ft);
+                Gbl.assertNotNull(point);
+
+                Coord coord = new Coord(point.getX(), point.getY());
+                Coord coordTransformed = ct.transform(coord);
+
+                Activity actWork = pf.createActivityFromCoord(DefaultActivityTypes.work, coordTransformed);
+                person.getSelectedPlan().addActivity(actWork);
+
+                actWork.setEndTime(activityEndTime(DefaultActivityTypes.work));
+
+                // --- add leg:
+                person.getSelectedPlan().addLeg(leg);
+
+                // --- add home activity:
+                Activity actGoHome = pf.createActivityFromCoord(DefaultActivityTypes.home,
+                        homeActivity.getCoord());
+                person.getSelectedPlan().addActivity(actGoHome);
+            }
+
+            // Write out the population to xml file
+            PopulationWriter writer = new PopulationWriter(scenario.getPopulation());
+            writer.write(outFilePath.toString());
+            log("MATSim population with work trips for " + sa2 + " saved in " + outFilePath);
+        } catch (Exception e) {
+            throw new RuntimeException("Error during trips assignment", e);
+        }
+
+    }
+
+    private void writeRandomMATSimWorkDestinationsFor(String sa2, Path inFilePath, Path outFilePath, Path noTripsMATSimFilePath, Path noTripsMTWPFilePath) {
 
         Random random = new Random(12345);
 
@@ -171,29 +251,6 @@ public class AssignTripsToPopulationDS {
                 }
                 sa2DestTotals.put(sa2Dest, total);
             }
-            // now write out the sa2dests for each person in the MATSim popn
-//            for (Person person : unassignedMATSimPersons) {
-//                // stop if there are no more mtwp persons to allocate
-//                if (sa2DestTotals.isEmpty()) {
-//                    break;
-//                }
-//                String[] options = sa2DestTotals.keySet().toArray(new String[0]);
-//                String sa2Random = options[random.nextInt(options.length)];
-//
-//                // decrement the respective mtwp persons counter
-//                double total = (sa2DestTotals.containsKey(sa2Random)) ?
-//                        sa2DestTotals.get(sa2Random) : 0;
-//                if (total <= 0) {
-//                    sa2DestTotals.remove(sa2Random);
-//                    continue;
-//                }
-//                sa2DestTotals.put(sa2Random, total - 1);
-//
-//                // write the SA2 work and mode attributes from MTWP to the MATSim person
-//                person.getAttributes().putAttribute("sa2_work", sa2Random);
-//                person.getAttributes().putAttribute("transport_mode", "?");
-//            }
-
             // write out the unassigned MATSim persons
             FileOutputStream outputStream = new FileOutputStream(noTripsMATSimFilePath.toFile());
             GZIPOutputStream gzipOutputStream = new GZIPOutputStream(outputStream, true);
@@ -234,13 +291,13 @@ public class AssignTripsToPopulationDS {
             writer.write(outFilePath.toString());
             log("MATSim population with work destinations for " + sa2 + " saved in " + outFilePath);
         } catch (Exception e) {
-            throw new RuntimeException("Error during trips assignment", e);
+            throw new RuntimeException("Error during work SA2 assignment", e);
         }
 
     }
 
     private Map<String,Double> readMTWPUnassignedTrips(String sa2) {
-        Path inFilePath = Paths.get(sa2 + "-4-mtwp-notrips.csv.gz");
+        Path inFilePath = Paths.get(sa2 + "-4-mtwp-unassigned-work-dest.csv.gz");
         Map<String,Double> map = new HashMap<>();
         try {
             InputStream inputStream = new GZIPInputStream(new FileInputStream(inFilePath.toFile()));
@@ -257,7 +314,7 @@ public class AssignTripsToPopulationDS {
         return map;
     }
 
-    private void writeMATSimTripsFor(String sa2, Path inFilePath, Path outFilePath, Path noTripsMATSimFilePath, Path noTripsMTWPFilePath) {
+    private void writeMATSimWorkDestinationsFor(String sa2, Path inFilePath, Path outFilePath, Path noTripsMATSimFilePath, Path noTripsMTWPFilePath) {
 
         try {
             FileOutputStream outputStream = new FileOutputStream(noTripsMATSimFilePath.toFile());
@@ -269,7 +326,7 @@ public class AssignTripsToPopulationDS {
 
             // calculate dest sa2 distribution
             double totalMTWPPopulation = 0;
-            HashMap<String, Double> sa2DestTotals = new HashMap<>();
+            Map<String, Double> sa2DestTotals = new HashMap<>();
             for (MTWPRecord mtwpRecord : modeshare) {
                 if ("Total".equals(mtwpRecord.transportMode)) {
                     continue;
@@ -296,23 +353,18 @@ public class AssignTripsToPopulationDS {
                 if (sa2DestTotals.isEmpty()) {
                     break;
                 }
-                MTWPRecord mtwpRecord = matchPerson(person, modeshare, gzipOutputStream);
+                MTWPRecord mtwpRecord = matchPerson(person, modeshare, sa2DestTotals, gzipOutputStream);
                 if (mtwpRecord != null) {
-
-                    //String[] options = sa2DestTotals.keySet().toArray(new String[0]);
-                    //String sa2Random = options[random.nextInt(options.length)];
-
                     // decrement the respective mtwp persons counter
-                    double total = (sa2DestTotals.containsKey(mtwpRecord.sa2Work)) ?
-                            sa2DestTotals.get(mtwpRecord.sa2Work) : 0;
-                    if (total <= 0) {
+                    double newTotal = sa2DestTotals.get(mtwpRecord.sa2Work) - 1; // guaranteed to be >1 by match
+                    sa2DestTotals.put(mtwpRecord.sa2Work, newTotal);
+                    if (newTotal < 1) {
                         sa2DestTotals.remove(mtwpRecord.sa2Work);
-                        continue;
                     }
-                    sa2DestTotals.put(mtwpRecord.sa2Work, total - 1);
-
                     // write the SA2 work and mode attributes from MTWP to the MATSim person
                     person.getAttributes().putAttribute("sa2_work", mtwpRecord.sa2Work);
+
+                    //FIXME match was for  work sa2 only, so cannot assign transport_mode here, do it in the next pass
                     person.getAttributes().putAttribute("transport_mode", mtwpRecord.transportMode);
                 }
             }
@@ -336,11 +388,11 @@ public class AssignTripsToPopulationDS {
             writer.write(outFilePath.toString());
             log("MATSim population with work destinations for " + sa2 + " saved in " + outFilePath);
         } catch (Exception e) {
-            throw new RuntimeException("Error during trips assignment", e);
+            throw new RuntimeException("Error during work SA2 assignment", e);
         }
     }
 
-    private MTWPRecord matchPerson(Person person, HashSet<MTWPRecord> mtwpRecords, OutputStream noMatchOutputStream) throws IOException {
+    private MTWPRecord matchPerson(Person person, Set<MTWPRecord> mtwpRecords, Map<String, Double> sa2DestTotals, OutputStream noMatchOutputStream) throws IOException {
         if (person == null || mtwpRecords == null || mtwpRecords.isEmpty()) {
             return null;
         }
@@ -352,10 +404,13 @@ public class AssignTripsToPopulationDS {
 
         MTWPRecord match = null;
         for (MTWPRecord mtwpRecord : mtwpRecords) {
-            if (!"Total".equals(mtwpRecord.transportMode) &&
-                    gender.equals(mtwpRecord.sex) &&
-                    (ageGroups == binAgeRangeIntoCategory(mtwpRecord.age)) &&
-                    relStatus.equals(mtwpRecord.relStatus)) {
+            if (!"Total".equals(mtwpRecord.transportMode)
+                    && sa2DestTotals.containsKey(mtwpRecord.sa2Work) // exists in the list of totals
+                    &&  (sa2DestTotals.get(mtwpRecord.sa2Work) >= 1) // has at least one to assign
+                    && gender.equals(mtwpRecord.sex)
+                    && (ageGroups == binAgeRangeIntoCategory(mtwpRecord.age))
+                    && relStatus.equals(mtwpRecord.relStatus)
+                    ) {
                 // return the first satisfactory match
                 match = mtwpRecord;
                 break;
@@ -445,16 +500,28 @@ public class AssignTripsToPopulationDS {
             List<MTWPRecord> longRecord = new ArrayList<>();
             InputStream inputStream = new GZIPInputStream(new FileInputStream(inFilePath.toFile()));
             Scanner sc = new Scanner(inputStream, "UTF-8");
+            String thisRecord = "";
             while (sc.hasNextLine()) {
                 // read the record
                 MTWPRecord mtwpRecord = new MTWPRecord(sc.nextLine().split("\\|"));
-                if ("TotalMode".equals(mtwpRecord.transportMode)) { // long records start with the "TotalMode" row
+                if (!thisRecord.equals(mtwpRecord.sa2Work)  && "TotalMode".equals(mtwpRecord.transportMode)) {
+                    // new record
+                    thisRecord = mtwpRecord.sa2Work;
                     longRecord.clear();
                     totalMode = 0;
-                } else if (!"Total".equals(mtwpRecord.transportMode)) {
+                } else if (!thisRecord.equals(mtwpRecord.sa2Work)  && "Multi-mode".equals(mtwpRecord.transportMode)) {
+                    // new record + multi-mode
+                    thisRecord = mtwpRecord.sa2Work;
+                    longRecord.clear();
+                    totalMode = 0;
                     longRecord.add(mtwpRecord);
                     totalMode += Double.parseDouble(mtwpRecord.workForce);
-                } else if ("Total".equals(mtwpRecord.transportMode) && totalMode > 0) { // long records end in "Total" row
+                } else if (!"Total".equals(mtwpRecord.transportMode) && !"TotalMode".equals(mtwpRecord.transportMode)) {
+                    // mid record
+                    longRecord.add(mtwpRecord);
+                    totalMode += Double.parseDouble(mtwpRecord.workForce);
+                } else if ("Total".equals(mtwpRecord.transportMode) && totalMode > 0) {
+                    // long records end in "Total" row
                     for (MTWPRecord record : longRecord) {
                         // calculate the mode share
                         record.modeShare = String.format("%.4f",Double.parseDouble(record.workForce)/totalMode);
@@ -559,10 +626,36 @@ public class AssignTripsToPopulationDS {
     }
 
 
+    /**
+     * Method to read the shape file and store all the features associated with a given sa2 name (2011)
+     */
+    private Map<String, SimpleFeature> readShapefile(Path inFile) {
+        //reads the shape file in
+        SimpleFeatureSource fts = ShapeFileReader.readDataFile(inFile.toString());
+        Map<String, SimpleFeature> featureMap = new LinkedHashMap<>();
 
-    /*
-* Method to bin age into enum age-range groups
-* */
+        //Iterator to iterate over the features from the shape file
+        try (SimpleFeatureIterator it = fts.getFeatures().features()) {
+            while (it.hasNext()) {
+
+                // get feature
+                SimpleFeature ft = it.next();
+
+                // store the feature by SA2 name (because that is the way in which we will need it later)
+                featureMap.put(((String)ft.getAttribute("SA2_NAME11")).toLowerCase(), ft);
+            }
+            it.close();
+        } catch (Exception ee) {
+            throw new RuntimeException("Error reading shape file features. File : " + inFile, ee);
+        }
+        return featureMap;
+    }
+
+    /**
+     * Method to bin age into enum age-range groups
+     * @param age
+     * @return
+     */
     public AgeGroups binAgeIntoCategory(String age) {
         int ageInt = Integer.parseInt(age);
 
@@ -583,6 +676,102 @@ public class AssignTripsToPopulationDS {
 
         return AgeGroups.u15;
     }
+
+    /**
+     * Copied from bdi project synthetic population
+     *
+     * @param actType
+     * @return
+     */
+    private double activityEndTime(String actType) {
+        double endTime = 0.0;
+        if (actType.equals(DefaultActivityTypes.work)) {
+            /*
+             * Allow people to leave work between 16.45 and 17.10
+			 */
+            endTime = 60300 + (60 * 25 * Math.random());
+            return endTime;
+        }
+
+        Random rnd = new Random();
+        if (actType.equals(DefaultActivityTypes.home)) {
+
+            /*
+             * Allow people to leave work between
+			 */
+            endTime = 21600 + (60 *
+                    rnd.nextInt(180));
+            return endTime;
+        }
+
+        return 21600;
+    }
+
+    /*
+* Method to convert the localized string for the transport method
+* to a Transport Mode class defined string constant
+* */
+    private String getTransportModeString(String transportMode) {
+
+        switch (transportMode.toLowerCase()) {
+
+            case "train": {
+
+                return TransportMode.pt;
+            }
+            case "tram": {
+
+                return TransportMode.pt;
+            }
+            case "bus": {
+
+                return TransportMode.pt;
+            }
+
+            case "ferry": {
+
+                return TransportMode.pt;
+            }
+            case "taxi": {
+
+                return TransportMode.car;
+            }
+            case "car, as driver": {
+
+                return TransportMode.car;
+            }
+            case "car, as passenger": {
+
+                return TransportMode.car;
+            }
+            case "truck": {
+
+                return TransportMode.other;
+            }
+            case "motorbike/scooter": {
+
+                return TransportMode.ride;
+            }
+            case "bicycle": {
+
+                return TransportMode.bike;
+            }
+            case "other": {
+
+                return TransportMode.other;
+            }
+            case "multi-mode": {
+
+                return TransportMode.other;
+            }
+            default: {
+
+                return TransportMode.other;
+            }
+        }
+    }
+
+
 
     /*
     * Method to bin age range strings from the mtwp files into the enum age-range groups
