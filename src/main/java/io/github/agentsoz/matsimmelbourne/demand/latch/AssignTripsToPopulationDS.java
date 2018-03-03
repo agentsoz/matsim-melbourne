@@ -139,12 +139,12 @@ public class AssignTripsToPopulationDS {
                 worker.log(displayReuseWarningMessage(outFilePath));
             } else {
                 Map<String, SimpleFeature> zones = worker.readShapefile(Paths.get(ZONES_FILE));
-                worker.writeMATSimWorkTripsFor(sa2File[0], zones.get(sa2File[0].toLowerCase()), inFilePath, outFilePath);
+                worker.writeMATSimWorkTripsFor(sa2File[0], zones, inFilePath, outFilePath);
             }
         }
     }
 
-    private void writeMATSimWorkTripsFor(String sa2, SimpleFeature ft, Path inFilePath, Path outFilePath) {
+    private void writeMATSimWorkTripsFor(String sa2, Map<String, SimpleFeature> zones, Path inFilePath, Path outFilePath) {
 
         Random random = new Random(12345);
 
@@ -174,10 +174,13 @@ public class AssignTripsToPopulationDS {
                 person.getSelectedPlan().addLeg(leg);
 
                 // --- add work activity:
-                Point point = MMUtils.getRandomPointInFeature(random, ft);
-                Gbl.assertNotNull(point);
-
-                Coord coord = new Coord(point.getX(), point.getY());
+                SimpleFeature ft = zones.get(sa2_work.toLowerCase());
+                Coord coord = homeActivity.getCoord(); // set default work coord same as home
+                if (ft != null) {
+                    Point point = MMUtils.getRandomPointInFeature(random, ft);
+                    Gbl.assertNotNull(point);
+                    coord = new Coord(point.getX(), point.getY());
+                }
                 Coord coordTransformed = ct.transform(coord);
 
                 Activity actWork = pf.createActivityFromCoord(DefaultActivityTypes.work, coordTransformed);
