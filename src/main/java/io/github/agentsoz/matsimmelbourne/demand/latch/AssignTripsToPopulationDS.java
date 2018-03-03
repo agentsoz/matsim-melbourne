@@ -175,13 +175,13 @@ public class AssignTripsToPopulationDS {
 
                 // --- add work activity:
                 SimpleFeature ft = zones.get(sa2_work.toLowerCase());
-                Coord coord = homeActivity.getCoord(); // set default work coord same as home
-                if (ft != null) {
+                Coord coordTransformed = homeActivity.getCoord(); // set default work coord same as home
+                if (ft != null && !sa2_work.startsWith("POW ")) {
                     Point point = MMUtils.getRandomPointInFeature(random, ft);
                     Gbl.assertNotNull(point);
-                    coord = new Coord(point.getX(), point.getY());
+                    Coord coord = new Coord(point.getX(), point.getY());
+                    coordTransformed = ct.transform(coord);
                 }
-                Coord coordTransformed = ct.transform(coord);
 
                 Activity actWork = pf.createActivityFromCoord(DefaultActivityTypes.work, coordTransformed);
                 person.getSelectedPlan().addActivity(actWork);
