@@ -128,25 +128,13 @@ public class AssignTripsToPopulationDS {
             if (outFilePath.toFile().exists()) {
                 worker.log(displayReuseWarningMessage(outFilePath));
             } else {
-                worker.log("writing MATSim population trips to " + outFilePath);
+                worker.log("writing MATSim population work destinations to " + outFilePath);
                 worker.writeMATSimWorkDestinationsFor(sa2File[0], inFilePath, outFilePath, noTripsMATSimFilePath, noTripsMTWPFilePath);
             }
 
-            // do a second pass trips assignment for MTWP trips that we did not find an accurate match for
-            inFilePath = Paths.get(sa2File[0] + "-4-matsim-work-dest.xml.gz");
-            outFilePath = Paths.get(sa2File[0] + "-5-matsim-work-dest.xml.gz");
-            noTripsMATSimFilePath = Paths.get(sa2File[0] + "-5-matsim-no-work-dest.csv.gz");
-            noTripsMTWPFilePath = Paths.get(sa2File[0] + "-5-mtwp-unassigned-work-dest.csv.gz");
-            if (outFilePath.toFile().exists()) {
-                worker.log(displayReuseWarningMessage(outFilePath));
-            } else {
-                worker.log("writing second pass MATSim population trips to " + outFilePath);
-                worker.writeRandomMATSimWorkDestinationsFor(sa2File[0], inFilePath, outFilePath, noTripsMATSimFilePath, noTripsMTWPFilePath);
-            }
-
             // add trips to random coords in work SA2 areas
-            inFilePath = Paths.get(sa2File[0] + "-5-matsim-work-dest.xml.gz");
-            outFilePath = Paths.get(sa2File[0] + "-6-matsim-work-trips.xml.gz");
+            inFilePath = Paths.get(sa2File[0] + "-4-matsim-work-dest.xml.gz");
+            outFilePath = Paths.get(sa2File[0] + "-5-matsim-work-trips.xml.gz");
             if (outFilePath.toFile().exists()) {
                 worker.log(displayReuseWarningMessage(outFilePath));
             } else {
@@ -333,9 +321,10 @@ public class AssignTripsToPopulationDS {
                 }
                 double workForce = Double.parseDouble(mtwpRecord.workForce);
                 totalMTWPPopulation += workForce;
-                sa2DestTotals.put(mtwpRecord.sa2Work,
-                        sa2DestTotals.containsKey(mtwpRecord.sa2Work) ?
-                                sa2DestTotals.get(mtwpRecord.sa2Work) + workForce
+                String key = mtwpRecord.sa2Work + "|" + mtwpRecord.transportMode;
+                sa2DestTotals.put(key,
+                        sa2DestTotals.containsKey(key) ?
+                                sa2DestTotals.get(key) + workForce
                                 : workForce);
             }
 
@@ -356,15 +345,14 @@ public class AssignTripsToPopulationDS {
                 MTWPRecord mtwpRecord = matchPerson(person, modeshare, sa2DestTotals, gzipOutputStream);
                 if (mtwpRecord != null) {
                     // decrement the respective mtwp persons counter
-                    double newTotal = sa2DestTotals.get(mtwpRecord.sa2Work) - 1; // guaranteed to be >1 by match
-                    sa2DestTotals.put(mtwpRecord.sa2Work, newTotal);
+                    String key = mtwpRecord.sa2Work + "|" + mtwpRecord.transportMode;
+                    double newTotal = sa2DestTotals.get(key) - 1; // guaranteed to be >1 by match
+                    sa2DestTotals.put(key, newTotal);
                     if (newTotal < 1) {
-                        sa2DestTotals.remove(mtwpRecord.sa2Work);
+                        sa2DestTotals.remove(key);
                     }
                     // write the SA2 work and mode attributes from MTWP to the MATSim person
                     person.getAttributes().putAttribute("sa2_work", mtwpRecord.sa2Work);
-
-                    //FIXME match was for  work sa2 only, so cannot assign transport_mode here, do it in the next pass
                     person.getAttributes().putAttribute("transport_mode", mtwpRecord.transportMode);
                 }
             }
@@ -404,9 +392,10 @@ public class AssignTripsToPopulationDS {
 
         MTWPRecord match = null;
         for (MTWPRecord mtwpRecord : mtwpRecords) {
+            String key = mtwpRecord.sa2Work + "|" + mtwpRecord.transportMode;
             if (!"Total".equals(mtwpRecord.transportMode)
-                    && sa2DestTotals.containsKey(mtwpRecord.sa2Work) // exists in the list of totals
-                    &&  (sa2DestTotals.get(mtwpRecord.sa2Work) >= 1) // has at least one to assign
+                    && sa2DestTotals.containsKey(key) // exists in the list of totals
+                    &&  (sa2DestTotals.get(key) >= 1) // has at least one to assign
                     && gender.equals(mtwpRecord.sex)
                     && (ageGroups == binAgeRangeIntoCategory(mtwpRecord.age))
                     && relStatus.equals(mtwpRecord.relStatus)
@@ -742,7 +731,7 @@ public class AssignTripsToPopulationDS {
             }
             case "car, as passenger": {
 
-                return TransportMode.car;
+                return TransportMode.other;
             }
             case "truck": {
 
