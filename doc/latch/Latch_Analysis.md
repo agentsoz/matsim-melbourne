@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # LATCH (Synthetic Population) Analysis
 ___
 This document provides details about the synthetic population created in resident household 
@@ -142,4 +141,4 @@ ___
 The default output directory is the parent working directory. To change use the command `--output-dir [path]`
 
 ## Assigning journey-to-work trips
->>>>>>> b0034c072b1d5ffd10a6cacc3f98005f5b27d731
+
