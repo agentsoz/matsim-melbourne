@@ -23,6 +23,7 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.contrib.emissions.EmissionModule;
 import org.matsim.contrib.emissions.utils.EmissionsConfigGroup;
+import org.matsim.contrib.noise.NoiseConfigGroup;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ControlerConfigGroup.RoutingAlgorithmType;
@@ -65,6 +66,7 @@ public class RunMelbourne {
 			@Override
 			public void install() {
 				bind(EmissionModule.class).asEagerSingleton();
+//				install(new NoiseModule(scenario));
 			}
 		});
 		
@@ -143,6 +145,8 @@ public class RunMelbourne {
 		
 		config.qsim().setTrafficDynamics(TrafficDynamics.kinematicWaves);
 		
+		// ---
+		
 		EmissionsConfigGroup emissionsConfig = ConfigUtils.addOrGetModule(config, EmissionsConfigGroup.class);
 		emissionsConfig.setEmissionRoadTypeMappingFile("sample_roadTypeMapping.txt");
 		emissionsConfig.setAverageWarmEmissionFactorsFile("sample_EFA_HOT_vehcat_2005average.txt");
@@ -155,6 +159,12 @@ public class RunMelbourne {
 		
 		config.vehicles().setVehiclesFile("sample_emissionVehicles_v2.xml");
 		config.qsim().setVehiclesSource(QSimConfigGroup.VehiclesSource.modeVehicleTypesFromVehiclesData);
+		
+		// ---
+		
+		NoiseConfigGroup noiseConfig = ConfigUtils.addOrGetModule(config, NoiseConfigGroup.class ) ;
+		noiseConfig.setReceiverPointGap(500.);
+		noiseConfig.setWriteOutputIteration(100);
 		
 		// === overriding config is loaded at end.  Allows to override config settings at the very end.  Could, for example, switch off kinematic waves,
 		// or set the weight of re-routing to zero.  Not really recommended, but there may be cases where this is needed. kai, jan'18
