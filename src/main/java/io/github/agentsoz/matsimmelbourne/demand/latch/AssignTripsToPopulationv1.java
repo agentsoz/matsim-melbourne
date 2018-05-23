@@ -3,18 +3,21 @@ package io.github.agentsoz.matsimmelbourne.demand.latch;
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvBindByPosition;
 import com.opencsv.bean.CsvToBean;
+import com.opencsv.bean.CsvToBeanBuilder;
 import com.vividsolutions.jts.geom.Point;
-import io.github.agentsoz.matsimmelbourne.utils.DefaultActivityTypes;
 import io.github.agentsoz.matsimmelbourne.utils.MMUtils;
+import org.apache.log4j.Logger;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.matsim.api.core.v01.Coord;
-import org.matsim.api.core.v01.TransportMode;
-import org.matsim.api.core.v01.population.*;
-import org.matsim.core.gbl.Gbl;
-import com.opencsv.bean.CsvToBeanBuilder;
-import org.apache.log4j.Logger;
+import org.matsim.api.core.v01.DefaultActivityTypes;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.TransportMode;
+import org.matsim.api.core.v01.population.Activity;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.PopulationFactory;
+import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.gbl.Gbl;
@@ -24,27 +27,39 @@ import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 public class AssignTripsToPopulationv1 {
 
     private static final Logger log = Logger.getLogger(AssignTripsToPopulation.class);
     public static final String[] FILE_NAMES = {
 
-            "NORTHCOTE", "data/census/2011/mtwp/2018-02-16-mtwp-files/NORTHCOTE_PCHAR_POW_MTWP.csv"
-//            "VIEWBANK-YALLAMBIE", "data/census/2011/mtwp/2018-02-16-mtwp-files/VIEWBANK-YALLAMBIE_PCHAR_POW_MTWP.csv",
-//            "WATSONIA", "data/census/2011/mtwp/2018-02-16-mtwp-files/WATSONIA_PCHAR_POW_MTWP.csv",
-//            "MONTMORENCY-BRIARHILL", "data/census/2011/mtwp/2018-02-16-mtwp-files/MONTMORENCY" +
-//            "-BRIARHILL_PCHAR_POW_MTWP.csv",
-//            "BUNDOORA-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
-//            "IVANHOE-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE-EAST_PCHAR_POW_MTWP.csv",
-//            "ALPHINGTON", "data/census/2011/mtwp/2018-02-16-mtwp-files/ALPHINGTON_PCHAR_POW_MTWP.csv",
-//            "IVANHOE", "data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE_PCHAR_POW_MTWP.csv",
-//            "HEIDELBERG-WEST", "data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-WEST_PCHAR_POW_MTWP.csv",
-//            "HEIDELBERG-ROSANNA", "data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-ROSANNA_PCHAR_POW_MTWP.csv",
-//            "GREENSBOROUGH", "data/census/2011/mtwp/2018-02-16-mtwp-files/GREENSBOROUGH_PCHAR_POW_MTWP.csv",
-//            "THORNBURY", "data/census/2011/mtwp/2018-02-16-mtwp-files/THORNBURY_PCHAR_POW_MTWP.csv"
+            "NORTHCOTE", "data/census/2011/mtwp/2018-02-16-mtwp-files/NORTHCOTE_PCHAR_POW_MTWP.csv",
+            "VIEWBANK-YALLAMBIE", "data/census/2011/mtwp/2018-02-16-mtwp-files/VIEWBANK-YALLAMBIE_PCHAR_POW_MTWP.csv",
+            "WATSONIA", "data/census/2011/mtwp/2018-02-16-mtwp-files/WATSONIA_PCHAR_POW_MTWP.csv",
+            "MONTMORENCY-BRIARHILL", "data/census/2011/mtwp/2018-02-16-mtwp-files/MONTMORENCY" +
+            "-BRIARHILL_PCHAR_POW_MTWP.csv",
+            "BUNDOORA-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/BUNDOORA-EAST_PCHAR_POW_MTWP.csv",
+            "IVANHOE-EAST", "data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE-EAST_PCHAR_POW_MTWP.csv",
+            "ALPHINGTON", "data/census/2011/mtwp/2018-02-16-mtwp-files/ALPHINGTON_PCHAR_POW_MTWP.csv",
+            "IVANHOE", "data/census/2011/mtwp/2018-02-16-mtwp-files/IVANHOE_PCHAR_POW_MTWP.csv",
+            "HEIDELBERG-WEST", "data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-WEST_PCHAR_POW_MTWP.csv",
+            "HEIDELBERG-ROSANNA", "data/census/2011/mtwp/2018-02-16-mtwp-files/HEIDELBERG-ROSANNA_PCHAR_POW_MTWP.csv",
+            "GREENSBOROUGH", "data/census/2011/mtwp/2018-02-16-mtwp-files/GREENSBOROUGH_PCHAR_POW_MTWP.csv",
+            "THORNBURY", "data/census/2011/mtwp/2018-02-16-mtwp-files/THORNBURY_PCHAR_POW_MTWP.csv"
 
     };
 
@@ -395,6 +410,22 @@ public class AssignTripsToPopulationv1 {
         AgeGroups ageGroups = null;
         int lineCount = 0;
 
+        double totalTrips = 0.;
+
+        double tramTrips = 0.;
+        double trainTrips = 0.;
+        double busTrips = 0.;
+        double ferryTrips = 0.;
+        double taxiTrips = 0.;
+        double truckTrips = 0.;
+        double motorbikeTrips = 0.;
+        double otherTrips = 0.;
+        double multiModeTrips = 0.;
+        double bicycleTrips = 0.;
+
+        double totalCarDrvrTrips = 0.;
+        double totalCarPassTrips = 0.;
+
         try (final BufferedReader reader = new BufferedReader(new FileReader(MTWP_FILE))) {
 
             log.info("Parsing MTWP file : " + MTWP_FILE);
@@ -446,7 +477,6 @@ public class AssignTripsToPopulationv1 {
 
                 }
 
-
                 if (mtwpRecord.sa2Work != null) {
 
                     sa2Work = mtwpRecord.sa2Work;
@@ -457,11 +487,74 @@ public class AssignTripsToPopulationv1 {
                 pChar.sa2TransportMode.get(lfsp).get(sa2Work).put(mtwpRecord.transportMode,
                         Double.parseDouble(mtwpRecord.workForce));
 
-
+//                if(mtwpRecord.transportMode.equals("Car, as driver") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    totalCarDrvrTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Car, as passenger") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    totalCarPassTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Train") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    trainTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Tram") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    tramTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Bus") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    busTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Ferry") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    ferryTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Taxi") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    taxiTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Motorbike/scooter") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    motorbikeTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Other") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    otherTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Multi-mode") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    multiModeTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Truck") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    truckTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(mtwpRecord.transportMode.equals("Bicycle") && !mtwpRecord.workForce.equals("Total") &&
+//                        !mtwpRecord.workForce.equals("TotalMode"))
+//                    bicycleTrips += Double.parseDouble(mtwpRecord.workForce);
+//
+//                if(!mtwpRecord.workForce.equals("Total") && !mtwpRecord.workForce.equals("TotalMode"))
+//                    totalTrips += Double.parseDouble(mtwpRecord.workForce);
             }
+
+//            System.out.println("TOTAL TRIPS : "+totalTrips);
+//            System.out.println("TOTAL CAR DRIVER TRIPS : "+totalCarDrvrTrips);
+//            System.out.println("TOTAL CAR PASSENGER TRIPS : "+totalCarPassTrips);
+//            System.out.println("TOTAL TRAIN TRIPS : "+trainTrips);
+//            System.out.println("TOTAL TRAM TRIPS : "+tramTrips);
+//            System.out.println("TOTAL TAXI TRIPS : "+taxiTrips);
+//            System.out.println("TOTAL TRUCK TRIPS : "+truckTrips);
+//            System.out.println("TOTAL BUS TRIPS : "+busTrips);
+//            System.out.println("TOTAL FERRY TRIPS : "+ferryTrips);
+//            System.out.println("TOTAL MOTORBIKE/SCOOTER TRIPS : "+motorbikeTrips);
+//            System.out.println("TOTAL MULTI-MODE TRIPS : "+multiModeTrips);
+//            System.out.println("TOTAL OTHER TRIPS : "+otherTrips);
+//            System.out.println("TOTAL BICYCLE TRIPS : "+bicycleTrips);
         }
 
-
+//System.out.println();
     }
 
     /**
@@ -494,30 +587,8 @@ public class AssignTripsToPopulationv1 {
 
                             if (pCharMTWP.equals(pCharLatch)) {
 
-                                for (String lfsp : pCharMTWP.sa2TransportMode.keySet()) {
+                                pCharLatch.sa2TransportMode = pCharMTWP.sa2TransportMode;
 
-                                    //Assigning the same work status
-                                    pCharLatch.sa2TransportMode.put(lfsp, new HashMap<>());
-
-                                    for (String sa2Work : pCharMTWP.sa2TransportMode.get(lfsp).keySet()) {
-
-                                        //Assigning the same destination sa2
-                                        pCharLatch.sa2TransportMode.get(lfsp).put(sa2Work, new HashMap<>());
-
-                                        for (String mode : pCharMTWP.sa2TransportMode.get(lfsp).get(sa2Work)
-                                                .keySet()) {
-
-
-                                            if (!mode.equals("TotalMode") && !mode.equals("Total")) {
-                                                pCharLatch.sa2TransportMode.get(lfsp).get(sa2Work).put(mode,
-                                                        pCharMTWP.sa2TransportMode.get(lfsp).get(sa2Work).get
-                                                                (mode));
-
-
-                                            }//closing the loop for assigning mode based proportions
-                                        }//closing the SA2 work location loop
-                                    }//closing the labour force status loop
-                                }//closing the SA2 residence location loop
                             }
                         }//closing loop for iterating through synthetic person characteristic groupings
                     }//closing loop for iterating through census mtwp person characteristic groupings
@@ -556,9 +627,22 @@ public class AssignTripsToPopulationv1 {
                 fw.write("......................");
                 fw.newLine();
 
+
+                double tramMode = 0.;
+                double trainMode = 0.;
+                double busMode = 0.;
+                double ferryMode = 0.;
+                double taxiMode = 0.;
+                double truckMode = 0.;
+                double motorbikeMode = 0.;
+                double otherMode = 0.;
+                double multiModeMode = 0.;
+                double bicycleMode = 0.;
+
                 int total = 0;
                 double totaltrips = 0.;
-                double totalCarTrips = 0.;
+                double totalCarDrvrTrips = 0.;
+                double totalCarPassTrips = 0.;
                 double totalUndefinedLocationTrips = 0.;
 
                 for (PersonChar pChar : sa2PersonCharGroupsLatch.get(sa2Name)) {
@@ -571,9 +655,22 @@ public class AssignTripsToPopulationv1 {
 
                     for (String empStat : pChar.sa2TransportMode.keySet()) {
 
+                        //All Multi-mode legs grouped as a single legged mode of transport
                         double totOfAllSingleLegMode = 0.;
                         double totOfundefinedAllSingleLegMode = 0.;
-                        double totOfAllCarMode = 0.;
+                        double totOfCarDrverMode = 0.;
+                        double totOfCarPassMode = 0.;
+
+                        double tramTrips = 0.;
+                        double trainTrips = 0.;
+                        double busTrips = 0.;
+                        double ferryTrips = 0.;
+                        double taxiTrips = 0.;
+                        double truckTrips = 0.;
+                        double motorbikeTrips = 0.;
+                        double otherTrips = 0.;
+                        double multiModeTrips = 0.;
+                        double bicycleTrips = 0.;
 
                         fw.write(empStat);
                         fw.newLine();
@@ -586,7 +683,7 @@ public class AssignTripsToPopulationv1 {
 
                                 if (sa2work.equals("POW State/Territory undefined (Vic.)") || sa2work.equals("POW No " +
                                         "Fixed Address (Vic.)") || sa2work.equals("Migratory - Offshore - Shipping " +
-                                        "(Vic.)")) {
+                                        "(Vic.)") || sa2work.equals("POW Capital city undefined (Greater Melbourne)")) {
 
                                     if (!trMode.equals("TotalMode") && !trMode.equals("Total")) {
                                         totOfundefinedAllSingleLegMode += pChar.sa2TransportMode.get(empStat).get
@@ -608,11 +705,68 @@ public class AssignTripsToPopulationv1 {
                                             (trMode);
 
 
-                                    if (trMode.contains("Car")) {
-                                        totOfAllCarMode += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                    if (trMode.equals("Car, as driver")) {
+                                        totOfCarDrverMode += pChar.sa2TransportMode.get(empStat).get(sa2work).get
                                                 (trMode);
 
                                     }
+
+                                    if (trMode.equals("Car, as passenger")) {
+                                        totOfCarPassMode += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }
+
+                                    if (trMode.equals("Tram")) {
+                                        tramTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }
+
+                                    if (trMode.equals("Train")) {
+                                        trainTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }if (trMode.equals("Bus")) {
+                                        busTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }
+
+                                    if (trMode.equals("Ferry")) {
+                                        ferryTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }if (trMode.equals("Motorbike/scooter")) {
+                                        motorbikeTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }
+
+                                    if (trMode.equals("Taxi")) {
+                                        taxiTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }if (trMode.equals("Bicycle")) {
+                                        bicycleTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }
+
+                                    if (trMode.equals("Other")) {
+                                        otherTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }if (trMode.equals("Truck")) {
+                                        truckTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }if (trMode.equals("Multi-mode")) {
+                                        multiModeTrips += pChar.sa2TransportMode.get(empStat).get(sa2work).get
+                                                (trMode);
+
+                                    }
+
                                 }
 
                             }
@@ -622,13 +776,30 @@ public class AssignTripsToPopulationv1 {
                         fw.newLine();
                         totaltrips += totOfAllSingleLegMode;
 
-                        fw.write("Total of car trips : " + totOfAllCarMode);
+                        fw.write("Total of car as driver trips : " + totOfCarDrverMode);
                         fw.newLine();
-                        totalCarTrips += totOfAllCarMode;
+                        totalCarDrvrTrips += totOfCarDrverMode;
 
-                        fw.write("Total Assigned trips (POW Undefined) : " + totOfundefinedAllSingleLegMode);
+                        fw.write("Total of car as passenger trips : " + totOfCarPassMode);
+                        fw.newLine();
+                        totalCarPassTrips += totOfCarPassMode;
+
+                        fw.write("Total Assigned trips (only to POW Undefined) : " + totOfundefinedAllSingleLegMode);
                         fw.newLine();
                         totalUndefinedLocationTrips += totOfundefinedAllSingleLegMode;
+
+
+                        trainMode += trainTrips;
+                        truckMode += truckTrips;
+                        busMode += busTrips;
+                        otherMode += otherTrips;
+                        multiModeMode += multiModeTrips;
+                        ferryMode += ferryTrips;
+                        taxiMode += taxiTrips;
+                        bicycleMode += bicycleTrips;
+                        motorbikeMode += motorbikeTrips;
+                        tramMode += tramTrips;
+
 
 
                         fw.write("-------------------------");
@@ -646,11 +817,32 @@ public class AssignTripsToPopulationv1 {
                 fw.newLine();
                 fw.write("TOTAL TRIPS : " + totaltrips);
                 fw.newLine();
-                fw.write("TOTAL CAR TRIPS : " + totalCarTrips);
+                fw.write("TOTAL CAR DRIVER TRIPS : " + totalCarDrvrTrips);
+                fw.newLine();
+                fw.write("TOTAL CAR PASSENGER TRIPS : " + totalCarPassTrips);
                 fw.newLine();
                 fw.write("TOTAL TRIPS TO UNDEFINED LOCATIONS : " + totalUndefinedLocationTrips);
                 fw.write("......................");
                 fw.newLine();
+                fw.write("TOTAL TRAIN TRIPS : "+trainMode);
+                fw.newLine();
+                fw.write("TOTAL TRAM TRIPS : "+tramMode);
+                fw.newLine();
+                fw.write("TOTAL TAXI TRIPS : "+taxiMode);
+                fw.newLine();
+                fw.write("TOTAL TRUCK TRIPS : "+truckMode);
+                fw.newLine();
+                fw.write("TOTAL BUS TRIPS : "+busMode);
+                fw.newLine();
+                fw.write("TOTAL FERRY TRIPS : "+ferryMode);
+                fw.newLine();
+                fw.write("TOTAL MOTORBIKE/SCOOTER TRIPS : "+motorbikeMode);
+                fw.newLine();
+                fw.write("TOTAL MULTI-MODE TRIPS : "+multiModeMode);
+                fw.newLine();
+                fw.write("TOTAL OTHER TRIPS : "+otherMode);
+                fw.newLine();
+                fw.write("TOTAL BICYCLE TRIPS : "+bicycleMode);
             }
 
             fw.close();
