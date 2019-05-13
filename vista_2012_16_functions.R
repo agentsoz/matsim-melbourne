@@ -2,6 +2,7 @@ suppressMessages(library(reshape2))
 suppressMessages(library(ggplot2))
 suppressMessages(library(plyr))
 suppressMessages(library(dplyr))
+suppressMessages(library(scales))
 
 extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities_csv_gz, out_weekend_activities_csv_gz) {
   gz1 <- gzfile(in_vista_csv,'rt')
@@ -65,8 +66,12 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   weekends<-week[!isWeekday,]; weekends$Count<-weekends$CW_WESTOPWGT_LGA
 
   # Fix any rows where the weights are not defined
-  weekends[is.na(weekends$Count),]$Count<-0
-  weekdays[is.na(weekdays$Count),]$Count<-0
+  if(any(is.na(weekends$Count))) {
+    weekends[is.na(weekends$Count),]$Count<-0
+  }
+  if(any(is.na(weekdays$Count))) {
+    weekdays[is.na(weekdays$Count),]$Count<-0
+  }
   
   # Get the activities for each set
   weekday_activities<-get_activities(weekdays)
@@ -112,7 +117,7 @@ simplify_activities_and_create_groups<-function(gzfile) {
     df$Activity=="Buy Something", 
     "Shop", df$Activity.Group)
   df$Activity.Group<-ifelse(
-    df$Activity=="Unknown Purpose (at start of day)" | df$Activity=="Other Purpose", 
+    df$Activity=="Unknown Purpose (at start of day)" | df$Activity=="Other Purpose" | df$Activity=="Not Stated", 
     "Other", df$Activity.Group)
   df$Activity.Group<-ifelse(
     df$Activity=="Social" | df$Activity=="Recreational", 
@@ -146,4 +151,28 @@ extract_activities_by_minute_of_day <- function(in_activities_csv_gz, out_activi
   write.csv(actCounts, gz1, row.names=FALSE, quote=TRUE)
   close(gz1)
   
+}
+
+plot_activities_by_time_of_day <- function(in_activities_csv_gz, blockSizeInMins) {
+
+  gzfile<-in_activities_csv_gz
+  gz1 <- gzfile(gzfile,'rt')
+  activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  close(gz1)
+  
+  blocksize<-(24*60)/blockSizeInMins
+  df<-data.frame(row.names = seq(1:blocksize))
+  for (colname in colnames(activities)) {
+    df[,colname]<-colSums(matrix(activities[,colname], ncol=blocksize))
+  }
+  #df$HourRange<-c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24")
+  
+  d<-melt(t(df))
+  colnames(d)<-c("Activity", "HourRange", "Count")
+  ggplot(d, aes(HourRange,Count, col=Activity, fill=Activity)) + 
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+    geom_bar(stat="identity", color="black", size=0.1, position = "stack") +
+    scale_y_continuous(labels = comma) +
+    xlab(paste0("Time of day (",blockSizeInMins,"min blocks)")) + ylab("Population") + 
+    ggtitle(NULL)
 }
