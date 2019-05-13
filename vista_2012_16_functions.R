@@ -48,6 +48,14 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
     dd<-rbind(df,lastact[,colnames(df)]) # first append them to the end of original set of activities
     id<- c(df$Index,(lastact$Index+0.5)) #give them half-rank indices ie where they should be slotted
     dy<-dd[order(id),] # now use order to pluck the set in the correct order
+    
+    # Assign the first activitiy of the person a start time of 0
+    xx<-aggregate(dy,by=list(dy$Person),FUN=head,1)
+    dy$Act.Start.Time<-apply(dy,1,function(x) {
+      ifelse(as.numeric(x["Index"]) %in% xx$Index, 0, as.numeric(x["Act.Start.Time"])
+      )
+    })
+    dy
   }
   
   # Split into weekday/weekend and set the weights (ie counts here) correctly
@@ -56,6 +64,10 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   weekdays<-week[isWeekday,]; weekdays$Count<- weekdays$CW_WDSTOPWGT_LGA
   weekends<-week[!isWeekday,]; weekends$Count<-weekends$CW_WESTOPWGT_LGA
 
+  # Fix any rows where the weights are not defined
+  weekends[is.na(weekends$Count),]$Count<-0
+  weekdays[is.na(weekdays$Count),]$Count<-0
+  
   # Get the activities for each set
   weekday_activities<-get_activities(weekdays)
   weekend_activities<-get_activities(weekends)
@@ -111,6 +123,27 @@ simplify_activities_and_create_groups<-function(gzfile) {
   
   gz1 <- gzfile(gzfile, "w")
   write.csv(df, gz1, row.names=FALSE, quote=TRUE)
+  close(gz1)
+  
+}
+
+extract_activities_by_minute_of_day <- function(in_activities_csv_gz, out_activities_by_time_of_day_csv_gz) {
+  gzfile<-in_activities_csv_gz
+  gz1 <- gzfile(gzfile,'rt')
+  activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  close(gz1)
+  
+  minsOfDay<-seq(1:(60*24))-1
+  actCounts<-data.frame(row.names = minsOfDay)
+  actCounts[,unique(sort(activities$Activity.Group))]<-0
+  for(row in 1:nrow(activities)) {
+    x<-activities[row,]
+    actCounts[,x$Activity.Group]<-actCounts[,x$Activity.Group] +
+      ifelse((minsOfDay>=x$Act.Start.Time) & (minsOfDay<=x$Act.End.Time),x$Count,0)
+  }
+  
+  gz1 <- gzfile(out_activities_by_time_of_day_csv_gz, "w")
+  write.csv(actCounts, gz1, row.names=FALSE, quote=TRUE)
   close(gz1)
   
 }
