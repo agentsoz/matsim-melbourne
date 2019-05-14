@@ -79,10 +79,10 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   
   # Write them out
   gz1 <- gzfile(out_weekday_activities_csv_gz, "w")
-  write.csv(weekday_activities, gz1)
+  write.csv(weekday_activities, gz1, row.names=FALSE, quote=FALSE)
   close(gz1)
   gz1 <- gzfile(out_weekend_activities_csv_gz, "w")
-  write.csv(weekend_activities, gz1, row.names=FALSE, quote=TRUE)
+  write.csv(weekend_activities, gz1, row.names=FALSE, quote=FALSE)
   close(gz1)
 }
 
@@ -127,18 +127,19 @@ simplify_activities_and_create_groups<-function(gzfile) {
     "Pickup/Dropoff/Deliver", df$Activity.Group)
   
   gz1 <- gzfile(gzfile, "w")
-  write.csv(df, gz1, row.names=FALSE, quote=TRUE)
+  write.csv(df, gz1, row.names=FALSE, quote=FALSE)
   close(gz1)
   
 }
 
-extract_activities_by_minute_of_day <- function(in_activities_csv_gz, out_activities_by_time_of_day_csv_gz) {
+extract_activities_by_time_of_day <- function(in_activities_csv_gz, blockSizeInMins, out_activities_by_time_of_day_csv_gz) {
+  
   gzfile<-in_activities_csv_gz
   gz1 <- gzfile(gzfile,'rt')
   activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
   close(gz1)
   
-  minsOfDay<-seq(1:(60*24))-1
+  minsOfDay<-seq(from=0,to=(24*60)-1,by=blockSizeInMins)
   actCounts<-data.frame(row.names = minsOfDay)
   actCounts[,unique(sort(activities$Activity.Group))]<-0
   for(row in 1:nrow(activities)) {
@@ -146,33 +147,29 @@ extract_activities_by_minute_of_day <- function(in_activities_csv_gz, out_activi
     actCounts[,x$Activity.Group]<-actCounts[,x$Activity.Group] +
       ifelse((minsOfDay>=x$Act.Start.Time) & (minsOfDay<=x$Act.End.Time),x$Count,0)
   }
+
+  # now rescale the distribution of values to match the population size 
+  dd<-aggregate(activities,by=list(activities$Person),FUN=head,n=1)
+  popnsize<-sum(dd$Count)
+  actCounts<-t(apply(actCounts,1, function(x, mx) {(x/sum(x))*mx}, mx=popnsize))
   
   gz1 <- gzfile(out_activities_by_time_of_day_csv_gz, "w")
-  write.csv(actCounts, gz1, row.names=FALSE, quote=TRUE)
+  write.csv(round(actCounts, digits = 0), gz1, row.names=FALSE, quote=FALSE)
   close(gz1)
   
 }
 
-plot_activities_by_time_of_day <- function(in_activities_csv_gz, blockSizeInMins) {
-
+plot_activities_by_time_of_day <- function(in_activities_csv_gz) {
   gzfile<-in_activities_csv_gz
   gz1 <- gzfile(gzfile,'rt')
   activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
   close(gz1)
-  
-  blocksize<-(24*60)/blockSizeInMins
-  df<-data.frame(row.names = seq(1:blocksize))
-  for (colname in colnames(activities)) {
-    df[,colname]<-colSums(matrix(activities[,colname], ncol=blocksize))
-  }
-  #df$HourRange<-c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24")
-  
-  d<-melt(t(df))
+  d<-melt(t(activities))
   colnames(d)<-c("Activity", "HourRange", "Count")
   ggplot(d, aes(HourRange,Count, col=Activity, fill=Activity)) + 
     theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     geom_bar(stat="identity", color="black", size=0.1, position = "stack") +
     scale_y_continuous(labels = comma) +
-    xlab(paste0("Time of day (",blockSizeInMins,"min blocks)")) + ylab("Population") + 
+    xlab("Time of day") + ylab("Population") + 
     ggtitle(NULL)
 }
