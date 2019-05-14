@@ -79,10 +79,10 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   
   # Write them out
   gz1 <- gzfile(out_weekday_activities_csv_gz, "w")
-  write.csv(weekday_activities, gz1, row.names=FALSE, quote=FALSE)
+  write.csv(weekday_activities, gz1, row.names=FALSE, quote=TRUE)
   close(gz1)
   gz1 <- gzfile(out_weekend_activities_csv_gz, "w")
-  write.csv(weekend_activities, gz1, row.names=FALSE, quote=FALSE)
+  write.csv(weekend_activities, gz1, row.names=FALSE, quote=TRUE)
   close(gz1)
 }
 
@@ -127,7 +127,7 @@ simplify_activities_and_create_groups<-function(gzfile) {
     "Pickup/Dropoff/Deliver", df$Activity.Group)
   
   gz1 <- gzfile(gzfile, "w")
-  write.csv(df, gz1, row.names=FALSE, quote=FALSE)
+  write.csv(df, gz1, row.names=FALSE, quote=TRUE)
   close(gz1)
   
 }
@@ -154,22 +154,27 @@ extract_activities_by_time_of_day <- function(in_activities_csv_gz, blockSizeInM
   actCounts<-t(apply(actCounts,1, function(x, mx) {(x/sum(x))*mx}, mx=popnsize))
   
   gz1 <- gzfile(out_activities_by_time_of_day_csv_gz, "w")
-  write.csv(round(actCounts, digits = 0), gz1, row.names=FALSE, quote=FALSE)
+  write.csv(round(actCounts, digits = 0), gz1, row.names=TRUE, quote=TRUE)
   close(gz1)
   
 }
 
-plot_activities_by_time_of_day <- function(in_activities_csv_gz) {
+plot_activities_by_hour_of_day <- function(in_activities_csv_gz) {
   gzfile<-in_activities_csv_gz
   gz1 <- gzfile(gzfile,'rt')
   activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
   close(gz1)
-  d<-melt(t(activities))
-  colnames(d)<-c("Activity", "HourRange", "Count")
+  
+  activities$X<-activities$X/60 # mins to hours
+  
+  d<-melt((activities), id.vars=c("X"))
+  colnames(d)<-c("HourRange", "Activity", "Count")
+  
   ggplot(d, aes(HourRange,Count, col=Activity, fill=Activity)) + 
-    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+    #theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     geom_bar(stat="identity", color="black", size=0.1, position = "stack") +
     scale_y_continuous(labels = comma) +
-    xlab("Time of day") + ylab("Population") + 
+    xlab("Hour of day") + ylab("Population") + 
     ggtitle(NULL)
+  
 }
