@@ -14,8 +14,8 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
               "ORIGPURP1",
               "DESTPURP1",
               "STARTIME","ARRTIME",
-              "CW_WDSTOPWGT_LGA",
-              "CW_WESTOPWGT_LGA")
+              "CW_WDTRIPWGT_LGA",
+              "CW_WETRIPWGT_LGA")
               
   orig<-vista_data[,datacols]
   
@@ -39,7 +39,7 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
     df$Count<-dataset$Count
     
     # What is left is the final "Go Home" activity of each person
-    lastact<-dataset[dataset$DESTPURP1=="Go Home",c("PERSID","DESTPURP1","ARRTIME", "Count")] # get all the "Go Home" activities
+    lastact<-dataset[dataset$DESTPURP1=="At or Go Home",c("PERSID","DESTPURP1","ARRTIME", "Count")] # get all the "Go Home" activities
     colnames(lastact)<-c("Person","Activity", "Act.Start.Time", "Count") # rename the cols
     lastact$Index<-as.numeric(rownames(lastact)) # save the index of the activity
     lastact<-aggregate(lastact,by=list(lastact$Person),FUN=tail,n=1) # remove all but the last "Go Home" for each person
@@ -62,8 +62,8 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   # Split into weekday/weekend and set the weights (ie counts here) correctly
   week<-orig[,datacols]
   isWeekday<-week$TRAVDOW!="Saturday" & week$TRAVDOW!="Sunday"
-  weekdays<-week[isWeekday,]; weekdays$Count<- weekdays$CW_WDSTOPWGT_LGA
-  weekends<-week[!isWeekday,]; weekends$Count<-weekends$CW_WESTOPWGT_LGA
+  weekdays<-week[isWeekday,]; weekdays$Count<- weekdays$CW_WDTRIPWGT_LGA
+  weekends<-week[!isWeekday,]; weekends$Count<-weekends$CW_WETRIPWGT_LGA
 
   # Fix any rows where the weights are not defined
   if(any(is.na(weekends$Count))) {
@@ -102,7 +102,7 @@ simplify_activities_and_create_groups<-function(gzfile) {
   # Assign activities into groups as follows:
   df$Activity.Group<-""
   df$Activity.Group<-ifelse(
-    df$Activity=="At Home" | df$Activity=="Go Home", 
+    df$Activity=="At or Go Home", 
     "Home", df$Activity.Group)
   df$Activity.Group<-ifelse(
     df$Activity=="Personal Business", 
@@ -117,7 +117,7 @@ simplify_activities_and_create_groups<-function(gzfile) {
     df$Activity=="Buy Something", 
     "Shop", df$Activity.Group)
   df$Activity.Group<-ifelse(
-    df$Activity=="Unknown Purpose (at start of day)" | df$Activity=="Other Purpose" | df$Activity=="Not Stated", 
+    df$Activity=="Unknown purpose (at start of day)" | df$Activity=="Other Purpose" | df$Activity=="Not Stated", 
     "Other", df$Activity.Group)
   df$Activity.Group<-ifelse(
     df$Activity=="Social" | df$Activity=="Recreational", 
