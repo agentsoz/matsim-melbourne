@@ -178,3 +178,36 @@ plot_activities_by_hour_of_day <- function(in_activities_csv_gz) {
     ggtitle(NULL)
   
 }
+
+plot_week_activities_by_hour_of_day <- function(wd_activities_csv_gz, we_activities_csv_gz) {
+  gzfile<-wd_activities_csv_gz
+  gz1 <- gzfile(gzfile,'rt')
+  wd_activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  close(gz1)
+  
+  gzfile<-we_activities_csv_gz
+  gz1 <- gzfile(gzfile,'rt')
+  we_activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  close(gz1)
+  
+  df<-wd_activities
+  df$Day<-"Weekday"
+  activities<-df
+  df<-we_activities
+  df$Day<-"Weekend"
+  activities<-rbind(activities,df)
+  
+  activities$X<-activities$X/60 # mins to hours
+  
+  d<-melt((activities), id.vars=c("X","Day"))
+  colnames(d)<-c("HourRange", "Day", "Activity", "Count")
+  
+  ggplot(d, aes(HourRange,Count, col=Activity, fill=Activity)) + 
+    geom_bar(stat="identity", color="black", size=0.1, position = "stack") +
+    facet_wrap(~Day, ncol=2) + 
+    scale_y_continuous(labels = comma) +
+    xlab("Hour of day") + ylab("Population") + 
+    theme(legend.position = "bottom") +
+    ggtitle(NULL)
+  
+}
