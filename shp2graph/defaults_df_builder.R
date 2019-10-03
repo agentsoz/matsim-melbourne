@@ -3,22 +3,22 @@ defaults_df_builder <- function(){
   defaults_df <- data.frame()
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "motorway", permlanes = 2, freespeed = (80/3.6), 
-                                  oneway = 1, capacity = 2000, modes = "car"))
+                                  oneway = 1, capacity = 3600, modes = "car"))
   defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "motorway_link", permlanes = 1, freespeed = (80/3.6), 
-                                  oneway = 1, capacity = 1500, modes = "car"))
+                       data.frame(highwayType = "motorway_link", permlanes = 2, freespeed = (80/3.6), 
+                                  oneway = 1, capacity = 3000, modes = "car"))
   defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "trunk", permlanes = 1, freespeed = (70/3.6), 
-                                  oneway = 1, capacity = 2000, modes = "car"))
+                       data.frame(highwayType = "trunk", permlanes = 2, freespeed = (70/3.6), 
+                                  oneway = 1, capacity = 3000, modes = "car"))
   defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "trunk_link", permlanes = 1, freespeed = 70/3.6, 
-                                  oneway = 1, capacity = 1500, modes = "car"))
+                       data.frame(highwayType = "trunk_link", permlanes = 2, freespeed = 70/3.6, 
+                                  oneway = 1, capacity = 2500, modes = "car"))
   defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "primary", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 1000, modes = "car,bike"))
+                       data.frame(highwayType = "primary", permlanes = 2, freespeed = 60/3.6, 
+                                  oneway = 1, capacity = 2000, modes = "car,bike"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "primary_link", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 1000, modes = "car,bike"))
+                                  oneway = 1, capacity = 800, modes = "car,bike"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "secondary", permlanes = 1, freespeed = 60/3.6, 
                                   oneway = 1, capacity = 800, modes = "car,bike"))
