@@ -8,10 +8,10 @@ source("./shp2graph/defaults_df_builder.R")
 
 crs_final <- 28355
 
-inputSQLite <- "../../../OneDrive/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
-# inputSQLite <-"../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/sqlite/CBD_dockland.sqlite"
-outputSQLite <- "../../../OneDrive/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered.sqlite"
-#outputSQLite <- "../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered.sqlite"
+#inputSQLite <- "../../../OneDrive/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
+inputSQLite <-"../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
+#outputSQLite <- "../../../OneDrive/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered.sqlite"
+outputSQLite <- "../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new.sqlite"
 # Defining feasible tag sets ----------------------------------------------
 
 # Default look-up table
@@ -30,23 +30,25 @@ lines_filtered <- st_read(inputSQLite , layer="lines") %>%
 
 # Adding link lenght ------------------------------------------------------
 # It is for the all 
-lines_filtered <- lines_filtered %>%
-                  mutate(lenght = st_length(lines_filtered$geometry))
+#lines_filtered <- lines_filtered %>%
+#                  mutate(lenght = st_length(lines_filtered$geometry))
 
-plot(lines_filtered["lenght"])
+#plot(lines_filtered["lenght"])
 
-object.size(lines_filtered)
+#object.size(lines_filtered)
 
-lines_filtered_simple <- st_simplify(lines_filtered, preserveTopology = T, dTolerance = 100)
+#lines_filtered_simple <- st_simplify(lines_filtered, preserveTopology = T, dTolerance = 100)
 
-object.size(lines_filtered_simple)
+#object.size(lines_filtered_simple)
 
-plot(lines_filtered_simple["lenght"])
+#plot(lines_filtered_simple["lenght"])
 
 # Processing the "other_tags"  --------------------------------------------------
 
 for (i in 1:nrow(lines_filtered)){
   this_other_tags <- str_extract_all(lines_filtered$other_tags[i], boundary("word"))
+  
+  this_default_row <- which(defaults_df$highwayType == as.character(lines_filtered$highway[i]))
   
   # FreeSpeed
   has_speed <- any(grepl('"maxspeed"', this_other_tags))
@@ -57,13 +59,11 @@ for (i in 1:nrow(lines_filtered)){
       lines_filtered[i, "freespeed"] <- as.integer(this_other_tags[[1]][this_loc + 1])/3.6
     }else{
       # Reading from defaults if unusul entry
-      this_loc <- which(defaults_df$highwayType == as.character(lines_filtered$highway[i]))
-      lines_filtered[i, "freespeed"]  <- defaults_df[this_loc, "freespeed"]
+      lines_filtered[i, "freespeed"]  <- defaults_df[this_default_row, "freespeed"]
     }
   }else{
     # Reading from defaults
-    this_loc <- which(defaults_df$highwayType == as.character(lines_filtered$highway[i]))
-    lines_filtered[i, "freespeed"]  <- defaults_df[this_loc, "freespeed"]
+    lines_filtered[i, "freespeed"]  <- defaults_df[this_default_row, "freespeed"]
   }
   
   # PermLanes
@@ -74,20 +74,25 @@ for (i in 1:nrow(lines_filtered)){
     lines_filtered[i, "permlanes"] <- this_other_tags[[1]][this_loc + 1]
   }else{
     # Reading from defaults
-    this_loc <- which(defaults_df$highwayType == as.character(lines_filtered$highway[i]))
-    lines_filtered[i, "permlanes"]  <- defaults_df[this_loc, "permlanes"]
+    lines_filtered[i, "permlanes"]  <- defaults_df[this_default_row, "permlanes"]
   }
   
-  # TODO Capacity ??
+  # TODO Capacity = (Default Capacity / Default #Lanes)*Actual #Lanes
+  this_cap_per_lane <- defaults_df[this_default_row, "capacity"] / defaults_df[this_default_row, "permlanes"]
+  
+  lines_filtered[i, "capacity"] <- as.integer(lines_filtered$permlanes[i]) * this_cap_per_lane
+  
 }
 
 # Adding bicycle infrastructure -------------------------------------------
+
+# 	"cycleway"=>"shared_lane" ! There are tags that we are missing!
 
 lines_filtered <- lines_filtered %>% 
                   mutate(bikeway=NA) %>%
                   mutate(bikeway=ifelse(highway=="cycleway", 
                                          "bikepath",bikeway)) %>%
-                  mutate(bikeway=ifelse(highway!="cycleway" & (other_tags %like% '"cycleway"=>"lane"' | other_tags %like% '"cycleway:left"=>"lane"'),
+                  mutate(bikeway=ifelse(highway!="cycleway" & (other_tags %like% '"cycleway"=>"lane"' | other_tags %like% '"cycleway:left"=>"lane"' | other_tags %like% '"cycleway:both"=>"lane"'),
                                          "lane",bikeway)) %>%
                   mutate(bikeway=ifelse(highway!="cycleway" & (other_tags %like% '"cycleway"=>"track"' | other_tags %like% '"cycleway:left"=>"track"'),
                                      "seperated_lane",bikeway))
@@ -98,9 +103,9 @@ lines_filtered <- lines_filtered %>%
 # Bicycle
 lines_filtered <- lines_filtered %>% 
                   mutate(modes = NA) %>%
-                  mutate(modes = ifelse("bike" %like% defaults_df$modes[which(defaults_df$highwayType == as.character(highway))] & !(other_tags %like% '"bicycle"=>"no"'), 
+                  mutate(modes = ifelse(grepl("bike" , defaults_df$modes[which(defaults_df$highwayType == as.character(highway))]) & !(other_tags %like% '"bicycle"=>"no"'), 
                                         "bike",
-                                        modes)) %>%
+                                        NA)) %>%
   mutate(modes = ifelse("car" %like% defaults_df$modes[which(defaults_df$highwayType == as.character(highway))] & !(other_tags %like% '"car"=>"no"'), 
                         paste(modes, "car",sep = ", "),
                         modes)) 
