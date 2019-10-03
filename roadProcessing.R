@@ -78,7 +78,7 @@ for (i in 1:nrow(lines_filtered)){
     lines_filtered[i, "permlanes"]  <- defaults_df[this_loc, "permlanes"]
   }
   
-  # TODO Capacity
+  # TODO Capacity ??
 }
 
 # Adding bicycle infrastructure -------------------------------------------
@@ -95,14 +95,15 @@ lines_filtered <- lines_filtered %>%
 # Adding modes ------------------------------------------------------------
 
 
-
-
 # Bicycle
 lines_filtered <- lines_filtered %>% 
                   mutate(modes = NA) %>%
                   mutate(modes = ifelse("bike" %like% defaults_df$modes[which(defaults_df$highwayType == as.character(highway))] & !(other_tags %like% '"bicycle"=>"no"'), 
                                         "bike",
-                                        modes))
+                                        modes)) %>%
+  mutate(modes = ifelse("car" %like% defaults_df$modes[which(defaults_df$highwayType == as.character(highway))] & !(other_tags %like% '"car"=>"no"'), 
+                        paste(modes, "car",sep = ", "),
+                        modes)) 
 
                                   mutate(modes=ifelse(highway %in% bike_feasible_tags & !(other_tags %like% '"bicycle"=>"no"'), 
                         "bicycle",NA)) %>% # High hierarchy roads that bike are not allowed
