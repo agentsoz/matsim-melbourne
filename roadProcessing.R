@@ -11,7 +11,7 @@ crs_final <- 28355
 #inputSQLite <- "../../../OneDrive/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
 inputSQLite <-"../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
 #outputSQLite <- "../../../OneDrive/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered.sqlite"
-outputSQLite <- "../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new.sqlite"
+outputSQLite <- "../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new2.sqlite"
 # Defining feasible tag sets ----------------------------------------------
 
 # Default look-up table
@@ -81,12 +81,11 @@ for (i in 1:nrow(lines_filtered)){
   this_cap_per_lane <- defaults_df[this_default_row, "capacity"] / defaults_df[this_default_row, "permlanes"]
   
   lines_filtered[i, "capacity"] <- as.integer(lines_filtered$permlanes[i]) * this_cap_per_lane
-  
 }
 
 # Adding bicycle infrastructure -------------------------------------------
 
-# 	"cycleway"=>"shared_lane" ! There are tags that we are missing!
+# 	"cycleway"=>"shared_lane" ! There are tags that we are missing! This was not relevant
 
 lines_filtered <- lines_filtered %>% 
                   mutate(bikeway=NA) %>%
@@ -99,41 +98,57 @@ lines_filtered <- lines_filtered %>%
 
 # Adding modes ------------------------------------------------------------
 
+lines_filtered$highway <- lines_filtered$highway  %>% as.character()
 
 # Bicycle
-lines_filtered <- lines_filtered %>% 
-                  mutate(modes = NA) %>%
-                  mutate(modes = ifelse(grepl("bike" , defaults_df$modes[which(defaults_df$highwayType == as.character(highway))]) & !(other_tags %like% '"bicycle"=>"no"'), 
-                                        "bike",
-                                        NA)) %>%
-  mutate(modes = ifelse("car" %like% defaults_df$modes[which(defaults_df$highwayType == as.character(highway))] & !(other_tags %like% '"car"=>"no"'), 
-                        paste(modes, "car",sep = ", "),
-                        modes)) 
 
-                                  mutate(modes=ifelse(highway %in% bike_feasible_tags & !(other_tags %like% '"bicycle"=>"no"'), 
-                        "bicycle",NA)) %>% # High hierarchy roads that bike are not allowed
-                  mutate(modes=ifelse(other_tags%like%'"bicycle"=>"yes"' | other_tags%like%'"bicycle"=>"designated"' & !(modes %like% "bicycle"), 
-                        "bicycle",modes)) # 
-# Car
+for (i in 1:nrow(lines_filtered)){
+  lines_filtered[i, "default_modes"] <- defaults_df$modes[which(defaults_df$highwayType %in% lines_filtered$highway[i])]
+}
+
 lines_filtered <- lines_filtered %>% 
-  mutate(modes=ifelse(highway %in% car_feasbile_tags, 
-                      ifelse(is.na(modes), "car", paste(modes, "car",sep = ", ")),
-                      modes))
-# Walk
-lines_filtered <- lines_filtered %>% 
-                  mutate(modes=ifelse(highway %in% walk_feasible_tags & !(other_tags %like% '"foot"=>"no"'), 
-                                      ifelse(is.na(modes), "walk", paste(modes, "walk",sep = ", ")),
-                                      modes)) %>%
-                  mutate(modes=ifelse(other_tags%like%'"foot"=>"yes"' | other_tags%like%'"foot"=>"designated"' & !(modes %like% "walk"),
-                                      ifelse(is.na(modes), "walk", paste(modes, "walk",sep = ", ")),
-                                      modes))
+                    mutate(modes = NA) %>%
+                    mutate(modes = ifelse(test = grepl("bike" , default_modes) & !(other_tags %like% '"bicycle"=>"no"'), 
+                                          yes = "bike", 
+                                          no = ifelse(test = other_tags%like%'"bicycle"=>"yes"' | other_tags%like%'"bicycle"=>"designated"', 
+                                                      yes = "bike",
+                                                      no =  ifelse(test = !is.na(bikeway),
+                                                                   yes = "bike", 
+                                                                   no = NA)
+                                                      )
+                                          )
+                           ) 
+
+lines_filtered <- lines_filtered %>%
+                    mutate(modes = ifelse(test = grepl("car" , default_modes) & !(other_tags %like% '"car"=>"no"') & !(other_tags %like% '"motor_vehicle"=>"no"'), 
+                                           yes = ifelse(test = is.na(modes), 
+                                                        yes = "car", 
+                                                        no = paste(modes, "car",sep = ", ")
+                                                        ), 
+                                           no = modes)
+                           ) 
+
+lines_filtered <- lines_filtered %>%
+                    mutate(modes = ifelse(test = grepl("walk" , default_modes) & !(other_tags %like% '"foot"=>"no"'), 
+                                          yes = ifelse(test = is.na(modes),
+                                                       yes = "walk", 
+                                                       no = paste(modes, "walk",sep = ", ")
+                                                 ), 
+                                          no = ifelse(test = other_tags%like%'"foot"=>"yes"' | other_tags%like%'"foot"=>"designated"',
+                                                      yes = ifelse(test = is.na(modes), 
+                                                                   yes = "walk", 
+                                                                   no = paste(modes, "walk",sep = ", ")
+                                                        ),
+                                                      no = modes)
+                                          )
+                           )
 
 
 
 # Timming the data --------------------------------------------------------
 
 lines_filtered <- lines_filtered %>%
-                  select()
+                  select(osm_id, name, highway, freespeed, permlanes, capacity, bikeway, modes, geometry)
 
 # writing outputs ---------------------------------------------------------
 
