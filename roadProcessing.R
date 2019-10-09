@@ -7,11 +7,11 @@ library(stringr)
 source("./shp2graph/defaults_df_builder.R")
 
 crs_final <- 7845
+oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
+# oneDriveURL <- "../../../OneDrive"
 
-#inputSQLite <- "../../../OneDrive/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
-inputSQLite <-"../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
-#outputSQLite <- "../../../OneDrive/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered.sqlite"
-outputSQLite <- "../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new3.sqlite"
+inputSQLite <- paste(oneDriveURL, "/Data/rawSpatial/osmExtracts/CBD_dockland.osm", sep = "")
+outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new3.sqlite", sep = "")
 # Defining feasible tag sets ----------------------------------------------
 
 # Default look-up table

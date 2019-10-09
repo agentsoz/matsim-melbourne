@@ -12,54 +12,48 @@ crs_final <- 28355
 #inputShp <- "../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/shapeFiles/carlton/carlton.shp"
 
 extract_name <- "CBD_dockland"
+oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
+# oneDriveURL <- "../../../OneDrive"
 
-#inputShp <- paste("../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/", extract_name, "/multi_mode/sqlite/", extract_name,"_filtered.sqlite", sep = "")
-#outputXml <- paste("../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/", extract_name, "/multi_mode/xml/", extract_name, ".xml", sep = "") 
+inputShp <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/", extract_name,"_filtered_new3.sqlite", sep = "")
 
-#inputShp <- paste("../../../OneDrive/Data/processedSpatial/", extract_name, "/multi_mode/sqlite/", extract_name,"_filtered.sqlite", sep = "")
-inputShp <- paste("../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/", extract_name, "/", extract_name,"_filtered_new3.sqlite", sep = "")
+outputXml <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/multi_mode/xml/", extract_name, ".xml", sep = "") 
 
-outputXml <- paste("../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/", extract_name, "/multi_mode/xml/", extract_name, ".xml", sep = "") 
-
-# melb_filtered <- st_read("../../outputs/melbourne_filtered.shp") 
-#shp_filtered <- readOGR(inputShp, layer = "lines") # I am using rdgal instead of sf as shp2graph expects a spatialLinesDataFrame
 shp_filtered <- st_read(inputShp, layer = "lines")
 
 shp_filtered <- st_transform(shp_filtered, crs = 7845)
 
 # Converting to spatial df as it is what readshpnw expects
-#shp_filtered_spatial <- as(shp_filtered, 'Spatial')
 shp_node_edge <-readshpnw(as(shp_filtered, 'Spatial'), Detailed = TRUE, ea.prop = rep(1,8) ) # ea.prop is number of properties you want to keep
 
 shp_nodes <- shp_node_edge[[2]]
 
-id <- 
-
-shp_nodes_df <- data.frame()
-shp_nodes_test$x <- shp_nodes[,2][[1]][1]
-
-write.csv(shp_nodes, "./test.csv")
+shp_nodes_df <- st_sf(id = 1:length(shp_nodes[,1]), geometry = st_sfc(lapply(1:length(shp_nodes[,1]), function(x) st_geometrycollection())))
 
 for (i in 1:length(shp_nodes[,1])){
-  shp_nodes_df[i, "id"] <- shp_nodes[[i]][1][1]
-  shp_nodes_df[i, "geom"] <- st_point(shp_nodes[i,2][[1]][1] , shp_nodes[i,2][[1]][2])
-  shp_nodes_df[i, "y"] <- 
+  shp_nodes_df$geometry[i] <- st_point(c(shp_nodes[i,2][[1]][1] , shp_nodes[i,2][[1]][2]))
 }
 
 test <- shp_nodes_df %>%
   mutate(geom = st_point(c(x, y))) %>%
   st_as_sf()
 
-st_point()
+st_write(shp_nodes_df, )
 
 shp_edges <- shp_node_edge[[3]]
+write.csv()
 
 shp_attribs <- shp_node_edge[[5]]
+write.csv(shp_attribs, )
+
+
+
+
 
 
 # Adding elevation --------------------------------------------------------
 
-elevation <- raster("../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/DEMs/DELWPx10.tif")
+elevation <- raster(paste(oneDriveURL, "/Data/rawSpatial/DEMs/DELWPx10.tif", sep = ""))
 
 #elevation_crs <- projectRaster(elevation, crs = as.character(st_crs(shp_filtered))[2])
 elevation_small <- aggregate(elevation_crs, fact = 2, fun = mean)
