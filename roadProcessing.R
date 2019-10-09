@@ -6,12 +6,12 @@ library(stringr)
 
 source("./shp2graph/defaults_df_builder.R")
 
-crs_final <- 28355
+crs_final <- 7845
 
 #inputSQLite <- "../../../OneDrive/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
 inputSQLite <-"../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/osmExtracts/CBD_dockland.osm"
 #outputSQLite <- "../../../OneDrive/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered.sqlite"
-outputSQLite <- "../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new2.sqlite"
+outputSQLite <- "../../../../OneDrive/OneDrive - RMIT University/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new3.sqlite"
 # Defining feasible tag sets ----------------------------------------------
 
 # Default look-up table
@@ -148,7 +148,7 @@ lines_filtered <- lines_filtered %>%
 # Timming the data --------------------------------------------------------
 
 lines_filtered <- lines_filtered %>%
-                  select(osm_id, name, highway, freespeed, permlanes, capacity, bikeway, modes, geometry)
+                    dplyr::select(osm_id, name, highway, freespeed, permlanes, capacity, bikeway, modes, geometry)
 
 # writing outputs ---------------------------------------------------------
 
