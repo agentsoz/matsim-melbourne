@@ -3,15 +3,20 @@ library(sf)
 library(dplyr)
 library(data.table)
 library(stringr)
+library(igraph)
+library(raster)
+library(shp2graph)
 
 source("./shp2graph/defaults_df_builder.R")
 
 crs_final <- 7845
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
+osm_extract <- "CBD_dockland"
+#osm_extract <- "melbourne"
 
-inputSQLite <- paste(oneDriveURL, "/Data/rawSpatial/osmExtracts/CBD_dockland.osm", sep = "")
-outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/CBD_dockland/CBD_dockland_filtered_new3.sqlite", sep = "")
+inputSQLite <- paste(oneDriveURL, "/Data/rawSpatial/osmExtracts/", osm_extract,".osm", sep = "")
+outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/",osm_extract,"_filtered_100.sqlite", sep = "")
 # Defining feasible tag sets ----------------------------------------------
 
 # Default look-up table
@@ -31,8 +36,7 @@ lines_filtered <- st_read(inputSQLite , layer="lines") %>%
 # Adding link lenght ------------------------------------------------------
 # It is for the all 
 #lines_filtered <- lines_filtered %>%
-#                  mutate(lenght = st_length(lines_filtered$geometry))
-
+#                  mutate(lenght = st_length(lines_filtered$geometry)) 
 #plot(lines_filtered["lenght"])
 
 #object.size(lines_filtered)
@@ -42,6 +46,10 @@ lines_filtered <- st_read(inputSQLite , layer="lines") %>%
 #object.size(lines_filtered_simple)
 
 #plot(lines_filtered_simple["lenght"])
+
+# Converting the Coordinates
+lines_filtered <- st_transform(lines_filtered, crs_final)
+
 
 # Processing the "other_tags"  --------------------------------------------------
 
@@ -114,10 +122,7 @@ lines_filtered <- lines_filtered %>%
                                                       yes = "bike",
                                                       no =  ifelse(test = !is.na(bikeway),
                                                                    yes = "bike", 
-                                                                   no = NA)
-                                                      )
-                                          )
-                           ) 
+                                                                   no = NA)))) 
 
 lines_filtered <- lines_filtered %>%
                     mutate(modes = ifelse(test = grepl("car" , default_modes) & !(other_tags %like% '"car"=>"no"') & !(other_tags %like% '"motor_vehicle"=>"no"'), 
@@ -125,31 +130,26 @@ lines_filtered <- lines_filtered %>%
                                                         yes = "car", 
                                                         no = paste(modes, "car",sep = ", ")
                                                         ), 
-                                           no = modes)
-                           ) 
+                                           no = modes)) 
 
 lines_filtered <- lines_filtered %>%
                     mutate(modes = ifelse(test = grepl("walk" , default_modes) & !(other_tags %like% '"foot"=>"no"'), 
                                           yes = ifelse(test = is.na(modes),
                                                        yes = "walk", 
-                                                       no = paste(modes, "walk",sep = ", ")
-                                                 ), 
+                                                       no = paste(modes, "walk",sep = ", ")), 
                                           no = ifelse(test = other_tags%like%'"foot"=>"yes"' | other_tags%like%'"foot"=>"designated"',
                                                       yes = ifelse(test = is.na(modes), 
                                                                    yes = "walk", 
-                                                                   no = paste(modes, "walk",sep = ", ")
-                                                        ),
-                                                      no = modes)
-                                          )
-                           )
-
-
+                                                                   no = paste(modes, "walk",sep = ", ")),
+                                                      no = modes)))
 
 # Timming the data --------------------------------------------------------
 
 lines_filtered <- lines_filtered %>%
                     dplyr::select(osm_id, name, highway, freespeed, permlanes, capacity, bikeway, modes, geometry)
 
+
+
 # writing outputs ---------------------------------------------------------
 
-st_write(lines_filtered, outputSQLite,layer="lines", driver = "SQLite", layer_options = "GEOMETRY=AS_XY")
+st_write(lines_filtered, outputSQLite, layer = "lines", driver = "SQLite", layer_options = "GEOMETRY=AS_XY")
