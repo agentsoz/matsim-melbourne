@@ -35,6 +35,9 @@ defaults_df_builder <- function(){
                        data.frame(highwayType = "residential", permlanes = 1, freespeed = 50/3.6, 
                                   oneway = 1, capacity = 600, modes = "car,bike"))
   defaults_df <- rbind(defaults_df, 
+                       data.frame(highwayType = "unclassified", permlanes = 1, freespeed = 50/3.6, 
+                                  oneway = 1, capacity = 600, modes = "car,bike"))
+  defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "living_street", permlanes = 1, freespeed = 20/3.6, 
                                   oneway = 1, capacity = 300, modes = "car,bike"))
   defaults_df <- rbind(defaults_df, 
@@ -61,5 +64,6 @@ defaults_df_builder <- function(){
   
   colnames(defaults_df) <- c("highwayType", "permlanes", "freespeed", "oneway", "capacity", "modes")
   
+
   return(defaults_df)
 }
