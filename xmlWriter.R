@@ -2,69 +2,52 @@
 library(igraph)
 library(raster)
 library(sf)
-library(shp2graph)
-source("./shp2graph/readshpnw.r")
-source("./shp2graph/igraph_generator.R")
+library(XML)
 
-crs_final <- 28355
-
-# plot(lines_filtered["modes"])
-#inputShp <- "../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/shapeFiles/carlton/carlton.shp"
-
-extract_name <- "CBD_dockland"
+extract_name <- "homeToWoolies"
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
 
-inputShp <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/", extract_name,"_filtered_new3.sqlite", sep = "")
 
-outputXml <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/multi_mode/xml/", extract_name, ".xml", sep = "") 
+links_df <- read.csv(paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/links_new30.csv", sep = ""))
 
-shp_filtered <- st_read(inputShp, layer = "lines")
+nodes_df <- read.csv(paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/nodes_new30.csv", sep = ""))
 
-shp_filtered <- st_transform(shp_filtered, crs = 7845)
+network_tag <- newXMLNode("network")
 
-# Converting to spatial df as it is what readshpnw expects
-shp_node_edge <-readshpnw(as(shp_filtered, 'Spatial'), Detailed = TRUE, ea.prop = rep(1,8) ) # ea.prop is number of properties you want to keep
+nodes_tag <- newXMLNode("nodes", parent = network_tag)
 
-shp_nodes <- shp_node_edge[[2]]
+for(i in 1:nrow(nodes_df)){
+  
+  newXMLNode("node", attrs = c(id=nodes_df$id[i], x=nodes_df$x[i], y=nodes_df$y[i], z="0"), "", parent = nodes_tag)
 
-shp_nodes_df <- st_sf(id = 1:length(shp_nodes[,1]), geometry = st_sfc(lapply(1:length(shp_nodes[,1]), function(x) st_geometrycollection())))
-
-for (i in 1:length(shp_nodes[,1])){
-  shp_nodes_df$geometry[i] <- st_point(c(shp_nodes[i,2][[1]][1] , shp_nodes[i,2][[1]][2]))
 }
 
-test <- shp_nodes_df %>%
-  mutate(geom = st_point(c(x, y))) %>%
-  st_as_sf()
 
-st_write(shp_nodes_df, )
+links_tag <- newXMLNode("links", parent = network_tag)
 
-shp_edges <- shp_node_edge[[3]]
-write.csv()
-
-shp_attribs <- shp_node_edge[[5]]
-write.csv(shp_attribs, )
-
-
-
-
+for(i in 1:nrow(links_df)){
+  link_tag <- newXMLNode("link", attrs = c(id=links_df$id[i], from=links_df$from[i], to=links_df$to[i],
+                                           length=links_df$length[i], capacity=links_df$capacity[i], freespeed=links_df$freespeed[i],
+                                           permlanes=links_df$permlanes[i], oneway="1", modes=links_df$id[i], origid=""), 
+                         "", parent = links_tag)
+  
+  attributes_tag <- newXMLNode("attributes",parent = link_tag)
+  newXMLNode("attribute", attrs = c(name="type", class="java.lang.String"), links_df$highway[i], parent = attributes_tag)
+  newXMLNode("attribute", attrs = c(name="bicycleInfrastructureSpeedFactor", class="java.lang.Double" ), "1.0", parent = attributes_tag)
+}
 
 
-# Adding elevation --------------------------------------------------------
 
-elevation <- raster(paste(oneDriveURL, "/Data/rawSpatial/DEMs/DELWPx10.tif", sep = ""))
 
-#elevation_crs <- projectRaster(elevation, crs = as.character(st_crs(shp_filtered))[2])
-elevation_small <- aggregate(elevation_crs, fact = 2, fun = mean)
-plot(elevation_small)
+saveXML(network_tag, "./test30.XML")
 
 
 ## generating an igraph 
-shp_graph <- igraph_generator(node_list = shp_node_edge[[2]], edge_list = shp_node_edge[[3]],  attribs_df = shp_node_edge[[5]])
+#shp_graph <- igraph_generator(node_list = shp_node_edge[[2]], edge_list = shp_node_edge[[3]],  attribs_df = shp_node_edge[[5]])
 
-plot(shp_graph, vertex.label = NA, vertex.size = 0.5, vertex.size2 = 0.5, mark.col = "green",
-     main = "The converted igraph graph")
+#plot(shp_graph, vertex.label = NA, vertex.size = 0.5, vertex.size2 = 0.5, mark.col = "green",
+#     main = "The converted igraph graph")
 
-write_graph(shp_graph, file = outputXml, "graphml")
+#write_graph(shp_graph, file = outputXml, "graphml")
 

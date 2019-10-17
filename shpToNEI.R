@@ -3,22 +3,24 @@ library(igraph)
 library(sf)
 library(dplyr)
 
-
-crs_final <- 28355
+simplifyFirst <- T
 
 # plot(lines_filtered["modes"])
 #inputShp <- "../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/shapeFiles/carlton/carlton.shp"
 
-extract_name <- "CBD_dockland"
+extract_name <- "homeToWoolies"
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
 
-inputShp <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/", extract_name,"_filtered_new3.sqlite", sep = "")
+inputShp <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/", extract_name,"_filtered_200.sqlite", sep = "")
 
 outputXml <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/multi_mode/xml/", extract_name, ".xml", sep = "") 
 
 shp_filtered <- st_read(inputShp, layer = "lines")
 
+if(simplifyFirst){
+  shp_filtered <- st_simplify(shp_filtered,preserveTopology = T, dTolerance = 10)
+}
 
 testList <- st_cast(shp_filtered$GEOMETRY[1], "POINT")
 
@@ -47,26 +49,27 @@ for (j in 1:length(shp_filtered$GEOMETRY)){
   nodes_df[nodes_row, "id"] <- nodes_row
   nodes_df[nodes_row, "x"] <- point_s[[1]][1]
   nodes_df[nodes_row, "y"] <- point_s[[1]][2]
+  nodes_df[nodes_row, "nonplanarity"] <- shp_filtered[j, "nonplanarity"]
   
   for (i in 2:length(testList)){
     temp_point_o <- testList[i-1]
     temp_point_d <- testList[i]
     link_dist <- link_dist + as.numeric(st_distance(temp_point_o, temp_point_d)) # distance is in meters
-    if(link_dist > 30 | i == length(testList)){ # 30 meter minimum lenght of a link is considered
+    if(link_dist > 0 | i == length(testList)){ # 30 meter minimum lenght of a link is considered
       point_s <- temp_point_d
       # Adding node to nodes_df
       nodes_row <- nodes_row + 1
       nodes_df[nodes_row, "id"] <- nodes_row
       nodes_df[nodes_row, "x"] <- point_s[[1]][1]
       nodes_df[nodes_row, "y"] <- point_s[[1]][2]
-      
+      nodes_df[nodes_row, "nonplanarity"] <- shp_filtered[j, "nonplanarity"]
       # Adding link
       links_df[links_row, "id"] <- links_row
       links_df[links_row, "from"] <- nodes_row-1
       links_df[links_row, "to"] <- nodes_row
       links_df[links_row, "length"] <- link_dist
-      links_df[links_row, c("capacity", "freespeed", "permlanes")] <-
-        shp_filtered[j, c("capacity", "freespeed", "permlanes")]
+      links_df[links_row, c("capacity", "freespeed", "permlanes")] <- shp_filtered[j, c("capacity", "freespeed", "permlanes")]
+        
       links_df[links_row, "modes"] <- as.character(shp_filtered$modes[j]) 
       links_df[links_row, "highway"] <- as.character(shp_filtered$highway[j]) 
       links_df[links_row, "bikeway"] <- as.character(shp_filtered$bikeway[j]) 
@@ -81,14 +84,14 @@ for (j in 1:length(shp_filtered$GEOMETRY)){
 
 
 # Juts for visualisations
-shp_graph <- graph_from_edgelist(as.matrix(links_df[,c(2,3)]), directed=FALSE)
+#shp_graph <- graph_from_edgelist(as.matrix(links_df[,c(2,3)]), directed=FALSE)
 
-shp_graph<- set_vertex_attr(shp_graph,"x", V(shp_graph), as.matrix(nodes_df[,2]))
-shp_graph<- set_vertex_attr(shp_graph,"y", V(shp_graph), as.matrix(nodes_df[,3]))
+#shp_graph<- set_vertex_attr(shp_graph,"x", V(shp_graph), as.matrix(nodes_df[,2]))
+#shp_graph<- set_vertex_attr(shp_graph,"y", V(shp_graph), as.matrix(nodes_df[,3]))
 
-plot(shp_graph, vertex.label = NA, vertex.size = 0.005, vertex.size2 = 0.005, mark.col = "green",
-     main = "The converted igraph graph")
+#plot(shp_graph, vertex.label = NA, vertex.size = 0.005, vertex.size2 = 0.005, mark.col = "green",
+#     main = "The converted igraph graph")
 
 # Writing outputs
-write.csv(nodes_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes.csv", sep = ""))
-write.csv(links_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links.csv", sep = ""))
+write.csv(nodes_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes_new30.csv", sep = ""))
+write.csv(links_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links_new30.csv", sep = ""))

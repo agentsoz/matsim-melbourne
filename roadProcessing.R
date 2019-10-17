@@ -12,11 +12,11 @@ source("./shp2graph/defaults_df_builder.R")
 crs_final <- 7845
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
-osm_extract <- "CBD_dockland"
+osm_extract <- "carltonSingleBlock"
 #osm_extract <- "melbourne"
 
 inputSQLite <- paste(oneDriveURL, "/Data/rawSpatial/osmExtracts/", osm_extract,".osm", sep = "")
-outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/",osm_extract,"_filtered_100.sqlite", sep = "")
+outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/",osm_extract,"_filtered_200.sqlite", sep = "")
 # Defining feasible tag sets ----------------------------------------------
 
 # Default look-up table
@@ -143,10 +143,19 @@ lines_filtered <- lines_filtered %>%
                                                                    no = paste(modes, "walk",sep = ", ")),
                                                       no = modes)))
 
+# Adding bridge or tunnel
+
+lines_filtered <- lines_filtered %>%
+                    mutate(nonplanarity = ifelse(test = other_tags %like% 'bridge', 
+                                                 yes = "bridge", 
+                                                 no = ifelse(test = other_tags %like% 'tunnel',
+                                                             yes = "tunnel",
+                                                             no = "flat")))
+
 # Timming the data --------------------------------------------------------
 
 lines_filtered <- lines_filtered %>%
-                    dplyr::select(osm_id, name, highway, freespeed, permlanes, capacity, bikeway, modes, geometry)
+                    dplyr::select(osm_id, name, highway, freespeed, permlanes, capacity, bikeway, modes, nonplanarity, geometry)
 
 
 
