@@ -23,7 +23,7 @@ elevation <- raster(paste(oneDriveURL, "/Data/rawSpatial/DEMs/DELWPx10.tif", sep
 #elevation_small <- aggregate(elevation, fact = 2, fun = mean)
 
 
-my_nodes <- read.csv(file = paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/", "nodes_new3.csv", sep = ""))
+my_nodes <- read.csv(file = paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/", "nodes.csv", sep = ""))
 
 
 
@@ -31,8 +31,13 @@ my_nodes <- my_nodes %>%
               select(-X) %>%
               st_as_sf(coords = c("x","y"))
 
+
 my_nodes$z <- round(raster::extract(elevation ,as(my_nodes, "Spatial"),method='bilinear'))/10
 
+my_nodes <- my_nodes %>%
+              mutate(z = ifelse(test = is.na(z)
+                                ,yes = 10,
+                                no = z))
 
 if(saveSQLITE){
   outputSQLite <- paste(outputDir ,osm_extract,"_points_elevated.sqlite", sep = "")
@@ -45,6 +50,6 @@ if(saveCSV){
   colnames(nodes_coords) <- c("x", "y")
   st_geometry(my_nodes) <- NULL 
   my_nodes <- cbind(nodes_coords, my_nodes) %>% select(id, x, y, z) # if there is a column for nonplanrity it should be here
-  outputCSV <- paste(outputDir ,osm_extract,"_nodes_elevated.csv", sep = "")
+  outputCSV <- paste(outputDir ,"nodes_elevated.csv", sep = "")
   write.csv(my_nodes, outputCSV)
 }

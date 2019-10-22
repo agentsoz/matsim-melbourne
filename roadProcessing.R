@@ -5,9 +5,8 @@ library(data.table)
 library(stringr)
 library(igraph)
 library(raster)
-library(shp2graph)
 
-source("./shp2graph/defaults_df_builder.R")
+source("./functions/defaults_df_builder.R")
 
 crs_final <- 7845
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
@@ -16,7 +15,7 @@ osm_extract <- "carltonSingleBlock"
 #osm_extract <- "melbourne"
 
 inputSQLite <- paste(oneDriveURL, "/Data/rawSpatial/osmExtracts/", osm_extract,".osm", sep = "")
-outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/",osm_extract,"_filtered_200.sqlite", sep = "")
+outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/",osm_extract,"_filtered.sqlite", sep = "")
 # Defining feasible tag sets ----------------------------------------------
 
 # Default look-up table

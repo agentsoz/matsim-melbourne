@@ -1,20 +1,18 @@
 # I needed to change the function a bit to also read the attributes as characters
-library(igraph)
+#library(igraph)
 library(sf)
 library(dplyr)
 
-simplifyFirst <- T
+simplifyFirst <- F
 
 # plot(lines_filtered["modes"])
 #inputShp <- "../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/shapeFiles/carlton/carlton.shp"
 
-extract_name <- "homeToWoolies"
+extract_name <- "carltonSingleBlock"
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
 
-inputShp <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/", extract_name,"_filtered_200.sqlite", sep = "")
-
-outputXml <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/multi_mode/xml/", extract_name, ".xml", sep = "") 
+inputShp <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/", extract_name,"_filtered.sqlite", sep = "")
 
 shp_filtered <- st_read(inputShp, layer = "lines")
 
@@ -22,13 +20,13 @@ if(simplifyFirst){
   shp_filtered <- st_simplify(shp_filtered,preserveTopology = T, dTolerance = 10)
 }
 
-testList <- st_cast(shp_filtered$GEOMETRY[1], "POINT")
+#testList <- st_cast(shp_filtered$GEOMETRY[1], "POINT")
 
 
 #testList_simple <- st_cast(st_simplify(shp_filtered$GEOMETRY[1],preserveTopology = T, dTolerance = 10), "POINT")
 
 
-nodes_df <- data.frame(id = NA, x = NA, y = NA)[numeric(0),]
+nodes_df <- data.frame(id = integer(0), x = numeric(0), y = numeric(0))
 
 links_df <- data.frame(id = integer(0), from = integer(0), to = integer(0), length = numeric(0), capacity = numeric(0), 
                        freespeed = numeric(0), permlanes = integer(0), modes = character(0), highway = character(0), bikeway = character(0), 
@@ -93,5 +91,5 @@ for (j in 1:length(shp_filtered$GEOMETRY)){
 #     main = "The converted igraph graph")
 
 # Writing outputs
-write.csv(nodes_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes_new30.csv", sep = ""))
-write.csv(links_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links_new30.csv", sep = ""))
+write.csv(nodes_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes.csv", sep = ""))
+write.csv(links_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links.csv", sep = ""))
