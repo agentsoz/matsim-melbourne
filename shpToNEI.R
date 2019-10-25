@@ -3,7 +3,7 @@
 library(sf)
 library(dplyr)
 
-simplifyFirst <- F
+simplifyFirst <- T
 
 # plot(lines_filtered["modes"])
 #inputShp <- "../../../../OneDrive/OneDrive - RMIT University/Data/rawSpatial/shapeFiles/carlton/carlton.shp"
@@ -17,7 +17,8 @@ inputShp <- paste(oneDriveURL, "/Data/processedSpatial/", extract_name, "/", ext
 shp_filtered <- st_read(inputShp, layer = "lines")
 
 if(simplifyFirst){
-  shp_filtered <- st_simplify(shp_filtered,preserveTopology = T, dTolerance = 10)
+  tolerance <- 10
+  shp_filtered <- st_simplify(shp_filtered,preserveTopology = T, dTolerance = tolerance)
 }
 
 #testList <- st_cast(shp_filtered$GEOMETRY[1], "POINT")
@@ -91,5 +92,11 @@ for (j in 1:length(shp_filtered$GEOMETRY)){
 #     main = "The converted igraph graph")
 
 # Writing outputs
-write.csv(nodes_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes.csv", sep = ""))
-write.csv(links_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links.csv", sep = ""))
+if(simplifyFirst){
+  write.csv(nodes_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes_Simplified_" , tolerance, ".csv", sep = ""))
+  write.csv(links_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links_Simplified_" , tolerance, ".csv", sep = ""))
+}else{
+  write.csv(nodes_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes.csv", sep = ""))
+  write.csv(links_df, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links.csv", sep = "")) 
+}
+
