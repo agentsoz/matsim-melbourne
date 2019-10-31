@@ -1,5 +1,6 @@
 library(dplyr)
 library(sf)
+library(igraph)
 
 extract_name <- "carltonSingleBlock"
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
@@ -18,11 +19,52 @@ my_nodes_sf <- my_nodes %>%
   st_as_sf(coords = c("x","y"))
 
 
-my_nodes_sf_croped<- st_crop(my_nodes_sf, c(xmin=969309.8, xmax=971316.7, ymin=-4294159.6, ymax=-4292207.1))
+my_nodes_sf_croped <- st_crop(my_nodes_sf, c(xmin=969309.8, xmax=971316.7, ymin=-4294159.6, ymax=-4292207.1))
+
+my_links_cropped <- my_links %>% filter(from %in% my_nodes_sf_croped$id | to %in% my_nodes_sf_croped$id)
+
+my_nodes_cropped <- my_nodes %>% filter(id %in% my_links_cropped$from | id %in% my_links_cropped$to ) 
+
+my_short_links <- my_links_cropped %>%
+                    filter(length<=15)
+
+#my_nodes_filtered <- my_nodes %>% filter(id %in% my_short_links$from | id %in% my_short_links$to )
+
+g <- graph_from_data_frame(my_short_links[,c("from", "to")], directed = TRUE, vertices = my_nodes_cropped) # Making the graph for the bridges
+
+plot(g,  vertex.size=0.1, vertex.label=NA,
+      vertex.color="red", edge.arrow.size=0, edge.curved = 0)
+
+comp <- components(g)
+
+comp_df <- data.frame(segment_id=as.integer(names(comp$membership)), cluster_id=comp$membership, row.names=NULL)
+
+lookup_df <-  data.frame(new_id = unique(comp_df$cluster_id), old_ids = NA)
+
+for (i in 1:nrow(lookup_df)){
+  lookup_df$old_ids[i] <- comp_df %>% filter(cluster_id == lookup_df$new_id[i]) %>% select(segment_id) %>% as.list()
+  newID <- paste("S_", i, sep = "")
+  for (oldID in unlist(lookup_df$old_ids[i])){
+    my_nodes_cropped[which(my_nodes_cropped$id  == oldID), "id"] <- newID
+    my_short_links[which(my_short_links$from  == oldID), "from"] <- newID
+    my_short_links[which(my_short_links$to  == oldID), "to"] <- newID
+  }
+}
+
+g2 <- graph_from_data_frame(my_short_links[,c("from", "to")], directed = TRUE, vertices = my_nodes_cropped) # Making the graph for the bridges
+
+plot(g2,  vertex.size=0.1, vertex.label=NA,
+     vertex.color="red", edge.arrow.size=0, edge.curved = 0)
 
 
-my_short_links <- my_links %>% filter(length < 15)
+# Iterating over nodes
 
+
+
+ 55 %in% unlist(lookup_df$old_ids[1])
+
+
+my_nodes_sf_croped$id[1]
 
 my_nodes_filtered <- my_nodes_sf_croped %>% filter(id %in% my_short_links$from | id %in% my_short_links$to )
 
