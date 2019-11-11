@@ -1,9 +1,11 @@
+# 4. Adding z coordinates
+
 library(raster)
 library(sf)
 library(dplyr)
 
 
-crs_final <- 7845
+# crs_final <- 7845
 
 # Change to/not to save csv 
 saveCSV <- TRUE
@@ -28,7 +30,7 @@ my_nodes <- read.csv(file = paste(oneDriveURL, "/Data/processedSpatial/", osm_ex
 
 
 my_nodes <- my_nodes %>% 
-              select(-X) %>%
+              dplyr::select(-X) %>%
               st_as_sf(coords = c("x","y"))
 
 
@@ -49,7 +51,7 @@ if(saveCSV){
   nodes_coords <- do.call(rbind, st_geometry(my_nodes))
   colnames(nodes_coords) <- c("x", "y")
   st_geometry(my_nodes) <- NULL 
-  my_nodes <- cbind(nodes_coords, my_nodes) %>% select(id, x, y, z) # if there is a column for nonplanrity it should be here
+  my_nodes <- cbind(nodes_coords, my_nodes) %>% dplyr::select(id, x, y, z) # if there is a column for nonplanrity it should be here
   outputCSV <- paste(outputDir ,"nodes_elevated.csv", sep = "")
   write.csv(my_nodes, outputCSV)
 }

@@ -1,3 +1,4 @@
+# 2. Filtering roads and converting from OSM format to desired dataframe format
 
 library(sf)
 library(dplyr)
@@ -8,13 +9,13 @@ library(raster)
 
 source("./functions/defaults_df_builder.R")
 
-crs_final <- 7845
+#crs_final <- 7845
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
 osm_extract <- "carltonSingleBlock"
 #osm_extract <- "melbourne"
 
-inputSQLite <- paste(oneDriveURL, "/Data/rawSpatial/osmExtracts/", osm_extract,".osm", sep = "")
+inputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/",osm_extract,"_croped.sqlite", sep = "") 
 outputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/", osm_extract,"/",osm_extract,"_filtered.sqlite", sep = "")
 # Defining feasible tag sets ----------------------------------------------
 
@@ -47,7 +48,7 @@ lines_filtered <- st_read(inputSQLite , layer="lines") %>%
 #plot(lines_filtered_simple["lenght"])
 
 # Converting the Coordinates
-lines_filtered <- st_transform(lines_filtered, crs_final)
+#lines_filtered <- st_transform(lines_filtered, crs_final)
 
 
 # Processing the "other_tags"  --------------------------------------------------
