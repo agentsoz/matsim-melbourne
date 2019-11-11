@@ -1,3 +1,5 @@
+6. Converting to XML
+
 library(XML)
 
 xml <- xmlTree()
@@ -30,7 +32,7 @@ for(i in 1:nrow(links_df)){
 xml$closeTag()
 xml$closeTag()
 
-xml_prefix <- '"<?xml version="1.0" encoding="UTF-8"?>
+xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE network SYSTEM "http://www.matsim.org/files/dtd/network_v2.dtd">
 
 '
