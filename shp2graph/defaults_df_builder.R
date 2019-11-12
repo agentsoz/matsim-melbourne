@@ -48,7 +48,7 @@ defaults_df_builder <- function(){
                                   oneway = 1, capacity = 300, modes = "bike"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "service", permlanes = 1, freespeed = 40/3.6, 
-                                  oneway = 1, capacity = 200, modes = "bike"))
+                                  oneway = 1, capacity = 200, modes = "car, bike"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "pedestrian", permlanes = 1, freespeed = 30/3.6, 
                                   oneway = 1, capacity = 120, modes = "walk"))
