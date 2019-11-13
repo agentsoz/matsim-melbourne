@@ -5,12 +5,19 @@ date: "12/11/2019"
 output: html_document
 ---
 
-```{r set working directory}
+```{r control variables and work directory}
+
 setwd("D:/jafshin/github/matsim-melbourne-AT/matsim-melbourne-AT")
 #setwd("")
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
 #osm_extract <- "carltonSingleBlock"
+
+crs_final <- 7845
+
+study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))") # This is a test area in Carlton that I use
+
+networkSimplication <- TRUE # change to false if you don't want to simplify the network
 
 ```
 
@@ -33,10 +40,9 @@ source("./functions/defaults_df_builder.R")
 source("./functions/road_processor.R")
 ```
 
+
 ```{r input sqlite}
 
-crs_final <- 7845
-study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))")
 
 # Reading the planar input
 inputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/melbourne/melbourne.sqlite", sep = "") 
@@ -102,53 +108,53 @@ lines_np_ng <- lines_np %>%
 
 
 ```{r node simplifier}
-
-lines_np_short <- lines_np_ng %>%
+if (networkSimplication){
+  
+  lines_np_short <- lines_np_ng %>%
                     filter(length<=10)
                   
-nodes_np_short <- nodes_np_ng %>% filter(id %in% lines_np_short$from_id | id %in% lines_np_short$to_id )
-
-
-g <- graph_from_data_frame(lines_np_short[,c("from_id", "to_id")], directed = TRUE, vertices = nodes_np_short) # Making the graph for the bridges
-
-plot(g,  vertex.size=0.1, vertex.label=NA,
-      vertex.color="red", edge.arrow.size=0, edge.curved = 0)
-
-
-
-comp <- components(g)
-
-comp_df <- data.frame(segment_id=as.integer(names(comp$membership)), cluster_id=comp$membership, row.names=NULL)
-
-lookup_df <-  data.frame(new_id = unique(comp_df$cluster_id), old_ids = NA, x = NA, y = NA, z = NA)
-
-# Finding centroids
-for (i in 1:nrow(lookup_df)){
-  lookup_df$old_ids[i] <- comp_df %>% filter(cluster_id == lookup_df$new_id[i]) %>% dplyr::select(segment_id) %>% as.list()
-  this_old_ids <- which(nodes_np_ng$id %in% unlist(lookup_df$old_ids[i]))
-  if(length(this_old_ids) > 2){
-    xcors <- nodes_np_ng$x[this_old_ids]
-    ycors <- nodes_np_ng$y[this_old_ids]
-    zcors <- nodes_np_ng$z[this_old_ids]
-    lookup_df$x[i] <- mean(xcors)
-    lookup_df$y[i] <- mean(ycors)
-    lookup_df$z[i] <- mean(zcors)
-    newID <- paste("S_", i, sep = "")
-    for (oldID in unlist(lookup_df$old_ids[i])){
-      j <- which(nodes_np_ng$id  == oldID)
-      nodes_np_ng$id[j] <- newID
-      nodes_np_ng$x[j] <- lookup_df$x[i]
-      nodes_np_ng$y[j] <- lookup_df$y[i]
-      nodes_np_ng$z[j] <- lookup_df$z[i]
-      lines_np_ng[which(lines_np_ng$from_id  == oldID), "from_id"] <- newID
-      lines_np_ng[which(lines_np_ng$to_id  == oldID), "to_id"] <- newID
+  nodes_np_short <- nodes_np_ng %>% filter(id %in% lines_np_short$from_id | id %in% lines_np_short$to_id )
+  
+  g <- graph_from_data_frame(lines_np_short[,c("from_id", "to_id")], directed = TRUE, vertices = nodes_np_short) # Making the graph for the bridges
+  
+  plot(g,  vertex.size=0.1, vertex.label=NA,
+        vertex.color="red", edge.arrow.size=0, edge.curved = 0)
+  
+  comp <- components(g)
+  
+  comp_df <- data.frame(segment_id=as.integer(names(comp$membership)), cluster_id=comp$membership, row.names=NULL)
+  
+  lookup_df <-  data.frame(new_id = unique(comp_df$cluster_id), old_ids = NA, x = NA, y = NA, z = NA)
+  
+  # Finding centroids
+  for (i in 1:nrow(lookup_df)){
+    lookup_df$old_ids[i] <- comp_df %>% filter(cluster_id == lookup_df$new_id[i]) %>% dplyr::select(segment_id) %>% as.list()
+    this_old_ids <- which(nodes_np_ng$id %in% unlist(lookup_df$old_ids[i]))
+    if(length(this_old_ids) > 2){
+      xcors <- nodes_np_ng$x[this_old_ids]
+      ycors <- nodes_np_ng$y[this_old_ids]
+      zcors <- nodes_np_ng$z[this_old_ids]
+      lookup_df$x[i] <- mean(xcors)
+      lookup_df$y[i] <- mean(ycors)
+      lookup_df$z[i] <- mean(zcors)
+      newID <- paste("S_", i, sep = "")
+      for (oldID in unlist(lookup_df$old_ids[i])){
+        j <- which(nodes_np_ng$id  == oldID)
+        nodes_np_ng$id[j] <- newID
+        nodes_np_ng$x[j] <- lookup_df$x[i]
+        nodes_np_ng$y[j] <- lookup_df$y[i]
+        nodes_np_ng$z[j] <- lookup_df$z[i]
+        lines_np_ng[which(lines_np_ng$from_id  == oldID), "from_id"] <- newID
+        lines_np_ng[which(lines_np_ng$to_id  == oldID), "to_id"] <- newID
+      }
     }
   }
+  
+  lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id)
+  
+  nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z) %>% filter(id %in% lines_np_ng$from_id | id %in% lines_np_ng$to_id )
+
 }
-
-lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id)
-
-nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z) %>% filter(id %in% lines_np_ng$from_id | id %in% lines_np_ng$to_id )
 
 
 ```
