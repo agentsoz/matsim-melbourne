@@ -17,7 +17,7 @@ crs_final <- 7845
 
 study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))") # This is a test area in Carlton that I use
 
-networkSimplication <- TRUE # change to false if you don't want to simplify the network
+networkSimplication <- FALSE # change to false if you don't want to simplify the network
 
 ```
 
@@ -149,13 +149,11 @@ if (networkSimplication){
       }
     }
   }
-  
-  lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id)
-  
-  nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z) %>% filter(id %in% lines_np_ng$from_id | id %in% lines_np_ng$to_id )
-
 }
 
+lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id)
+
+nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z) %>% filter(id %in% lines_np_ng$from_id | id %in% lines_np_ng$to_id )
 
 ```
 
@@ -187,7 +185,7 @@ xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
 
 '
 
-saveXML(xml, paste( oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_v15.XML", sep = "" ), encoding="utf-8", 
+saveXML(xml, paste( oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_v20.XML", sep = "" ), encoding="utf-8", 
         prefix = xml_prefix)
 
 
