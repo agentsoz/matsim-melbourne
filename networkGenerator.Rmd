@@ -146,7 +146,7 @@ for (i in 1:nrow(lookup_df)){
   }
 }
 
-lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed))
+lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id)
 
 nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z) %>% filter(id %in% lines_np_ng$from_id | id %in% lines_np_ng$to_id )
 
@@ -181,7 +181,7 @@ xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
 
 '
 
-saveXML(xml, paste( oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_v13.XML", sep = "" ), encoding="utf-8", 
+saveXML(xml, paste( oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_v15.XML", sep = "" ), encoding="utf-8", 
         prefix = xml_prefix)
 
 
