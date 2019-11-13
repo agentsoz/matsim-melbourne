@@ -104,7 +104,7 @@ lines_np_ng <- lines_np %>%
 ```{r node simplifier}
 
 lines_np_short <- lines_np_ng %>%
-                    filter(length<=15) %>%
+                    filter(length<=15)
                   
 nodes_np_short <- nodes_np_ng %>% filter(id %in% lines_np_short$from_id | id %in% lines_np_short$to_id )
 
@@ -135,7 +135,7 @@ for (i in 1:nrow(lookup_df)){
     lookup_df$z[i] <- mean(zcors)
     newID <- paste("S_", i, sep = "")
     for (oldID in unlist(lookup_df$old_ids[i])){
-      j <- which(my_nodes$id  == oldID)
+      j <- which(nodes_np_ng$id  == oldID)
       nodes_np_ng$id[j] <- newID
       nodes_np_ng$x[j] <- lookup_df$x[i]
       nodes_np_ng$y[j] <- lookup_df$y[i]
@@ -146,12 +146,8 @@ for (i in 1:nrow(lookup_df)){
   }
 }
 
-new_my_nodes <- my_nodes %>% dplyr::select(-X) %>% distinct(id, x, y, z)
+nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z)
 
-g2 <- graph_from_data_frame(my_links[,c("from", "to")], directed = TRUE, vertices = new_my_nodes) # Making the graph for the bridges
-
-plot(g2,  vertex.size=0.1, vertex.label=NA,
-     vertex.color="red", edge.arrow.size=0, edge.curved = 0)
 
 
 ```
@@ -165,16 +161,16 @@ xml <- xmlTree()
 xml$addTag("network", close=FALSE)
 xml$addTag("nodes", close=FALSE)
 
-for (i in 1:nrow(nodes_df)) {
-  xml$addTag("node", attrs = c(id=as.character(nodes_df$id[i]), x=nodes_df$x[i], y=nodes_df$y[i], z="0"))
+for (i in 1:nrow(nodes_np_ng)) {
+  xml$addTag("node", attrs = c(id=as.character(nodes_np_ng$id[i]), x=nodes_np_ng$x[i], y=nodes_np_ng$y[i], z=nodes_np_ng$z[i]))
 }
 xml$closeTag()
 
 xml$addTag("links", close=FALSE)
-for(i in 1:nrow(links_df)){
-  xml$addTag("link", attrs = c(id=as.character(links_df$id[i]), from=as.character(links_df$from[i]), to=as.character(links_df$to[i]),
-                                           length=links_df$length[i], capacity=links_df$capacity[i], freespeed=links_df$freespeed[i],
-                                           permlanes=links_df$permlanes[i], oneway="1", modes=as.character(links_df$modes[i]), origid=""))
+for(i in 1:nrow(lines_np_ng)){
+  xml$addTag("link", attrs = c(id=as.character(lines_np_ng$id[i]), from=as.character(lines_np_ng$from_id[i]), to=as.character(lines_np_ng$to_id[i]),
+                                           length=lines_np_ng$length[i], capacity=lines_np_ng$capacity[i], freespeed=lines_np_ng$freespeed[i],
+                                           permlanes=lines_np_ng$permlanes[i], oneway="1", modes=as.character(lines_np_ng$modes[i]), origid=""))
 }
 xml$closeTag()
 xml$closeTag()
@@ -184,7 +180,7 @@ xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
 
 '
 
-saveXML(xml, paste("./", extract_name, "110.XML", sep = ""), encoding="utf-8", 
+saveXML(xml, paste( oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_v12.XML", sep = "" ), encoding="utf-8", 
         prefix = xml_prefix)
 
 
