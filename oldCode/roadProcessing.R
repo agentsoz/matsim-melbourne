@@ -145,12 +145,12 @@ lines_filtered <- lines_filtered %>%
 
 # Adding bridge or tunnel
 
-lines_filtered <- lines_filtered %>%
-                    mutate(nonplanarity = ifelse(test = other_tags %like% 'bridge', 
-                                                 yes = "bridge", 
-                                                 no = ifelse(test = other_tags %like% 'tunnel',
-                                                             yes = "tunnel",
-                                                             no = "flat")))
+#lines_filtered <- lines_filtered %>%
+#                    mutate(nonplanarity = ifelse(test = other_tags %like% 'bridge', 
+#                                                 yes = "bridge", 
+#                                                 no = ifelse(test = other_tags %like% 'tunnel',
+#                                                             yes = "tunnel",
+#                                                             no = "flat")))
 
 # Timming the data --------------------------------------------------------
 

@@ -1,0 +1,192 @@
+---
+title: "networkGeneration"
+author: "jafshin"
+date: "12/11/2019"
+output: html_document
+---
+
+```{r set working directory}
+setwd("D:/jafshin/github/matsim-melbourne-AT/matsim-melbourne-AT")
+#setwd("")
+oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
+# oneDriveURL <- "../../../OneDrive"
+#osm_extract <- "carltonSingleBlock"
+
+```
+
+
+```{r libraries, echo=FALSE}
+
+library(sf)
+library(dplyr)
+library(data.table)
+library(stringr)
+library(igraph)
+library(raster)
+library(XML)
+
+```
+
+
+```{r functions}
+source("./functions/defaults_df_builder.R")
+source("./functions/road_processor.R")
+```
+
+```{r input sqlite}
+
+crs_final <- 7845
+study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))")
+
+# Reading the planar input
+inputSQLite <- paste(oneDriveURL, "/Data/processedSpatial/melbourne/melbourne.sqlite", sep = "") 
+lines_p <- st_read(inputSQLite , layer="lines") %>% 
+            st_transform(crs_final) %>% 
+            filter(lengths(st_intersects(., study_area)) > 0)
+
+# Reading the nonplanar input from Alan
+inputSQLite_np <- paste(oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_nonplanar.sqlite", sep = "") 
+
+lines_np <- st_read(inputSQLite_np , layer="edges") %>% 
+            mutate(id = 1:n()) %>%
+            filter(lengths(st_intersects(., study_area)) > 0)
+
+nodes_np <- st_read(inputSQLite_np , layer="nodes") %>% 
+            mutate(id = 1:n()) #%>% filter(lengths(st_intersects(., study_area)) > 0)
+
+```
+
+```{r road filteration}
+defaults_df <- defaults_df_builder()
+```
+
+
+```{r planar network but with attribs}
+lines_p_attrib <- road_processor(lines_p , defaults_df)
+```
+
+
+```{r assiging attribs to np network}
+
+lines_p_df <- lines_p_attrib %>% st_set_geometry(NULL)
+
+lines_np <- lines_np %>%
+            left_join(lines_p_df, by = "osm_id")
+  
+```
+
+
+```{r z coordinate}
+elevation <- raster(paste(oneDriveURL, "/Data/rawSpatial/DEMs/DELWPx10.tif", sep = ""))
+
+nodes_np$z <- round(raster::extract(elevation ,as(nodes_np, "Spatial"),method='bilinear'))/10
+
+nodes_np <- nodes_np %>%
+              mutate(z = ifelse(test = is.na(z)
+                                ,yes = 10,
+                                no = z))
+```
+
+
+```{r droping the geometries}
+
+nodes_np[,c("x", "y")] <- do.call(rbind, st_geometry(nodes_np)) %>% 
+    as_tibble() %>% setNames(c("x","y"))
+
+nodes_np_ng <- nodes_np %>% st_set_geometry(NULL) %>% dplyr::select(id, x, y, z)
+
+
+lines_np_ng <- lines_np %>%
+                    st_set_geometry(NULL)
+```
+
+
+```{r node simplifier}
+
+lines_np_short <- lines_np_ng %>%
+                    filter(length<=15) %>%
+                  
+nodes_np_short <- nodes_np_ng %>% filter(id %in% lines_np_short$from_id | id %in% lines_np_short$to_id )
+
+
+g <- graph_from_data_frame(lines_np_short[,c("from_id", "to_id")], directed = TRUE, vertices = nodes_np_short) # Making the graph for the bridges
+
+plot(g,  vertex.size=0.1, vertex.label=NA,
+      vertex.color="red", edge.arrow.size=0, edge.curved = 0)
+
+
+
+comp <- components(g)
+
+comp_df <- data.frame(segment_id=as.integer(names(comp$membership)), cluster_id=comp$membership, row.names=NULL)
+
+lookup_df <-  data.frame(new_id = unique(comp_df$cluster_id), old_ids = NA, x = NA, y = NA, z = NA)
+
+# Finding centroids
+for (i in 1:nrow(lookup_df)){
+  lookup_df$old_ids[i] <- comp_df %>% filter(cluster_id == lookup_df$new_id[i]) %>% dplyr::select(segment_id) %>% as.list()
+  this_old_ids <- which(nodes_np_ng$id %in% unlist(lookup_df$old_ids[i]))
+  if(length(this_old_ids) > 2){
+    xcors <- nodes_np_ng$x[this_old_ids]
+    ycors <- nodes_np_ng$y[this_old_ids]
+    zcors <- nodes_np_ng$z[this_old_ids]
+    lookup_df$x[i] <- mean(xcors)
+    lookup_df$y[i] <- mean(ycors)
+    lookup_df$z[i] <- mean(zcors)
+    newID <- paste("S_", i, sep = "")
+    for (oldID in unlist(lookup_df$old_ids[i])){
+      j <- which(my_nodes$id  == oldID)
+      nodes_np_ng$id[j] <- newID
+      nodes_np_ng$x[j] <- lookup_df$x[i]
+      nodes_np_ng$y[j] <- lookup_df$y[i]
+      nodes_np_ng$z[j] <- lookup_df$z[i]
+      lines_np_ng[which(lines_np_ng$from_id  == oldID), "from_id"] <- newID
+      lines_np_ng[which(lines_np_ng$to_id  == oldID), "to_id"] <- newID
+    }
+  }
+}
+
+new_my_nodes <- my_nodes %>% dplyr::select(-X) %>% distinct(id, x, y, z)
+
+g2 <- graph_from_data_frame(my_links[,c("from", "to")], directed = TRUE, vertices = new_my_nodes) # Making the graph for the bridges
+
+plot(g2,  vertex.size=0.1, vertex.label=NA,
+     vertex.color="red", edge.arrow.size=0, edge.curved = 0)
+
+
+```
+
+
+```{r xml writer}
+
+xml <- xmlTree()
+
+# names(xml)
+xml$addTag("network", close=FALSE)
+xml$addTag("nodes", close=FALSE)
+
+for (i in 1:nrow(nodes_df)) {
+  xml$addTag("node", attrs = c(id=as.character(nodes_df$id[i]), x=nodes_df$x[i], y=nodes_df$y[i], z="0"))
+}
+xml$closeTag()
+
+xml$addTag("links", close=FALSE)
+for(i in 1:nrow(links_df)){
+  xml$addTag("link", attrs = c(id=as.character(links_df$id[i]), from=as.character(links_df$from[i]), to=as.character(links_df$to[i]),
+                                           length=links_df$length[i], capacity=links_df$capacity[i], freespeed=links_df$freespeed[i],
+                                           permlanes=links_df$permlanes[i], oneway="1", modes=as.character(links_df$modes[i]), origid=""))
+}
+xml$closeTag()
+xml$closeTag()
+
+xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE network SYSTEM "http://www.matsim.org/files/dtd/network_v2.dtd">
+
+'
+
+saveXML(xml, paste("./", extract_name, "110.XML", sep = ""), encoding="utf-8", 
+        prefix = xml_prefix)
+
+
+```
+

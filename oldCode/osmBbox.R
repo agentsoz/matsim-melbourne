@@ -28,3 +28,4 @@ lines_filtered <- st_crop(lines_filtered, bbox)
 
 
 st_write(lines_filtered, outputSQLite, layer = "lines", driver = "SQLite", layer_options = "GEOMETRY=AS_XY")
+

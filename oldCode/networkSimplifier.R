@@ -8,12 +8,9 @@ extract_name <- "carltonSingleBlock"
 oneDriveURL <- "../../../../OneDrive/OneDrive - RMIT University"
 # oneDriveURL <- "../../../OneDrive"
 
-
 my_nodes <- read.csv(paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/nodes_elevated.csv", sep = ""))
 
 my_links <- read.csv(paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links.csv", sep = ""))
-
-
 
 # Later I can incoporate this into zCoordinates.R
 #my_nodes_sf <- my_nodes %>% 
@@ -69,10 +66,7 @@ for (i in 1:nrow(lookup_df)){
 
 new_my_nodes <- my_nodes %>% dplyr::select(-X) %>% distinct(id, x, y, z)
 
-
-
 g2 <- graph_from_data_frame(my_links[,c("from", "to")], directed = TRUE, vertices = new_my_nodes) # Making the graph for the bridges
-
 
 plot(g2,  vertex.size=0.1, vertex.label=NA,
      vertex.color="red", edge.arrow.size=0, edge.curved = 0)
@@ -81,7 +75,6 @@ write.csv(new_my_nodes, paste(oneDriveURL, "/Data/processedSpatial/", extract_na
 write.csv(my_links, paste(oneDriveURL, "/Data/processedSpatial/", extract_name,"/links_simplified.csv", sep = ""))
 
 #nodes_sf <- st_as_sf(new_my_nodes, coords = c("x", "y"), crs = 7845)
-
 
 st_write(nodes_sf, "./my_new_nodes.sqlite", driver = "SQLite", layer_options = "GEOMETRY=AS_XY")
 
