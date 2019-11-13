@@ -52,7 +52,7 @@ lines_np <- st_read(inputSQLite_np , layer="edges") %>%
             filter(lengths(st_intersects(., study_area)) > 0)
 
 nodes_np <- st_read(inputSQLite_np , layer="nodes") %>% 
-            mutate(id = 1:n()) #%>% filter(lengths(st_intersects(., study_area)) > 0)
+            mutate(id = 1:n())
 
 ```
 
@@ -104,7 +104,7 @@ lines_np_ng <- lines_np %>%
 ```{r node simplifier}
 
 lines_np_short <- lines_np_ng %>%
-                    filter(length<=15)
+                    filter(length<=10)
                   
 nodes_np_short <- nodes_np_ng %>% filter(id %in% lines_np_short$from_id | id %in% lines_np_short$to_id )
 
@@ -146,8 +146,9 @@ for (i in 1:nrow(lookup_df)){
   }
 }
 
-nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z)
+lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed))
 
+nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z) %>% filter(id %in% lines_np_ng$from_id | id %in% lines_np_ng$to_id )
 
 
 ```
@@ -180,7 +181,7 @@ xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
 
 '
 
-saveXML(xml, paste( oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_v12.XML", sep = "" ), encoding="utf-8", 
+saveXML(xml, paste( oneDriveURL, "/Data/processedSpatial/melbourne/melbourne_v13.XML", sep = "" ), encoding="utf-8", 
         prefix = xml_prefix)
 
 
