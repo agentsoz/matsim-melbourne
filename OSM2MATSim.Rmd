@@ -5,13 +5,6 @@ date: "12/11/2019"
 output: html_document
 ---
 
-```{r control variables and work directory}
-data_folder <- "~/cloudstor/Shared/melbNetworkScripted" # Change this based on your folder structure
-crs_final <- 7845
-study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))") # This is a test area in Carlton that I use
-networkSimplication <- FALSE # change to false if you don't want to simplify the network
-```
-
 
 ```{r libraries, echo=FALSE}
 library(sf)
@@ -21,6 +14,13 @@ library(stringr)
 library(igraph)
 library(raster)
 library(XML)
+```
+
+```{r control variables and work directory}
+data_folder <- "D:/jafshin/cloudstor/Shared/melbNetworkScripted/" # Change this based on your folder structure
+crs_final <- 7845
+study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))") # This is a test area in Carlton that I use
+networkSimplication <- FALSE # change to false if you don't want to simplify the network
 ```
 
 
@@ -33,7 +33,7 @@ source("./functions/road_processor.R")
 ```{r input sqlite}
 # Reading the planar input
 inputSQLite <- paste(data_folder, "melbourne.sqlite", sep = "") 
-lines_p <- st_read(inputSQLite , layer="lines") %>% 
+lines_p <- st_read(inputSQLite , layer="roads") %>% 
             st_transform(crs_final) %>% 
             filter(lengths(st_intersects(., study_area)) > 0)
 
@@ -70,7 +70,7 @@ lines_np <- lines_np %>%
 
 
 ```{r z coordinate}
-elevation <- raster(paste(data_folder, "/DEMs/DELWPx10.tif", sep = ""))
+elevation <- raster(paste(data_folder, "DEMs/DELWPx10.tif", sep = ""))
 
 nodes_np$z <- round(raster::extract(elevation ,as(nodes_np, "Spatial"),method='bilinear'))/10
 

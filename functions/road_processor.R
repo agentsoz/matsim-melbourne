@@ -118,7 +118,7 @@ road_processor <- function(this_lines_p ,this_defaults_df){
   # Timming the data --------------------------------------------------------
   
   this_lines_p <- this_lines_p %>%
-    dplyr::select(osm_id, name, highway, freespeed, permlanes, capacity, bikeway, modes, GEOMETRY)
+    dplyr::select(osm_id, highway, freespeed, permlanes, capacity, bikeway, modes, GEOMETRY)
   
   
   return(this_lines_p)
