@@ -19,8 +19,14 @@ library(XML)
 ```{r control variables and work directory}
 data_folder <- "D:/jafshin/cloudstor/Shared/melbNetworkScripted/" # Change this based on your folder structure
 crs_final <- 7845
-study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))") # This is a test area in Carlton that I use
-networkSimplication <- FALSE # change to false if you don't want to simplify the network
+# Study area
+smaller_study_area <- T #Change to F if don't want to crop to a specific area, otherwise, specify the bounding polygon below
+study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))") # This is a test area in Carlton that I use, change it to your area of interest
+# Network simplification
+networkSimplication <- T # change to F if you don't want to simplify the network
+# Output format
+write_xml <- T # Change to F if you don't want the outputs in xml
+write_sqlite <- T # Change to F if you don't want the outputs in sqlite
 ```
 
 
@@ -34,42 +40,47 @@ source("./functions/road_processor.R")
 # Reading the planar input
 inputSQLite <- paste(data_folder, "melbourne.sqlite", sep = "") 
 lines_p <- st_read(inputSQLite , layer="roads") %>% 
-            st_transform(crs_final) %>% 
-            filter(lengths(st_intersects(., study_area)) > 0)
-
+            st_transform(crs_final) 
+            
 # Reading the nonplanar input from Alan
 inputSQLite_np <- paste(data_folder, "network.sqlite", sep = "") 
 
 lines_np <- st_read(inputSQLite_np , layer="edges") %>% 
-            mutate(id = 1:n()) %>%
-            filter(lengths(st_intersects(., study_area)) > 0)
+            mutate(id = 1:n()) %>% 
+            st_transform(crs_final) 
+
+if(smaller_study_area){
+  lines_p <- lines_p %>%
+              filter(lengths(st_intersects(., study_area)) > 0)
+  lines_np <- lines_np %>%
+              filter(lengths(st_intersects(., study_area)) > 0)
+  
+}
 
 nodes_np <- st_read(inputSQLite_np , layer="nodes") %>% 
-            mutate(id = 1:n())
+            mutate(id = 1:n())%>% 
+            st_transform(crs_final) 
 
 ```
 
-```{r road filteration}
+```{r road filteration and attributes assignment}
+# Creating defaults dataframe
 defaults_df <- defaults_df_builder()
-```
 
-
-```{r planar network but with attribs}
+# Processing the planar network and assining attributes based on defaults df and osm tags
 lines_p_attrib <- road_processor(lines_p , defaults_df)
-```
 
-
-```{r assiging attribs to np network}
-
+# Adding attributes from the planar network to the non-planar network
 lines_p_df <- lines_p_attrib %>% st_set_geometry(NULL)
 
 lines_np <- lines_np %>%
             left_join(lines_p_df, by = "osm_id")
-  
+
 ```
 
 
-```{r z coordinate}
+
+```{r adding the z coordinate}
 elevation <- raster(paste(data_folder, "DEMs/DELWPx10.tif", sep = ""))
 
 nodes_np$z <- round(raster::extract(elevation ,as(nodes_np, "Spatial"),method='bilinear'))/10
@@ -81,28 +92,29 @@ nodes_np <- nodes_np %>%
 ```
 
 
-```{r droping the geometries}
+```{r droping the geometries, ng = no geometry}
 
 nodes_np[,c("x", "y")] <- do.call(rbind, st_geometry(nodes_np)) %>% 
     as_tibble() %>% setNames(c("x","y"))
 
-nodes_np_ng <- nodes_np %>% st_set_geometry(NULL) %>% dplyr::select(id, x, y, z)
+nodes_np <- nodes_np %>% dplyr::select(id, x, y, z, GEOMETRY)
+
+#nodes_np_ng <- nodes_np %>% st_set_geometry(NULL) %>% dplyr::select(id, x, y, z)
 
 
-lines_np_ng <- lines_np %>%
-                    st_set_geometry(NULL)
+#lines_np_ng <- lines_np %>% st_set_geometry(NULL)
 ```
 
 
 ```{r node simplifier}
 if (networkSimplication){
   
-  lines_np_short <- lines_np_ng %>%
-                    filter(length<=10)
+  lines_np_short <- lines_np %>%
+                    filter(length<=10) # Here I am making my node clusters based on those that are connected with link with less than 10 meters lenght
                   
-  nodes_np_short <- nodes_np_ng %>% filter(id %in% lines_np_short$from_id | id %in% lines_np_short$to_id )
+  nodes_np_short <- nodes_np %>% filter(id %in% lines_np_short$from_id | id %in% lines_np_short$to_id )
   
-  g <- graph_from_data_frame(lines_np_short[,c("from_id", "to_id")], directed = TRUE, vertices = nodes_np_short) # Making the graph for the bridges
+  g <- graph_from_data_frame(lines_np_short[,c("from_id", "to_id")], vertices = nodes_np_short) # Making the graph for the bridges
   
   plot(g,  vertex.size=0.1, vertex.label=NA,
         vertex.color="red", edge.arrow.size=0, edge.curved = 0)
@@ -116,65 +128,88 @@ if (networkSimplication){
   # Finding centroids
   for (i in 1:nrow(lookup_df)){
     lookup_df$old_ids[i] <- comp_df %>% filter(cluster_id == lookup_df$new_id[i]) %>% dplyr::select(segment_id) %>% as.list()
-    this_old_ids <- which(nodes_np_ng$id %in% unlist(lookup_df$old_ids[i]))
+    this_old_ids <- which(nodes_np$id %in% unlist(lookup_df$old_ids[i]))
     if(length(this_old_ids) > 2){
-      xcors <- nodes_np_ng$x[this_old_ids]
-      ycors <- nodes_np_ng$y[this_old_ids]
-      zcors <- nodes_np_ng$z[this_old_ids]
+      xcors <- nodes_np$x[this_old_ids]
+      ycors <- nodes_np$y[this_old_ids]
+      zcors <- nodes_np$z[this_old_ids]
       lookup_df$x[i] <- mean(xcors)
       lookup_df$y[i] <- mean(ycors)
       lookup_df$z[i] <- mean(zcors)
       newID <- paste("S_", i, sep = "")
       for (oldID in unlist(lookup_df$old_ids[i])){
-        j <- which(nodes_np_ng$id  == oldID)
-        nodes_np_ng$id[j] <- newID
-        nodes_np_ng$x[j] <- lookup_df$x[i]
-        nodes_np_ng$y[j] <- lookup_df$y[i]
-        nodes_np_ng$z[j] <- lookup_df$z[i]
-        lines_np_ng[which(lines_np_ng$from_id  == oldID), "from_id"] <- newID
-        lines_np_ng[which(lines_np_ng$to_id  == oldID), "to_id"] <- newID
+        j <- which(nodes_np$id  == oldID)
+        nodes_np$id[j] <- newID
+        nodes_np$x[j] <- lookup_df$x[i]
+        nodes_np$y[j] <- lookup_df$y[i]
+        nodes_np$z[j] <- lookup_df$z[i]
+        lines_np[which(lines_np$from_id  == oldID), "from_id"] <- newID
+        lines_np[which(lines_np$to_id  == oldID), "to_id"] <- newID
       }
     }
   }
 }
 
-lines_np_ng <- lines_np_ng %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id)
 
-nodes_np_ng <- nodes_np_ng %>% distinct(id, x, y, z) %>% filter(id %in% lines_np_ng$from_id | id %in% lines_np_ng$to_id )
+lines_np <- lines_np %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id) # removing those that there was no match in planar dataframe and those links that 
+
+nodes_np <- nodes_np %>% filter(id %in% lines_np$from_id | id %in% lines_np$to_id ) %>% distinct(id, x, y, z)# removing links that their nodes are removed
+
+
+
+
+```
+
+```{r sqlite writer, warning=FALSE}
+if (write_sqlite ) {
+  # TODO Improve this, has a lot of warnings!
+  for (i in 1:nrow(lines_np)) {
+    orig_geom <- nodes_np[which(lines_np$from_id[i]  == nodes_np$id),"GEOMETRY"]
+    dest_geom <- nodes_np[which(lines_np$to_id[i]  == nodes_np$id),"GEOMETRY"]
+    temp <- st_cast(st_union(orig_geom, dest_geom), "LINESTRING")
+    
+    lines_np$GEOMETRY[i] <- temp$GEOMETRY
+  }
+
+  st_write(lines_np, "./outputSQLite.sqlite", layer = "lines", driver = "SQLite", layer_options = "GEOMETRY=AS_XY", delete_layer = T)
+  st_write(nodes_np, "./outputSQLite.sqlite", layer = "nodes", driver = "SQLite", layer_options = "GEOMETRY=AS_XY", delete_layer = T)
+
+}
 
 ```
 
 
+
 ```{r xml writer}
+if (write_xml){
+  xml <- xmlTree()
+  
+  # names(xml)
+  xml$addTag("network", close=FALSE)
+  xml$addTag("nodes", close=FALSE)
+  
+  for (i in 1:nrow(nodes_np)) {
+    xml$addTag("node", attrs = c(id=as.character(nodes_np$id[i]), x=nodes_np$x[i], y=nodes_np$y[i], z=nodes_np$z[i]))
+  }
+  xml$closeTag()
+  
+  xml$addTag("links", close=FALSE)
+  for(i in 1:nrow(lines_np)){
+    xml$addTag("link", attrs = c(id=as.character(lines_np$id[i]), from=as.character(lines_np$from_id[i]), to=as.character(lines_np$to_id[i]),
+                                             length=lines_np$length[i], capacity=lines_np$capacity[i], freespeed=lines_np$freespeed[i],
+                                             permlanes=lines_np$permlanes[i], oneway="1", modes=as.character(lines_np$modes[i]), origid=""))
+  }
+  xml$closeTag()
+  xml$closeTag()
+  
+  xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE network SYSTEM "http://www.matsim.org/files/dtd/network_v2.dtd">
+  
+  '
+  
+  saveXML(xml, "./network.XML", encoding="utf-8", 
+          prefix = xml_prefix)
 
-xml <- xmlTree()
-
-# names(xml)
-xml$addTag("network", close=FALSE)
-xml$addTag("nodes", close=FALSE)
-
-for (i in 1:nrow(nodes_np_ng)) {
-  xml$addTag("node", attrs = c(id=as.character(nodes_np_ng$id[i]), x=nodes_np_ng$x[i], y=nodes_np_ng$y[i], z=nodes_np_ng$z[i]))
 }
-xml$closeTag()
-
-xml$addTag("links", close=FALSE)
-for(i in 1:nrow(lines_np_ng)){
-  xml$addTag("link", attrs = c(id=as.character(lines_np_ng$id[i]), from=as.character(lines_np_ng$from_id[i]), to=as.character(lines_np_ng$to_id[i]),
-                                           length=lines_np_ng$length[i], capacity=lines_np_ng$capacity[i], freespeed=lines_np_ng$freespeed[i],
-                                           permlanes=lines_np_ng$permlanes[i], oneway="1", modes=as.character(lines_np_ng$modes[i]), origid=""))
-}
-xml$closeTag()
-xml$closeTag()
-
-xml_prefix <- '<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE network SYSTEM "http://www.matsim.org/files/dtd/network_v2.dtd">
-
-'
-
-saveXML(xml, "./network.XML", encoding="utf-8", 
-        prefix = xml_prefix)
-
-
 ```
 

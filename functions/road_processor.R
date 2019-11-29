@@ -1,6 +1,5 @@
 road_processor <- function(this_lines_p ,this_defaults_df){
-  
-  # 2. Filtering roads and converting from OSM format to desired dataframe format
+  # Filters roads and converting from OSM format to the desired dataframe format
 
   this_lines_p <- lines_p
   this_defaults_df <- defaults_df
@@ -48,7 +47,7 @@ road_processor <- function(this_lines_p ,this_defaults_df){
       this_lines_p[i, "permlanes"]  <- this_defaults_df[this_default_row, "permlanes"]
     }
     
-    # TODO Capacity = (Default Capacity / Default #Lanes)*Actual #Lanes
+    # TODO ? Capacity = (Default Capacity / Default #Lanes)*Actual #Lanes
     this_cap_per_lane <- this_defaults_df[this_default_row, "capacity"] / this_defaults_df[this_default_row, "permlanes"]
     
     this_lines_p[i, "capacity"] <- as.integer(this_lines_p$permlanes[i]) * this_cap_per_lane
