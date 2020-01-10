@@ -122,7 +122,4 @@ road_processor <- function(this_lines_p ,this_defaults_df){
   
   return(this_lines_p)
   
-  # writing outputs ---------------------------------------------------------
-  
-  #st_write(this_lines_p, outputSQLite, layer = "lines", driver = "SQLite", layer_options = "GEOMETRY=AS_XY")
 }

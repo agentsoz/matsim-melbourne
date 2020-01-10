@@ -39,18 +39,22 @@ exportXML <- function(l_df, n_df, outputFileName = "outputSQlite"){
   
   # Generating XML
   nodesn <-newXMLNode("nodes")
+  echo('Starting to add nodes to XML\n')
   for (i in 1:nrow(n_df)) {
+    if(i %%50 == 0) printProgress(i, nrow(n_df), 'node')
     nodesn <- addMATSimNode(n_df[i,], nodesn)
   }
+  
   addChildren(netn, nodesn)
   
   linksn <-newXMLNode("links")
   for (i in 1:nrow(l_df)) {
+    if(i %%10 == 0) printProgress(i, nrow(l_df), 'link')
     linksn <- addMATSimLink(l_df[i,], linksn)
   }
   addChildren(netn, linksn)
   
-  xml_file  <- paste0("networktest.xml")
+  xml_file  <- paste0('../outputs/outputNetworks/',outputFileName, '.xml')
   
   cat(saveXML(doc, 
               prefix=paste0('<?xml version="1.0" encoding="utf-8"?>\n',

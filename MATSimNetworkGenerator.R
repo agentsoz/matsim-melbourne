@@ -9,19 +9,31 @@ library(XML)
 library(rgdal)
 
 #functions}
-source("./functions/defaults_df_builder.R")
-source("./functions/road_processor.R")
-source("./functions/simplifyNetwork.R")
-source("./functions/exportSQlite.R")
-source("./functions/exportXML.R")
+source('./functions/defaults_df_builder.R')
+source('./functions/road_processor.R')
+source('./functions/simplifyNetwork.R')
+source('./functions/exportSQlite.R')
+source('./functions/exportXML.R')
+
+
+echo<- function(msg) {
+  cat(paste0(as.character(Sys.time()), ' | ', msg))  
+}
+
+printProgress<-function(row, total_row, char) {
+  if((row-50)%%2500==0) echo('')
+  cat('.')
+  if(row%%500==0) cat('|')
+  if(row%%2500==0) cat(paste0(char,' ', row, ' of ', total_row, '\n'))
+}
 
 ## Seting control variables and directories 
 # Change this based on your folder structure
-data_folder <- "D:/jafshin/cloudstor/Shared/melbNetworkScripted/" 
+data_folder <- 'D:/jafshin/cloudstor/Shared/melbNetworkScripted/' 
 # NOTE elevation file needs to be in this crs already
 crs_final <- 28355
 # Study area
-smaller_study_area <- T #Crop or not (T/F)
+smaller_study_area <- F #Crop or not (T/F)
 # Carlton CBD test area
 #study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))")
 study_area <- st_as_sfc("SRID=28355;POLYGON((318877.2 5814208.5, 321433.7 5814021.4, 321547.1 5812332.6 ,318836.3 5812083.8,  318877.2 5814208.5))")
@@ -31,16 +43,16 @@ study_area <- st_as_sfc("SRID=28355;POLYGON((318877.2 5814208.5, 321433.7 581402
 networkSimplication <- F 
 # Output format (T/F)
 write_xml <- T 
-write_sqlite <- T 
+write_sqlite <- F
 
 ### Reading inputs
 # Reading the planar input (unproccessed)
-inputSQLite <- paste(data_folder, "melbourne.sqlite", sep = "") 
+inputSQLite <- paste0(data_folder, 'melbourne.sqlite') 
 lines_p <- st_read(inputSQLite , layer="roads") %>% 
   st_transform(crs_final) 
 
 # Reading the nonplanar input (processed data by Alan)
-inputSQLite_np <- paste(data_folder, "network.sqlite", sep = "") 
+inputSQLite_np <- paste0(data_folder, 'network.sqlite') 
 # lines
 lines_np <- st_read(inputSQLite_np , layer="edges") %>% 
   mutate(id = 1:n()) %>% 
@@ -72,7 +84,7 @@ lines_np <- lines_np %>%
 
 ## Adding elevation
 # Reading elevation raster file
-elevation <- raster(paste(data_folder, "DEMs/DEMx10EPSG28355.tif", sep = "")) 
+elevation <- raster(paste0(data_folder, 'DEMs/DEMx10EPSG28355.tif')) 
 #projectRaster(elevation, crs=CRS(paste("+init=epsg:", crs_final, sep = "")))
 #writeRaster(elevation, filename="./DEMx10EPSG28355.tif", format="GTiff", overwrite=TRUE)
 # Assiging z coordinations to nodes
@@ -100,11 +112,17 @@ lines_np <- lines_np %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id) 
 nodes_np <- nodes_np %>% filter(id %in% lines_np$from_id | id %in% lines_np$to_id ) %>% distinct(id, x, y, z)# removing links that their nodes are removed
 
 if (write_sqlite) {
-  exportSQlite(lines_np, nodes_np, outputFileName = "outputSQlite")
+  cat('\n')
+  echo(paste0('Writing the sqlite output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
+  exportSQlite(lines_np, nodes_np, outputFileName = "outputSQliteBIG")
+  echo(paste0('Finished generating the sqlite output\n'))
 }
 
 if (write_xml) {
-  exportXML(lines_np, nodes_np, outputFileName = "outputSQlite")
+  cat('\n')
+  echo(paste0('Writing the XML output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
+  exportXML(lines_np, nodes_np, outputFileName = "outputSQliteBIG")
+  echo(paste0('Finished generating the xml output\n'))
 }
 
 
