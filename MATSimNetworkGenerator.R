@@ -13,6 +13,7 @@ source("./functions/defaults_df_builder.R")
 source("./functions/road_processor.R")
 source("./functions/simplifyNetwork.R")
 source("./functions/exportSQlite.R")
+source("./functions/exportXML.R")
 
 ## Seting control variables and directories 
 # Change this based on your folder structure
