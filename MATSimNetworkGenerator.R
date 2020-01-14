@@ -15,7 +15,6 @@ source('./functions/simplifyNetwork.R')
 source('./functions/exportSQlite.R')
 source('./functions/exportXML.R')
 
-
 echo<- function(msg) {
   cat(paste0(as.character(Sys.time()), ' | ', msg))  
 }
@@ -72,9 +71,9 @@ if(smaller_study_area){
 
 ## OSM tags processing and attributes assingment
 # Creating defaults dataframe
-defaults_df <- defaults_df_builder()
+defaults_df <- buildDefaultsDF()
 # Processing the planar network and assining attributes based on defaults df and osm tags
-lines_p_attrib <- road_processor(lines_p , defaults_df)
+lines_p_attrib <- processRoads(lines_p , defaults_df)
 # Removing the geometries
 lines_p_attrib <- lines_p_attrib %>% st_set_geometry(NULL)
 # Adding attributes from the planar network to the non-planar network
@@ -121,9 +120,6 @@ if (write_sqlite) {
 if (write_xml) {
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
-  exportXML(lines_np, nodes_np, outputFileName = "outputSQliteBIG")
+  exportXML(lines_np, nodes_np, outputFileName = "outputXMLBig")
   echo(paste0('Finished generating the xml output\n'))
 }
-
-
-

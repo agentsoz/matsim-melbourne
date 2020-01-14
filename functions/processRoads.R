@@ -1,4 +1,4 @@
-road_processor <- function(this_lines_p ,this_defaults_df){
+processRoads <- function(this_lines_p ,this_defaults_df){
   # Filters roads and converting from OSM format to the desired dataframe format
 
   this_lines_p <- lines_p
