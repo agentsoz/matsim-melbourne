@@ -1,4 +1,4 @@
-exportSQlite <- function(l_df, n_df, outputFileName = "outputSQlite"){
+exportSQlite <- function(l_df, n_df, outputFileName){
   # Creating a geometry for each link from the geometry of its nodes 
   linksGeometry <- mapply(function(a,b) st_cast(st_combine(c(a,b)),"LINESTRING"), 
                           l_df %>%

@@ -1,8 +1,8 @@
 processRoads <- function(this_lines_p ,this_defaults_df){
   # Filters roads and converting from OSM format to the desired dataframe format
 
-  this_lines_p <- lines_p
-  this_defaults_df <- defaults_df
+  #this_lines_p <- lines_p
+  #this_defaults_df <- defaults_df
 
   this_lines_p <-this_lines_p %>%
     #this_lines_p <- st_read(, layer="lines") %>%
@@ -14,6 +14,10 @@ processRoads <- function(this_lines_p ,this_defaults_df){
     filter(!other_tags %like% "private" | !other_tags %like% '"access"=>"no"') %>%
     mutate(osm_id=as.numeric(as.character(osm_id)))
 
+  
+  # Filtering based on whether in focus area or not
+  this_lines_p <- this_lines_p %>%
+    filter(detailed == "Yes" | (detailed == "No" & highway %in% as.character(defaults_df$highwayType[1:8])) )
   # Processing the "other_tags"  --------------------------------------------------
   for (i in 1:nrow(this_lines_p)){
     this_other_tags <- str_extract_all(this_lines_p$other_tags[i], boundary("word"))
