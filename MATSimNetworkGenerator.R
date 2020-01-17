@@ -1,5 +1,6 @@
 #libraries
 library(sf)
+library(lwgeom)
 library(dplyr)
 library(data.table)
 library(stringr)
@@ -30,6 +31,7 @@ printProgress<-function(row, total_row, char) {
 ## Seting control variables and directories 
 # Change this based on your folder structure
 data_folder <- 'D:/jafshin/cloudstor/Shared/melbNetworkScripted/' 
+data_folder <- '/home/alan/melbNetworkScripted/'
 # NOTE elevation file needs to be in this crs already
 crs_final <- 28355
 
@@ -59,18 +61,20 @@ lines_p <- st_read(inputSQLite , layer="roads") %>%
   st_transform(crs_final) %>% 
   mutate(detailed =  ifelse(lengths(st_intersects(., focus_area_boundary)) > 0,  "Yes",
                             ifelse(focus_area, "No", "Yes")))
-           
+
 
 # Reading the nonplanar input (processed data by Alan)
 inputSQLite_np <- paste0(data_folder, 'network.sqlite') 
 # lines
 lines_np <- st_read(inputSQLite_np , layer="edges") %>% 
-  mutate(id = 1:n()) %>% 
-  st_transform(crs_final) 
+  mutate(id = row_number()) %>% 
+  st_transform(crs_final) %>%
+  st_snap_to_grid(1)
 # nodes
 nodes_np <- st_read(inputSQLite_np , layer="nodes") %>% 
-  mutate(id = 1:n())%>% 
-  st_transform(crs_final) 
+  mutate(id = row_number())%>% 
+  st_transform(crs_final) %>%
+  st_snap_to_grid(1)
 
 # Croping to the study area
 if(smaller_study_area){

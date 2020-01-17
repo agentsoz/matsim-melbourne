@@ -16,6 +16,14 @@ ogr2ogr -update -overwrite -nln roads -f "SQLite" -dsco SPATIALITE=YES \
         other_tags NOT LIKE '%\"access\"=>\"private\"%')) " \
   melbourne.sqlite melbourne.osm
 
+# extract the traffic signals, put in melbourne.sqlite
+ogr2ogr -update -overwrite -nln roads_points -f "SQLite" -dsco SPATIALITE=YES \
+  -dialect SQLite -sql \
+  "SELECT CAST(osm_id AS DOUBLE PRECISION) AS osm_id, highway, other_tags, \
+    GEOMETRY FROM points \
+    WHERE highway LIKE '%traffic_signals%' " \
+  melbourne.sqlite melbourne.osm
+
 # extract the train and tram lines and add to melbourne.sqlite
 # apparently there are minature railways
 ogr2ogr -update -overwrite -nln pt -f "SQLite" -dialect SQLite -sql \

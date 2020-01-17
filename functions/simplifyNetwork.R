@@ -1,44 +1,100 @@
 
-simplifyNetwork <- function(l_df, n_df, shortLinkLength = 10){
+# simplifyNetwork <- function(l_df, n_df, shortLinkLength = 10){
+l_df=lines_np
+n_df=nodes_np
+shortLinkLength = 20
+
+n_df_coords <- n_df %>%
+  st_drop_geometry() %>%
+  cbind(st_coordinates(n_df))
+roundabout_osm <- lines_p %>%
+  st_drop_geometry() %>%
+  filter(other_tags %like% "roundabout") %>%
+  pull(osm_id)
+
+
+l_df <- lines_np %>%
+  st_drop_geometry() %>%
+  rowwise() %>%
+  mutate(from=min(from_id,to_id),
+         to=max(from_id,to_id)) %>%
+  dplyr::select(osm_id,length,from_id=from,to_id=to,id) %>%
+  as.data.frame() %>%
+  left_join(n_df_coords,by=c("from_id"="id")) %>%
+  rename(fromX=X,fromY=Y) %>%
+  left_join(n_df_coords,by=c("to_id"="id")) %>%
+  rename(toX=X,toY=Y)
+
+roundabout_n <- l_df %>%
+  filter(length<=shortLinkLength) %>%
+  filter(osm_id %in% roundabout_osm)
+
+roundabout_n <- base::unique(c(roundabout_n$from_id,roundabout_n$to_id))
+  # l_df <- l_df %>%
+  #   rowwise() %>%
+  #   mutate(from=min(from_id,to_id),
+  #          to=max(from_id,to_id)) %>%
+  #   # st_drop_geometry() %>%
+  #   dplyr::select(osm_id,length,from_id=from,to_id=to,id,GEOMETRY) %>%
+  #   st_as_sf()
+  # 
   
+    
   # finding links with short length (default=10m)
   l_df_short <- l_df %>%
-    filter(length<=shortLinkLength) 
+    filter(length<=shortLinkLength) %>%
+    dplyr::select(from=from_id,to=to_id) %>%
+    distinct()
+  # left_join(roundabout_df) %>%
+    # group_by(from_id,to_id) %>%
+    # summarise(roundabout=max(roundabout)) %>%
+  # st_drop_geometry() %>%
+  
+
   # Selecting nodes connected with short links
-  n_df_short <- n_df %>% filter(id %in% l_df_short$from_id | id %in% l_df_short$to_id )
+  # n_df_short <- n_df %>% filter(id %in% l_df_short$from | id %in% l_df_short$to )
+  n_df_short <- base::unique(c(l_df_short$from,l_df_short$to))
   # Making the graph for the bridges
-  g <- graph_from_data_frame(l_df_short[,c("from_id", "to_id")], vertices = n_df_short) 
+  g <- graph_from_data_frame(l_df_short, vertices = n_df_short, directed = FALSE) 
   #plot(g,  vertex.size=0.1, vertex.label=NA, vertex.color="red", edge.arrow.size=0, edge.curved = 0)
   
   # Getting components
   comp <- components(g)
-  comp_df <- data.frame(segment_id=as.integer(names(comp$membership)), cluster_id=comp$membership, row.names=NULL)
-  # Creating an empty lookup
-  lookup_df <-  data.frame(new_id = unique(comp_df$cluster_id), old_ids = NA, x = NA, y = NA, z = NA)
+  comp_df <- data.frame(segment_id=as.integer(names(comp$membership)), cluster_id=comp$membership, row.names=NULL) %>%
+    left_join(n_df_coords, by=c("segment_id"="id")) %>%
+    mutate(roundabout=ifelse(segment_id %in% roundabout_n,1,0))
   
-  # Finding centroids
-  for (i in 1:nrow(lookup_df)){
-    lookup_df$old_ids[i] <- comp_df %>% filter(cluster_id == lookup_df$new_id[i]) %>% dplyr::select(segment_id) %>% as.list()
-    this_old_ids <- which(n_df$id %in% unlist(lookup_df$old_ids[i]))
-    if(length(this_old_ids) > 2){
-      xcors <- n_df$x[this_old_ids]
-      ycors <- n_df$y[this_old_ids]
-      zcors <- n_df$z[this_old_ids]
-      lookup_df$x[i] <- mean(xcors)
-      lookup_df$y[i] <- mean(ycors)
-      lookup_df$z[i] <- mean(zcors)
-      newID <- paste("S_", i, sep = "")
-      for (oldID in unlist(lookup_df$old_ids[i])){
-        j <- which(n_df$id  == oldID)
-        n_df$id[j] <- newID
-        n_df$x[j] <- lookup_df$x[i]
-        n_df$y[j] <- lookup_df$y[i]
-        n_df$z[j] <- lookup_df$z[i]
-        l_df[which(l_df$from_id  == oldID), "from_id"] <- newID
-        l_df[which(l_df$to_id  == oldID), "to_id"] <- newID
-      }
-    }
-  }
+  comp_df_centroid <- comp_df %>%
+    group_by(cluster_id) %>%
+    summarise(X=round(mean(X)),Y=round(mean(Y)),roundabout=max(roundabout)) %>%
+    ungroup() %>%
+    mutate(new_id=max(n_df_coords$id)+cluster_id)
   
-  return(list(n_df, l_df))
-}
+  comp_df_altered <- comp_df %>%
+    left_join(comp_df_centroid,by="cluster_id") %>%
+    dplyr::select(id=segment_id,new_id,X=X.y,Y=Y.y)
+  
+n_df_new <- n_df_coords %>%
+  filter(!id %in% comp_df$segment_id) %>%
+  mutate(roundabout=0) %>%
+  rbind(dplyr::select(comp_df_centroid,id=new_id,X,Y,roundabout)) %>%
+  mutate(GEOMETRY=paste0("POINT(",X," ",Y,")")) %>%
+  st_as_sf(wkt = "GEOMETRY", crs = 28355)
+
+l_df_new <- l_df %>%
+  left_join(comp_df_altered, by=c("from_id"="id")) %>%
+  mutate(from_id=ifelse(is.na(new_id),from_id,new_id)) %>%
+  mutate(fromX=ifelse(is.na(new_id),fromX,X)) %>%
+  mutate(fromY=ifelse(is.na(new_id),fromY,Y)) %>%
+  dplyr::select(osm_id,length,from_id,to_id,fromX,fromY,toX,toY) %>%
+  left_join(comp_df_altered, by=c("to_id"="id")) %>%
+  mutate(to_id=ifelse(is.na(new_id),to_id,new_id)) %>%
+  mutate(toX=ifelse(is.na(new_id),toX,X)) %>%
+  mutate(toY=ifelse(is.na(new_id),toY,Y)) %>%
+  dplyr::select(osm_id,length,from_id,to_id,fromX,fromY,toX,toY) %>%
+  mutate(GEOMETRY=paste0("LINESTRING(",fromX," ",fromY,",",toX," ",toY,")")) %>%
+  st_as_sf(wkt = "GEOMETRY", crs = 28355)
+
+
+st_write(l_df_new,"networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
+st_write(n_df_new,"networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
