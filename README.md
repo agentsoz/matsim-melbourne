@@ -1,11 +1,24 @@
 # MATSim-Melbourne
 
 ---
+## IMPORTANT NOTICE
+
+**17-Jan-2020**
+
+As of today and commit 856f6c4, the Git history of this project has been rewritten, so if you have cloned this repository prior to this then you will no longer be able to pull changes.
+
+If this applies to you, then please do one of the following:
+1. If your's was a "read-only" clone i.e., you have made no commits of your own that need to be merged back, then you can simply discard your old clone and create a fresh clone of the repository. Things should be back to normal for you after that and going forward you will be able to pull changes as before.
+1. If your clone has commits that need to be merged back, then create a pull request and let us know. Given that there have been no commits to the repository since Jul 2018, we are assuming that no one is in this boat.
+
+Why did we rewrite Git history?
+1. We had been paying for Git-LFS support for 2+ years and had to discontinue that (all good things must end some time). As such, large files are no longer under version control and are archived elsewhere on Cloudstor. The only two subdirectories impacted by this are [`./data`](./data) and [`./results`](./results). See the relevant `README` files in those subdirectories for details of how to access their contents.
+1. Once large files were removed, we had the opportunity to shrink the Git repository down in size by removing all traces of the large files from the history. We did this, and the Git repository is a lot leaner now, down from 2GB to ~200MB.
+
+---
 ## About this project
 
 This repository will provide an open and validated MATSim traffic model for the greater Melbourne area. The project is a collaborative effort between individuals and groups from [RMIT University](http://www.rmit.edu.au), [University of Melbourne](http://www.unimelb.edu.au/), [CSIRO Data61](http://data61.csiro.au/), [Swinburne University](http://www.swinburne.edu.au/), [KPMG Australia](https://home.kpmg.com/au/en/home.html), and others.
-
-The first release of the model is expected to be made in Mar 2018.
 
 ---
 
@@ -39,10 +52,12 @@ You will need Java installed on your machine to be able to run the MATSim Melbou
 
 If you are not going to be doing any development, but just want to use the tool, you only need the Java Runtime Environemnt (JRE) installed. * Note that this project is compatible with Java 8 and will likely not work for Java 9, as of 07-Feb-18.*
 
+<!--
 ### 2. Support for large files (Git-LFS)
 
 If you are just using the project from the browser, you can ignore this section.
 If you want to pull a git clone, this is important: Given that the model will invariably be using large data files from various sources, we will use [Git LFS support](https://help.github.com/articles/versioning-large-files/) in GitHub for storing these. The idea is to keep all such files in the `./data` directory. LFS is already set up to track any file in this directory, so there is nothing special you have to do, other than ensuring that you [install Git LFS](https://help.github.com/articles/installing-git-large-file-storage/). Otherwise when you clone the repository you only receive the *pointers* to the large files and not the actual data.
+-->
 
 ### 3. Git
 
