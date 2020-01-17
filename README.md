@@ -5,7 +5,7 @@
 
 **17-Jan-2020**
 
-As of today and commit 856f6c4, the Git history of this project has been rewritten, so if you have cloned this repository prior to this then you will no longer be able to pull changes.
+As of today and commit `856f6c4`, the Git history of this project has been rewritten, so if you have cloned this repository prior to this then you will no longer be able to pull changes.
 
 If this applies to you, then please do one of the following:
 1. If your's was a "read-only" clone i.e., you have made no commits of your own that need to be merged back, then you can simply discard your old clone and create a fresh clone of the repository. Things should be back to normal for you after that and going forward you will be able to pull changes as before.
