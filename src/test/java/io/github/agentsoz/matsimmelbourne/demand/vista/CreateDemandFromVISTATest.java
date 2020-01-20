@@ -18,6 +18,7 @@
  * *********************************************************************** */
 package io.github.agentsoz.matsimmelbourne.demand.vista;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.io.IOException;
 public class CreateDemandFromVISTATest {
 
 	@Test
+	@Ignore
 	public final void testMain() throws IOException {
 		CreateDemandFromVISTA.main(null) ;
 	}

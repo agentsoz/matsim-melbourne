@@ -2,6 +2,7 @@ package io.github.agentsoz.matsimmelbourne.io.github.agentsoz.matsimmelbourne.de
 
 import io.github.agentsoz.matsimmelbourne.demand.latch.CreatePopulationFromLatch;
 import org.apache.log4j.Logger;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -34,6 +35,7 @@ public class CreatePopulationFromLatchTest {
     // *******FIXED**********FIXME: rename testMain everywhere to be more meaningful wrt what is being tested
 
     @Test
+    @Ignore
     public final void createPopFromLatchTestMain() throws IOException {
 
         final String TEST_OUTPUT_FILENAME = "test";

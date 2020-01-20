@@ -32,9 +32,9 @@
 			<id>boundless</id>
 			<name>Boundless Maven Repository</name>
 			<url>http://repo.boundlessgeo.com/main</url>
-		</repository>	
+		</repository>
 	</repositories>
-	
+
 
 	<dependencies>
 
@@ -117,7 +117,35 @@
 			<artifactId>javax.activation</artifactId>
 			<version>1.2.0</version>
 		</dependency>
-    </dependencies>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-main</artifactId>
+			<version>22.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-referencing</artifactId>
+			<version>22.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-shapefile</artifactId>
+			<version>22.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-epsg-hsql</artifactId>
+			<version>22.0</version>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.vividsolutions/jts -->
+		<dependency>
+			<groupId>com.vividsolutions</groupId>
+			<artifactId>jts</artifactId>
+			<version>1.13</version>
+		</dependency>
+
+	</dependencies>
 
 	<build>
 		<plugins>
@@ -139,14 +167,6 @@
 						<Xmaxwarns>4000</Xmaxwarns>
 						<Xmaxerrs>100</Xmaxerrs>
 					</compilerArguments>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-eclipse-plugin</artifactId>
-				<configuration>
-					<downloadSources>true</downloadSources>
-					<downloadJavadocs>true</downloadJavadocs>
 				</configuration>
 			</plugin>
 			<plugin>

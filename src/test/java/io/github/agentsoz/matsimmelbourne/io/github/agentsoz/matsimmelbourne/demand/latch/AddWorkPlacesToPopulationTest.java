@@ -1,6 +1,7 @@
 package io.github.agentsoz.matsimmelbourne.io.github.agentsoz.matsimmelbourne.demand.latch;
 
 import io.github.agentsoz.matsimmelbourne.demand.latch.AddWorkPlacesToPopulation;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ public class AddWorkPlacesToPopulationTest {
     };
 
     @Test
+    @Ignore
     public final void addworkPlacestoPopTestMain() throws IOException {
         // FIXME: not really testing anything at the moment;
         // ***********FIXED************ FIXME: also relies on availability of population-from-latch.xml which may not
