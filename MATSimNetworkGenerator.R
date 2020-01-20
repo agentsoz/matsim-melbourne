@@ -45,7 +45,7 @@ study_area <- st_as_sfc("SRID=28355;POLYGON((318877.2 5814208.5, 321433.7 581402
 focus_area <- T
 # Based on https://github.com/JamesChevalier/cities/tree/master/australia/victoria
 selected_shire <- "australia/victoria/city-of-melbourne_victoria.poly"
-focus_area_boundary <- getAreaBoundary(selected_shire, crs_final)
+focus_area_boundary <- getAreaBoundary(selected_shire, crs_final) # TODO I am usnig convex_hull, might need to go for a more accuarate one
 
 # Network simplification (T/F)
 networkSimplication <- F 
@@ -102,7 +102,7 @@ elevation <- raster(paste0(data_folder, 'DEMs/DEMx10EPSG28355.tif'))
 #projectRaster(elevation, crs=CRS(paste("+init=epsg:", crs_final, sep = "")))
 #writeRaster(elevation, filename="./DEMx10EPSG28355.tif", format="GTiff", overwrite=TRUE)
 # Assiging z coordinations to nodes
-nodes_np$z <- round(raster::extract(elevation ,as(nodes_np, "Spatial"),method='bilinear'))/10 # TODO Not working properly
+nodes_np$z <- round(raster::extract(elevation ,as(nodes_np, "Spatial"),method='bilinear'))/10 # TODO Might not be working properly
 # replacing NA z coords to 10
 nodes_np <- nodes_np %>%
   mutate(z = ifelse(test = is.na(z)
@@ -135,6 +135,6 @@ if (write_sqlite) {
 if (write_xml) {
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
-  exportXML(lines_np, nodes_np, outputFileName = "outputXMLBig")
+  exportXML(lines_np, nodes_np, outputFileName = "outputXMLFocusedCoM")
   echo(paste0('Finished generating the xml output\n'))
 }

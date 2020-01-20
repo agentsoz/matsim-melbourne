@@ -82,12 +82,12 @@ processRoads <- function(this_lines_p ,this_defaults_df){
   
   this_lines_p <- this_lines_p %>% 
     mutate(modes = NA) %>%
-    mutate(modes = ifelse(test = grepl("bike" , default_modes) & !(other_tags %like% '"bicycle"=>"no"'), 
-                          yes = "bike", 
+    mutate(modes = ifelse(test = grepl("bicycle" , default_modes) & !(other_tags %like% '"bicycle"=>"no"'), 
+                          yes = "bicycle", 
                           no = ifelse(test = other_tags%like%'"bicycle"=>"yes"' | other_tags%like%'"bicycle"=>"designated"', 
-                                      yes = "bike",
+                                      yes = "bicycle",
                                       no =  ifelse(test = !is.na(bikeway),
-                                                   yes = "bike", 
+                                                   yes = "bicycle", 
                                                    no = NA)))) 
   
   this_lines_p <- this_lines_p %>%
