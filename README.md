@@ -50,7 +50,7 @@ git clone https://github.com/agentsoz/matsim-melbourne
 
 You will need Java installed on your machine to be able to run the MATSim Melbourne GUI. If unsure, go to  https://www.java.com/en/ to find out if you already have Java installed, and/or to get the correct version of Java for your operating system.
 
-If you are not going to be doing any development, but just want to use the tool, you only need the Java Runtime Environemnt (JRE) installed. * Note that this project is compatible with Java 8 and will likely not work for Java 9, as of 07-Feb-18.*
+If you are not going to be doing any development, but just want to use the tool, you only need the Java Runtime Environemnt (JRE) installed. *For development, we use [Open JDK 11](https://openjdk.java.net/projects/jdk/11/).*
 
 <!--
 ### 2. Support for large files (Git-LFS)
