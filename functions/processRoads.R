@@ -16,8 +16,8 @@ processRoads <- function(this_lines_p ,this_defaults_df){
 
   
   # Filtering based on whether in focus area or not
-  this_lines_p <- this_lines_p %>%
-    filter(detailed == "Yes" | (detailed == "No" & highway %in% as.character(defaults_df$highwayType[1:8])) )
+  # this_lines_p <- this_lines_p %>%
+  #   filter(detailed == "Yes" | (detailed == "No" & highway %in% as.character(defaults_df$highwayType[1:8])) )
   # Processing the "other_tags"  --------------------------------------------------
   for (i in 1:nrow(this_lines_p)){
     this_other_tags <- str_extract_all(this_lines_p$other_tags[i], boundary("word"))
@@ -121,7 +121,7 @@ processRoads <- function(this_lines_p ,this_defaults_df){
   # Timming the data --------------------------------------------------------
   
   this_lines_p <- this_lines_p %>%
-    dplyr::select(osm_id, highway, freespeed, permlanes, capacity, bikeway, modes, GEOMETRY)
+    dplyr::select(osm_id, highway, freespeed, permlanes, capacity, bikeway, modes)
   
   
   return(this_lines_p)

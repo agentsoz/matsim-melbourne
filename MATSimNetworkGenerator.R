@@ -31,7 +31,7 @@ printProgress<-function(row, total_row, char) {
 ## Seting control variables and directories 
 # Change this based on your folder structure
 data_folder <- 'D:/jafshin/cloudstor/Shared/melbNetworkScripted/' 
-data_folder <- '/home/alan/melbNetworkScripted/'
+data_folder <- 'data/'
 # NOTE elevation file needs to be in this crs already
 crs_final <- 28355
 
@@ -56,39 +56,43 @@ write_sqlite <- T
 
 ### Reading inputs
 # Reading the planar input (unproccessed)
-inputSQLite <- paste0(data_folder, 'melbourne.sqlite') 
-lines_p <- st_read(inputSQLite , layer="roads") %>% 
-  st_transform(crs_final) %>% 
-  mutate(detailed =  ifelse(lengths(st_intersects(., focus_area_boundary)) > 0,  "Yes",
-                            ifelse(focus_area, "No", "Yes")))
+osm_metadata <- st_read(paste0(data_folder, 'melbourne.sqlite'),layer="roads")%>%st_drop_geometry()
+# inputSQLite <- paste0(data_folder, 'melbourne.sqlite') 
+# lines_p <- st_read(inputSQLite , layer="roads") %>% 
+#   st_transform(crs_final) %>% 
+#   mutate(detailed =  ifelse(lengths(st_intersects(., focus_area_boundary)) > 0,  "Yes",
+#                             ifelse(focus_area, "No", "Yes")))
 
 
 # Reading the nonplanar input (processed data by Alan)
 inputSQLite_np <- paste0(data_folder, 'network.sqlite') 
 # lines
-lines_np <- st_read(inputSQLite_np , layer="edges") %>% 
-  mutate(id = row_number()) %>% 
-  st_transform(crs_final) %>%
-  st_snap_to_grid(1)
+lines_np <- st_read(inputSQLite_np , layer="edges")
+  # mutate(id = paste0(from_id,"_",to_id))
 # nodes
-nodes_np <- st_read(inputSQLite_np , layer="nodes") %>% 
-  mutate(id = row_number())%>% 
-  st_transform(crs_final) %>%
-  st_snap_to_grid(1)
+nodes_np <- st_read(inputSQLite_np , layer="nodes") #nodes already has an id
+
+if (networkSimplication){
+  # node clusters based on those that are connected with link with less than 10 meters length
+  df <- simplifyNetwork(lines_np, nodes_np, osm_metadata, shortLinkLength = 20)
+  nodes_np <- df[[1]]
+  lines_np <- df[[2]]
+}
 
 # Croping to the study area
 if(smaller_study_area){
-  lines_p <- lines_p %>%
+  nodes_np <- nodes_np %>%
     filter(lengths(st_intersects(., study_area)) > 0)
   lines_np <- lines_np %>%
-    filter(lengths(st_intersects(., study_area)) > 0)
+    filter(from_id%in%nodes_np$to_id & to_id%in%nodes_np$to_id)
 }
 
 ## OSM tags processing and attributes assingment
+osm_metadata <- osm_metadata %>% filter(osm_id%in%lines_np$osm_id)
 # Creating defaults dataframe
 defaults_df <- buildDefaultsDF()
 # Processing the planar network and assining attributes based on defaults df and osm tags
-lines_p_attrib <- processRoads(lines_p , defaults_df)
+lines_p_attrib <- processRoads(osm_metadata , defaults_df)
 # Removing the geometries
 lines_p_attrib <- lines_p_attrib %>% st_set_geometry(NULL)
 # Adding attributes from the planar network to the non-planar network
