@@ -9,7 +9,8 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
   source('vista2016.R', local=TRUE)
   source('markov2016.R', local=TRUE)
   source('locations2016.R', local=TRUE)
-
+  source('matsimXML.R', local=TRUE)
+  
   options(scipen=999) # disable scientific notation for more readible filenames with small sample sizes
   
   # Function to pre-process some data; need only be run once
@@ -175,8 +176,10 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
   echo(paste0('Loading markov chain model from ', modelfile, '\n'))
   mc<-readRDS(modelfile)
   
+  # Start MATSim population XML
+  doc <- newXMLDoc()
+  popn<-newXMLNode("population", doc=doc)
   # Create the activities and legs
-  
   echo(paste0('Generating VISTA-like activities and trips for ', nrow(persons), ' census-like persons (can take a while)\n'))
   discarded<-persons[FALSE,]
   allpax<-NULL; allacts<-NULL; alllegs<-NULL;
@@ -211,12 +214,16 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
     } else {
       acts<-df[[1]]
       legs<-df[[2]]
-      # also save all activities and legs for outputting to CSV
+      # also save all persons, activities, and legs for outputting to CSV
       if (is.null(allacts)) allacts<-acts[FALSE,]
       if (is.null(alllegs)) alllegs<-legs[FALSE,]
       allacts<-rbind(allacts,cbind(personId=pid,acts));
       alllegs<-rbind(alllegs,cbind(personId=pid,legs));
       allpax<-rbind(allpax,cbind(personId=pid,p));
+      # generate MATSim XML for this person
+      pp<-generateMATSimPersonXML(pid, p, acts, legs)
+      # attach person XML node to the population
+      addChildren(popn,pp)
       printProgress(row,'.')
     }
   }
@@ -236,7 +243,15 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
   outfile<-paste0(outfileprefix,'.legs.csv.gz')
   write.csv(alllegs, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
   echo(paste0('Wrote trips to ', outfile, '\n'))
+  outfile<-paste0(outfileprefix,'.xml')
+  echo(paste0('Saving MATSim population to ', outfile, '\n'))
+  # save using cat since direct save using saveXML loses formatting
+  cat(saveXML(doc, 
+              prefix=paste0('<?xml version="1.0" encoding="utf-8"?>\n',
+                            '<!DOCTYPE population SYSTEM "http://www.matsim.org/files/dtd/population_v6.dtd">')),
+      file=outfile)
   echo(paste0('All done (see ', outfileprefix,'.log)\n'))
   sink() # end the diversion
+  
 }
 
