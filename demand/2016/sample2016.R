@@ -61,7 +61,7 @@ sampleMelbourne2016Population <- function(samplePercentage, outcsvgz) {
   }
   cat('\n')
   echo(paste0("Wrote ", nrow(persons), " sampled persons to ", outcsvgz, '\n'))
-  write.csv(persons, file=gzfile(outcsvgz), quote=TRUE)
+  write.csv(persons, file=gzfile(outcsvgz), quote=TRUE, row.names = FALSE)
 }
 
 

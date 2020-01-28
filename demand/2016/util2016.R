@@ -1,9 +1,5 @@
 assignSa1Maincode <- function(persons_csv_gz, out_persons_csv_gz, sa1_csv_gz) {
   
-  echo<- function(msg) {
-    cat(paste0(as.character(Sys.time()), ' | ', msg))  
-  }
-
   # read in the SA1s file
   gz1<-gzfile(sa1_csv_gz, 'rt')
   sa1s<-read.csv(gz1, header=T, stringsAsFactors=F, strip.white=T)
@@ -19,7 +15,6 @@ assignSa1Maincode <- function(persons_csv_gz, out_persons_csv_gz, sa1_csv_gz) {
   # create a new column for SA1_MAINCODE_2016
   #persons$SA1_MAINCODE_2016<-""
   
-  echo(paste0('Assigning SA1_MAINCODE_2016 to persons from ',persons_csv_gz,' (can take a while)\n'))
   # match and assign
   df<-apply(persons, 1, function(p) {
     sa1<-sa1s[sa1s$SA1_7DIGITCODE_2016==p['SA1_7DIGCODE'] & sa1s$SA2_MAINCODE_2016==p['SA2_MAINCODE'],]
@@ -28,8 +23,7 @@ assignSa1Maincode <- function(persons_csv_gz, out_persons_csv_gz, sa1_csv_gz) {
   })
   df<-t(df)
   df<-as.data.frame(df)
-  write.csv(df, file=gzfile(out_persons_csv_gz), quote=TRUE)
-  echo(paste0('Wrote ',out_persons_csv_gz,'\n'))
+  write.csv(df, file=gzfile(out_persons_csv_gz), quote=TRUE, row.names = FALSE)
 }
 
 
