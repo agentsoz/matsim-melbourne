@@ -1,4 +1,4 @@
-library(markovchain)
+suppressPackageStartupMessages(library(markovchain))
 
 create_markov_chain_model<-function(modelname, activities_csv_gz) {
   gz1 <- gzfile(activities_csv_gz,'rt')

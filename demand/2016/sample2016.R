@@ -54,7 +54,7 @@ sampleMelbourne2016Population <- function(samplePercentage, outcsvgz) {
   df<-data.frame(SA2=list.files(pattern = "\\persons.csv.gz$", recursive = TRUE), stringsAsFactors=FALSE)
   df$samplePercent<-samplePercentage
   persons<-NULL
-  echo(paste0("Selecting a ", samplePercentage, "% population sample from Melbourne's ", nrow(df), " SA2 areas\n"))
+  echo(paste0("Selecting a ", samplePercentage, "% population sample from Melbourne's ", nrow(df), " SA2 areas (can take a while)\n"))
   for(row in 1:nrow(df)) {
     printProgress(row,".")
     persons<-rbind(persons,samplePersons(df$SA2[row], df$samplePercent[row]))

@@ -1,6 +1,6 @@
-suppressWarnings(library(sf)) # for spatial things
-suppressWarnings(library(dplyr)) # for manipulating data
-suppressWarnings(library(scales)) # for scaling datasets
+suppressPackageStartupMessages(library(sf)) # for spatial things
+suppressPackageStartupMessages(library(dplyr)) # for manipulating data
+suppressPackageStartupMessages(library(scales)) # for scaling datasets
 
 # Read in the distance matrix. This matrix is symmetric so it doesn't matter if
 # you do lookups by column or row.
@@ -14,13 +14,13 @@ distanceMatrixIndex <- read.csv("data/distanceMatrixIndex.csv")
 # won't be used here. Joining with the distance matrix index so the regions are
 # in the correct order.
 SA1_attributed <- inner_join(distanceMatrixIndex,
-                             st_read("data/SA1_attributed.sqlite"),
+                             st_read("data/SA1_attributed.sqlite", quiet=TRUE),
                              by=c("sa1_main16"="sa1_mainco")) %>%
   dplyr::select(-GEOMETRY)
 
 # Reading in the addresses. I'm removing the geometry and converting it to X,Y.
 # These coordinates are in EPSG:7845, which is a projected coordinate system.
-addresses <- st_read("data/valid_addresses.sqlite")
+addresses <- st_read("data/valid_addresses.sqlite", quiet=TRUE)
 addresses <- cbind(st_drop_geometry(addresses),
                    st_coordinates(addresses))
 
@@ -162,23 +162,23 @@ getAddressCoordinates <- function(SA1_id,destination_category) {
 
 # A dataframe of suitable homes for each SA1 along with the total number of 
 # unique addresses.
-suitableHomes <- addresses %>%
-  filter(category=="home") %>%
-  group_by(sa1_main16) %>%
-  summarise(count=sum(count)) %>%
-  ungroup()
+#suitableHomes <- addresses %>%
+#  filter(category=="home") %>%
+#  group_by(sa1_main16) %>%
+#  summarise(count=sum(count)) %>%
+#  ungroup()
 
 # Here, we're finding a commercial destination starting in SA1 20604112202
-test <- findLocation(20604112202,"commercial")
+#test <- findLocation(20604112202,"commercial")
 
 # We then try to find the probability of returning to this destination.
 # Could do a loop with findLocation to iterate until this is > 1.
-returnProb <- getReturnProbability(20604112202,test[2],"home",test[1])
+#returnProb <- getReturnProbability(20604112202,test[2],"home",test[1])
 
 # Assign our locations coordinates. This will break if there's no addresses
 # for your specified category within the SA1 region!!!
-originCoordinates <- getAddressCoordinates(20604112202,"home")
-destinationCoordinates <- getAddressCoordinates(test[2],"commercial")
+#originCoordinates <- getAddressCoordinates(20604112202,"home")
+#destinationCoordinates <- getAddressCoordinates(test[2],"commercial")
 
 
 
