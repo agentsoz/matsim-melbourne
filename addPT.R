@@ -230,7 +230,7 @@ cat(paste0("  <transitLine id=\"Melbourne\">\n"),file="data/transitSchedule.xml"
 
 # for (i in 1:nrow(vehicleTripMatching)) {
 for (i in 1:100) {
-  cat(paste0("    <transitRoute id=\"",vehicleTripMatching[i,]$trip_id,"\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+  cat(paste0("    <transitRoute id=\"",vehicleTripMatching[i,]$trip_id,"\">\n"),file="data/transitSchedule.xml",append=TRUE)
   cat(paste0("      <description>",vehicleTripMatching[i,]$service_id,"</description>\n"),file="data/transitSchedule.xml",append=TRUE)
   cat(paste0("      <transportMode>",vehicleTripMatching[i,]$service_type,"</transportMode>\n"),file="data/transitSchedule.xml",append=TRUE)
   cat(paste0("      <routeProfile>\n"),file="data/transitSchedule.xml",append=TRUE)

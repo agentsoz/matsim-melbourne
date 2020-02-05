@@ -72,33 +72,54 @@ lines_np <- st_read(inputSQLite_np , layer="edges")
 # nodes
 nodes_np <- st_read(inputSQLite_np , layer="nodes") #nodes already has an id
 
+# making the simplified network
 if (networkSimplication){
   # node clusters based on those that are connected with link with less than 10 meters length
   df <- simplifyNetwork(lines_np, nodes_np, osm_metadata, shortLinkLength = 20)
-  nodes_np <- df[[1]]
-  lines_np <- df[[2]]
+  nodes_p <- df[[1]]
+  lines_p <- df[[2]]
 }
+
+# write simplified network to file
+st_write(lines_p,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
+st_write(nodes_p,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
+
 
 # Croping to the study area
 if(smaller_study_area){
-  nodes_np <- nodes_np %>%
+  nodes_p <- nodes_p %>%
     filter(lengths(st_intersects(., study_area)) > 0)
-  lines_np <- lines_np %>%
-    filter(from_id%in%nodes_np$to_id & to_id%in%nodes_np$to_id)
+  lines_p <- lines_p %>%
+    filter(from_id%in%nodes_p$to_id & to_id%in%nodes_p$to_id)
 }
 
 ## OSM tags processing and attributes assingment
-osm_metadata <- osm_metadata %>% filter(osm_id%in%lines_np$osm_id)
+osm_metadata <- osm_metadata %>% filter(osm_id%in%lines_p$osm_id)
 # Creating defaults dataframe
 defaults_df <- buildDefaultsDF()
 # Processing the planar network and assining attributes based on defaults df and osm tags
-lines_p_attrib <- processRoads(osm_metadata , defaults_df)
-# Removing the geometries
-lines_p_attrib <- lines_p_attrib %>% st_set_geometry(NULL)
-# Adding attributes from the planar network to the non-planar network
-lines_np <- lines_np %>%
-  left_join(lines_p_attrib, by = "osm_id") %>% 
-  st_set_geometry(NULL)
+system.time(
+  osm_attrib <- processOsmTags(osm_metadata, defaults_df)
+)
+#   user  system elapsed 
+# 79.248   0.020  79.249 
+
+lines_p_attrib <- lines_p %>%
+  left_join(osm_attrib, by="osm_id")
+st_write(lines_p_attrib,"data/networkSimplifiedAttributed.sqlite",delete_layer=TRUE,layer="edges")
+
+
+
+#TODO: Add in the PT network generation here. Fix the DEM so it covers the entire area.
+
+
+
+
+
+
+
+
+
 
 ## Adding elevation
 # Reading elevation raster file

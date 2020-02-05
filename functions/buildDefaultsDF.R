@@ -1,69 +1,32 @@
 buildDefaultsDF <- function(){
   
-  defaults_df <- data.frame()
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "motorway", permlanes = 2, freespeed = (80/3.6), 
-                                  oneway = 1, capacity = 3600, modes = "car"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "motorway_link", permlanes = 2, freespeed = (80/3.6), 
-                                  oneway = 1, capacity = 3000, modes = "car"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "trunk", permlanes = 2, freespeed = (70/3.6), 
-                                  oneway = 1, capacity = 3000, modes = "car"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "trunk_link", permlanes = 2, freespeed = 70/3.6, 
-                                  oneway = 1, capacity = 2500, modes = "car"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "primary", permlanes = 2, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 2000, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "primary_link", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 800, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "secondary", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 800, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "secondary_link", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 800, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "tertiary", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "tertiary_link", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "residential", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "unclassified", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "living_street", permlanes = 1, freespeed = 20/3.6, 
-                                  oneway = 1, capacity = 300, modes = "car,bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "cycleway", permlanes = 1, freespeed = 30/3.6, 
-                                  oneway = 1, capacity = 300, modes = "bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "track", permlanes = 1, freespeed = 30/3.6, 
-                                  oneway = 1, capacity = 300, modes = "bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "service", permlanes = 1, freespeed = 40/3.6, 
-                                  oneway = 1, capacity = 200, modes = "car, bike"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "pedestrian", permlanes = 1, freespeed = 30/3.6, 
-                                  oneway = 1, capacity = 120, modes = "walk"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "footway", permlanes = 1, freespeed = 15/3.6, 
-                                  oneway = 1, capacity = 120, modes = "walk"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "path", permlanes = 1, freespeed = 15/3.6, 
-                                  oneway = 1, capacity = 120, modes = "walk"))
-  defaults_df <- rbind(defaults_df, 
-                       data.frame(highwayType = "steps", permlanes = 1, freespeed = 15/3.6, 
-                                  oneway = 1, capacity = 10, modes = "walk"))
-  
-  colnames(defaults_df) <- c("highwayType", "permlanes", "freespeed", "oneway", "capacity", "modes")
-  
+  defaults_df <- tribble(
+    ~highwayType      , ~permlanes, ~freespeed, ~oneway, ~capacity, ~isCycle, ~isWalk, ~isCar,
+     "motorway"       ,  2        ,  (80/3.6) ,  1     ,  3600    ,  FALSE  ,  FALSE ,  TRUE ,
+     "motorway_link"  ,  2        ,  (80/3.6) ,  1     ,  3000    ,  FALSE  ,  FALSE ,  TRUE ,
+     "trunk"          ,  2        ,  (70/3.6) ,  1     ,  3000    ,  FALSE  ,  FALSE ,  TRUE ,
+     "trunk_link"     ,  2        ,  (70/3.6) ,  1     ,  2500    ,  FALSE  ,  FALSE ,  TRUE ,
+    
+     "primary"        ,  2        ,  (60/3.6) ,  1     ,  2000    ,  TRUE   ,  FALSE ,  TRUE ,
+     "primary_link"   ,  1        ,  (60/3.6) ,  1     ,   800    ,  TRUE   ,  FALSE ,  TRUE ,
+     "secondary"      ,  1        ,  (60/3.6) ,  1     ,   800    ,  TRUE   ,  FALSE ,  TRUE ,
+     "secondary_link" ,  1        ,  (60/3.6) ,  1     ,   800    ,  TRUE   ,  FALSE ,  TRUE ,
+    
+     "tertiary"       ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  FALSE ,  TRUE ,
+     "tertiary_link"  ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  FALSE ,  TRUE ,
+     "residential"    ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  FALSE ,  TRUE ,
+     "unclassified"   ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  FALSE ,  TRUE ,
+    
+     "living_street"  ,  1        ,  (20/3.6) ,  1     ,   300    ,  TRUE   ,  FALSE ,  TRUE ,
+     "cycleway"       ,  1        ,  (30/3.6) ,  1     ,   300    ,  TRUE   ,  FALSE ,  FALSE,
+     "track"          ,  1        ,  (30/3.6) ,  1     ,   300    ,  TRUE   ,  FALSE ,  FALSE,
+     "service"        ,  1        ,  (40/3.6) ,  1     ,   200    ,  TRUE   ,  FALSE ,  TRUE ,
+    
+     "pedestrian"     ,  1        ,  (30/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
+     "footway"        ,  1        ,  (15/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
+     "path"           ,  1        ,  (15/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
+     "steps"          ,  1        ,  (15/3.6) ,  1     ,    10    ,  FALSE  ,  TRUE  ,  FALSE
+  )
 
   return(defaults_df)
 }
