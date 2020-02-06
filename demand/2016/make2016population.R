@@ -40,6 +40,21 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
     echo(paste0('Updated ', out_weekday_activities_csv_gz,'\n'))
     simplify_activities_and_create_groups(out_weekend_activities_csv_gz)
     echo(paste0('Updated ', out_weekend_activities_csv_gz,'\n'))
+
+    # Write out the activity probabilitities by time bins
+    binsize<-48 # 30-min bins
+    echo(paste0('Extracting VISTA weekday/end activities times into ',binsize,' bins (can take a while)\n'))
+    out_weekday_activities_time_bins_csv_gz<-'./vista_2012_16_extracted_activities_weekday_time_bins.csv.gz'
+    out_weekend_activities_time_bins_csv_gz<-'./vista_2012_16_extracted_activities_weekend_time_bins.csv.gz'
+    extract_and_write_activities_time_bins(
+      out_weekday_activities_csv_gz,
+      out_weekday_activities_time_bins_csv_gz,
+      binsize)
+    extract_and_write_activities_time_bins(
+      out_weekend_activities_csv_gz,
+      out_weekend_activities_time_bins_csv_gz,
+      binsize)
+    echo(paste0('Wrote ', out_weekday_activities_time_bins_csv_gz, ' and ', out_weekend_activities_time_bins_csv_gz,'\n'))
     
     # Create markov chain model for trip chains
     prefix<-'./vista_2012_16_extracted_activities_weekday'
@@ -59,8 +74,26 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
     return(TRUE)
   }
   
+  selectIndexFromProbabilities <-function(vv) {
+    vv<-vv/sum(vv) # normalise to 1
+    v<-data.frame(t(apply(vv,1,cumsum))) # cumulative sum to 1
+    roll<-runif(1)
+    select<-match(TRUE,v>roll) # pick the first col that is higher than the dice roll
+    return(select)
+  }
+  
+  toHHMMSS <- function(secs) {
+    h<-secs %/% (60*60)
+    m<-(secs - (h*60*60)) %/% 60
+    s<-secs - (h*60*60) - (m*60)
+    hhmmss<-paste0(str_pad(h,2,pad="0"),":", 
+                   str_pad(m,2,pad="0"),":",
+                   str_pad(s,2,pad="0"))
+    return(hhmmss)
+  }
+  
   # Function to create activities and legs from given trip chain
-  createActivitiesAndLegs <- function(person, tc, tcacts) {
+  createActivitiesAndLegs <- function(person, tc, tcacts, bins) {
     # get a person and determine its home SA1 and coordinates
     home_sa1<-as.character(person$SA1_MAINCODE_2016)
     home_xy<-getAddressCoordinates(home_sa1,"home")
@@ -78,7 +111,17 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
     acts[1,]$sa1<-home_sa1
     acts[1,]$x<-home_xy[1]
     acts[1,]$y<-home_xy[2]
-    acts[1,]$end_hhmmss<-"06:00:00" # TODO: set sensible end times
+
+    # select end time based on known end time probabilities for that activity group
+    vv<-bins[bins$Activity.Group=="Home Morning" & bins$Activity.Stat=="Act.End.Time",]
+    vv<-vv[3:length(vv)]
+    select<-selectIndexFromProbabilities(vv)
+    secs<-60*60*24*((select-1)/length(vv))
+    binSizeInSecs<-floor(60*60*24)/length(vv)
+    setTime<-secs+sample(1:binSizeInSecs, 1)
+    acts[1,]$end_hhmmss<-toHHMMSS(setTime)
+    
+    
     # determine the SA1 and coordinartes for the remaining activites
     mode<-NULL
     work_sa1<-NULL; work_xy<-NULL
@@ -115,10 +158,26 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
       }
       
       # TODO: assign sensible end times for activities
-      acts[i,]$end_hhmmss<-paste0(
-        str_pad(6+i,2,pad="0"),":", # using activitiy id to define end hour past 6am
-        str_pad(sample(seq(0,59),1),2,pad="0"),":", # random minutes in that hour
-        str_pad(sample(seq(0,59),1),2,pad="0")) # random seconds in that minute
+      #acts[i,]$end_hhmmss<-paste0(
+      #  str_pad(6+i,2,pad="0"),":", # using activitiy id to define end hour past 6am
+      #  str_pad(sample(seq(0,59),1),2,pad="0"),":", # random minutes in that hour
+      #  str_pad(sample(seq(0,59),1),2,pad="0")) # random seconds in that minute
+      
+      # select end time based on known end time probabilities for that activity group
+      vv<-bins[bins$Activity.Group==acts[i,]$act_type & bins$Activity.Stat=="Act.End.Time",]
+      vv<-vv[3:length(vv)]
+      select<-selectIndexFromProbabilities(vv)
+      secs<-60*60*24*((select-1)/length(vv))
+      binSizeInSecs<-floor(60*60*24)/length(vv)
+      nextTime<-secs+sample(1:binSizeInSecs, 1)
+      acts[i,]$end_hhmmss<-toHHMMSS(nextTime)
+      # if we rolled the dice to a time before end time of last activity,
+      # then just swap end times with the last activity
+      if(nextTime < setTime) { 
+        acts[i,]$end_hhmmss<-toHHMMSS(setTime)
+        acts[i-1,]$end_hhmmss<-toHHMMSS(nextTime)      
+      }
+      setTime<-nextTime # update setTime
       
       # save the leg
       mode=df[1]
@@ -126,6 +185,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
       legs[i-1,]$dest_act_id<-acts[i,]$act_id
       legs[i-1,]$mode<-mode
     }
+    
     rownames(acts)<-seq(1:nrow(acts))
     rownames(legs)<-seq(1:nrow(legs))
     return(list(acts,legs))
@@ -176,6 +236,12 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
   echo(paste0('Loading markov chain model from ', modelfile, '\n'))
   mc<-readRDS(modelfile)
   
+  # Read in the time bins
+  csv<-'./vista_2012_16_extracted_activities_weekday_time_bins.csv.gz'
+  gz1 <- gzfile(csv,'rt')
+  bins<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  close(gz1)
+  
   # Start MATSim population XML
   doc <- newXMLDoc()
   popn<-newXMLNode("population", doc=doc)
@@ -204,7 +270,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outfileprefix) {
     # Replace activity tags with location tags
     tclocs<-replaceActivityWithLocationTags(tc)
     # build activities and legs for the person
-    df<-createActivitiesAndLegs(p, tclocs, tc)
+    df<-createActivitiesAndLegs(p, tclocs, tc, bins)
     
     if(is.null(df)) { 
       # can be NULL sometimes if type of location required for some activiy in chain cannot be found in given SA1

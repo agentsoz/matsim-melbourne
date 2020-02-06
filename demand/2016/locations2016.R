@@ -144,7 +144,7 @@ getAddressCoordinates <- function(SA1_id,destination_category) {
   # destination_category="commercial"
   potentialAddresses <- addresses %>%
     filter(sa1_main16==SA1_id & category==destination_category) %>%
-    mutate(id=row_number())
+    dplyr::mutate(id=row_number())
   if(nrow(potentialAddresses)==0) return(NULL);
   address_id <- sample(potentialAddresses$id, size=1,
                     prob=potentialAddresses$count)
