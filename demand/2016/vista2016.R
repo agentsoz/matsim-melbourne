@@ -4,6 +4,42 @@ suppressMessages(library(plyr))
 suppressMessages(library(dplyr))
 suppressMessages(library(scales))
 
+extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_gz, binsize) {
+  gz1 <- gzfile(in_activities_csv_gz,'rt')
+  trips_data<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  close(gz1)
+  
+  # split home activitiy into morning/daytime/night
+  activities<-split_home_activity(trips_data)
+  
+  groups<-unique(activities$Activity.Group) # unique activity names
+  acts<-c("Act.Start.Time", "Act.End.Time")
+  
+  # create a dataframe with activity as rows and bin id as columns
+  pp<-data.frame(matrix(0, nrow = length(groups), ncol = 2+binsize))
+  colnames(pp)<-c("Activity.Group", "Activity.Stat", seq(1,binsize))
+  
+  # population the dataframe with probabilities
+  df<-activities
+  rowid<-1
+  for(i in 1:length(groups)) {
+    dd<-df[df$Activity.Group==groups[i],]
+    for(act in acts) {
+      h<-hist(as.numeric(dd[,act]), breaks=binsize)
+      h$counts=h$counts/sum(h$counts)
+      v<-h$counts
+      if(length(h$counts)>binsize) v<- h$counts[1:binsize]
+      if(length(h$counts)<binsize) v<- c(h$counts, rep(0,binsize-length(h$counts)))
+      pp[rowid,]<-c(groups[i], act, v)
+      rowid<-rowid+1
+    }
+  }
+  # Write it out
+  gz1 <- gzfile(out_csv_gz, "w")
+  write.csv(pp, gz1, row.names=FALSE, quote=TRUE)
+  close(gz1)
+}
+  
 extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities_csv_gz, out_weekend_activities_csv_gz) {
   gz1 <- gzfile(in_vista_csv,'rt')
   vista_data<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
@@ -84,6 +120,25 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   gz1 <- gzfile(out_weekend_activities_csv_gz, "w")
   write.csv(weekend_activities, gz1, row.names=FALSE, quote=TRUE)
   close(gz1)
+}
+
+split_home_activity<-function(orig) { 
+  activities<-orig
+  activities$Order<-order(activities$Person) # record order, used for filtering
+  # Rename 'Home' activities to 'Home Daytime'
+  activities[activities$Activity.Group=="Home",]$Activity.Group<-"Home Daytime"
+  # Rename start of the day 'Home' activities to 'Home Morning'
+  df<-activities
+  df<-aggregate(df,by=list(df$Person),FUN=head,1) # get first activities
+  df<-df[df$Activity.Group=="Home Daytime",] # remove all but home activities
+  activities[activities$Order%in%df$Order,]$Activity.Group<-"Home Morning" # rename those activities
+  # Rename end of the day 'Home' activities to 'Home Night'
+  df<-activities
+  df<-aggregate(df,by=list(df$Person),FUN=tail,1) # get last activities
+  df<-df[df$Activity.Group=="Home Daytime",] # remove all but home activities
+  activities[activities$Order%in%df$Order,]$Activity.Group<-"Home Night" # rename those activities
+  activities$Order<-NULL # done with temporary column
+  return(activities)
 }
 
 simplify_activities_and_create_groups<-function(gzfile) {

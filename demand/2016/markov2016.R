@@ -1,26 +1,13 @@
 suppressPackageStartupMessages(library(markovchain))
+source('vista2016.R')
 
 create_markov_chain_model<-function(modelname, activities_csv_gz) {
   gz1 <- gzfile(activities_csv_gz,'rt')
   orig<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
   close(gz1)
   
-  activities<-orig
-  activities$Order<-order(activities$Person) # record order, used for filtering
-  # Rename 'Home' activities to 'Home Daytime'
-  activities[activities$Activity.Group=="Home",]$Activity.Group<-"Home Daytime"
-  # Rename start of the day 'Home' activities to 'Home Morning'
-  df<-activities
-  df<-aggregate(df,by=list(df$Person),FUN=head,1) # get first activities
-  df<-df[df$Activity.Group=="Home Daytime",] # remove all but home activities
-  activities[activities$Order%in%df$Order,]$Activity.Group<-"Home Morning" # rename those activities
-  # Rename end of the day 'Home' activities to 'Home Night'
-  df<-activities
-  df<-aggregate(df,by=list(df$Person),FUN=tail,1) # get last activities
-  df<-df[df$Activity.Group=="Home Daytime",] # remove all but home activities
-  activities[activities$Order%in%df$Order,]$Activity.Group<-"Home Night" # rename those activities
-  activities$Order<-NULL # done with temporary column
-  
+  activities<-split_home_activity(orig)
+
   # Get list of activities per person
   activity.chains<-activities%>%
     group_by(Person) %>% 
