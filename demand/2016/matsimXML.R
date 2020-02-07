@@ -30,7 +30,7 @@ generateMATSimPersonXML <- function(pid, p, acts, legs) {
     xacts<-apply(
       acts, 1,
       function(x) {
-        n<-newXMLNode("activity", attrs=c(type=x[[2]], x=x[[4]], y=x[[5]], end_time=x[[7]]))
+        n<-newXMLNode("activity", attrs=c(type=x[[2]], x=x[[4]], y=x[[5]], start_time=x[[9]], end_time=x[[10]]))
       })
     # create the legs
     xlegs<-apply(

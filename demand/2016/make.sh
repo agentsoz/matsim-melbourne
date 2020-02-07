@@ -7,12 +7,11 @@ if [ $# -ne 1 ];
 fi
 
 DIR=$(dirname "$0")
-
 SAMPLE=$1
 FILENAME=mel2016_${SAMPLE}
 read -r -d '' SCRIPT << EOM
 source("make2016Population.R");
-make2016MATSimMelbournePopulation($SAMPLE, "$DIR/$FILENAME")
+make2016MATSimMelbournePopulation($SAMPLE, "$DIR/$FILENAME", "$FILENAME")
 EOM
 
 CMD="Rscript --vanilla -e '$SCRIPT'"

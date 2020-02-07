@@ -11,9 +11,10 @@ extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_g
   
   # split home activitiy into morning/daytime/night
   activities<-split_home_activity(trips_data)
+  activities$Act.Duration<- activities$Act.End.Time - activities$Act.Start.Time
   
   groups<-unique(activities$Activity.Group) # unique activity names
-  acts<-c("Act.Start.Time", "Act.End.Time")
+  acts<-c("Act.Start.Time", "Act.End.Time", "Act.Duration")
   
   # create a dataframe with activity as rows and bin id as columns
   pp<-data.frame(matrix(0, nrow = length(groups), ncol = 2+binsize))
@@ -22,16 +23,38 @@ extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_g
   # population the dataframe with probabilities
   df<-activities
   rowid<-1
+  binSizeInMins<-floor(60*24)/binsize
+  binStartMins<-seq(0,binsize-1)*binSizeInMins
+  binEndMins<-binStartMins+binSizeInMins-1
   for(i in 1:length(groups)) {
     dd<-df[df$Activity.Group==groups[i],]
     for(act in acts) {
-      h<-hist(as.numeric(dd[,act]), breaks=binsize)
-      h$counts=h$counts/sum(h$counts)
-      v<-h$counts
-      if(length(h$counts)>binsize) v<- h$counts[1:binsize]
-      if(length(h$counts)<binsize) v<- c(h$counts, rep(0,binsize-length(h$counts)))
-      pp[rowid,]<-c(groups[i], act, v)
-      rowid<-rowid+1
+      if(act=="Act.Start.Time" || act=="Act.End.Time") {
+        h<-hist(as.numeric(dd[,act]), breaks=binsize)
+        h$counts=h$counts/sum(h$counts)
+        v<-h$counts
+        if(length(h$counts)>binsize) v<- h$counts[1:binsize]
+        if(length(h$counts)<binsize) v<- c(h$counts, rep(0,binsize-length(h$counts)))
+        pp[rowid,]<-c(groups[i], paste0(act,".Prob"), v)
+        rowid<-rowid+1
+      } else if (act=="Act.Duration") {
+        vm<-NULL; vu<-NULL
+        for(j in 1:binsize) {
+          d<-dd[dd$Act.Start.Time>=binStartMins[j],act]
+          if (length(d)==0) {
+            m<-0
+            u<-0
+          } else {
+            m<-mean(d)
+            u<-sd(d)
+          }
+          vm<-c(vm,round(m))
+          vu<-c(vu,round(u))
+        }
+        pp[rowid,]<-c(groups[i], paste0(act,".Mins.Mean"), vm)
+        pp[rowid+1,]<-c(groups[i], paste0(act,".Mins.Sigma"), vu)
+        rowid<-rowid+2
+      }
     }
   }
   # Write it out
