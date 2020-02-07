@@ -291,21 +291,20 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     # start adding activities and legs    
     done<-FALSE
     r<-1
-    actTime<- -1; lastTime<- -1
-    actTag<-NULL; lastTag<-NULL
-    tries<-0
+    actTag<-NULL;
+    tries<-0; maxTries<-10
     while(!done) {
-      if (is.null(actTag)) {
+      if (r==1) {
         actTag<-"Home Morning"
       } else {
-        actTag<-rmarkovchain(n=1,mc,t0=lastTag) # find a new activity
+        actTag<-rmarkovchain(n=1,mc,t0=acts[r-1,]$act_type) # find a new activity
         while(actTag=="With Someone" # don't care about secondary persons
               || actTag=="Mode Change" # ignore mode change for now, improve later
         #      || (actTag=="Home Daytime" && lastTag=="Home Morning") # remove successive home activities
         #      || (actTag=="Home Daytime" && lastTag=="Home Daytime") # remove successive home activities
         #      || (actTag=="Home Night" && lastTag=="Home Daytime") # remove successive home activities
         ) {
-          actTag<-rmarkovchain(n=1,mc,t0=lastTag) # find a new activity
+          actTag<-rmarkovchain(n=1,mc,t0=acts[r-1,]$act_type) # find a new activity
         }
       }
       locTag<-replaceActivityWithLocationTags(actTag)
@@ -345,39 +344,37 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
         if(is.na(mean) || is.na(sigma) || mean<=0 || sigma<=0) {
           duration<-0
         } else {
-          duration<-round(rnorm(1,mean,sigma)) # first row, skip two columns that are names
+          duration<- -1
+          while(duration<0) duration<-round(rnorm(1,mean,sigma))
         }
         endTime<-actTime+duration
       }
       acts[r,]$end_min<-endTime
       acts[r,]$end_hhmmss<-toHHMMSS(endTime)
 
-      if(0){
-        if (r>1) {
-          cat(paste0(acts[r-1,]$act_type, "(", acts[r-1,]$start_min, ",", acts[r-1,]$end_min, ")", "->"))
-        }      
-        cat(paste0(acts[r,]$act_type, "(", acts[r,]$start_min, ",", acts[r,]$end_min, ")", "\n"))
+      if(0){ # for debugging purposes
+        if (r>1) cat(paste0(acts[r-1,]$act_type, "(", acts[r-1,]$start_min, ",", acts[r-1,]$end_min, ")", "->"))
+        cat(paste0(acts[r,]$act_type, "(", acts[r,]$start_min, ",", acts[r,]$end_min, ") ", tries, "\n"))
       }      
       # only progress if start time was after the end time of the last activity
-      if (actTime>lastTime) {
+      dirty<-TRUE
+      if (r==1 || acts[r,]$start_min>acts[r-1,]$end_min) {
         tries<-0
         r<-r+1
-        lastTime<-endTime
-        lastTag<-actTag
-      } else if(tries>5) {
+        dirty<-FALSE
+      } else if(tries>=maxTries) {
+        if (0) cat('bactrack\n') # for debugging purposes
+        acts<-acts[-c(r),] # delete the rth row
         tries<-0
         r<-r-1 # backtrack if we can't seem to find a path forward
-        if (r<1) r=1
-        if (r==1) {
-          actTime<- -1; lastTime<- -1
-          actTag<-NULL; lastTag<-NULL
+        if (r<=1) {
+          r=1
           tries<-0
         }
-      } else {
-        tries<-tries+1
-      }
+      } 
+      tries<-tries+1
       # all done if we just finished with the home night activity
-      if (!is.null(actTag) && actTag=="Home Night") {
+      if (!is.null(actTag) && actTag=="Home Night" && !dirty) {
         done=TRUE
       }
     }
