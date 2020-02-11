@@ -42,13 +42,15 @@ smaller_study_area <- F #Crop or not (T/F)
 study_area <- st_as_sfc("SRID=28355;POLYGON((318877.2 5814208.5, 321433.7 5814021.4, 321547.1 5812332.6 ,318836.3 5812083.8,  318877.2 5814208.5))")
 
 # Have a smaller area with detailed and rest with only main roads
-focus_area <- T
+focus_area <- F
 # Based on https://github.com/JamesChevalier/cities/tree/master/australia/victoria
 selected_shire <- "australia/victoria/city-of-melbourne_victoria.poly"
 focus_area_boundary <- getAreaBoundary(selected_shire, crs_final)
 
 # Network simplification (T/F)
-networkSimplication <- F 
+#networkSimplication <- F 
+shortLinkLength = 20 # Change to zero if no simplification is needed
+
 
 # Specifiying which output format wanted (T/F)
 write_xml <- T 
@@ -70,15 +72,14 @@ inputSQLite_np <- paste0(data_folder, 'network.sqlite')
 lines_np <- st_read(inputSQLite_np , layer="edges")
   # mutate(id = paste0(from_id,"_",to_id))
 # nodes
-nodes_np <- st_read(inputSQLite_np , layer="nodes") #nodes already has an id
-
+nodes_np <- st_read(inputSQLite_np , layer="nodes") #%>%  #nodes already has an id
+  #mutate(id = row_number())
 # making the simplified network
-if (networkSimplication){
-  # node clusters based on those that are connected with link with less than 10 meters length
-  df <- simplifyNetwork(lines_np, nodes_np, osm_metadata, shortLinkLength = 20)
-  nodes_p <- df[[1]]
-  lines_p <- df[[2]]
-}
+
+# node clusters based on those that are connected with link with less than 10 meters length
+df <- simplifyNetwork(lines_np, nodes_np, osm_metadata, shortLinkLength)
+nodes_p <- df[[1]]
+lines_p <- df[[2]]
 
 # write simplified network to file
 st_write(lines_p,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
@@ -90,11 +91,12 @@ if(smaller_study_area){
   nodes_p <- nodes_p %>%
     filter(lengths(st_intersects(., study_area)) > 0)
   lines_p <- lines_p %>%
-    filter(from_id%in%nodes_p$to_id & to_id%in%nodes_p$to_id)
+    filter(from_id%in%nodes_p$id & to_id%in%nodes_p$id)
 }
 
 ## OSM tags processing and attributes assingment
 osm_metadata <- osm_metadata %>% filter(osm_id%in%lines_p$osm_id)
+
 # Creating defaults dataframe
 defaults_df <- buildDefaultsDF()
 # Processing the planar network and assining attributes based on defaults df and osm tags
@@ -106,7 +108,7 @@ system.time(
 
 lines_p_attrib <- lines_p %>%
   left_join(osm_attrib, by="osm_id")
-st_write(lines_p_attrib,"data/networkSimplifiedAttributed.sqlite",delete_layer=TRUE,layer="edges")
+#st_write(lines_p_attrib,"data/networkSimplifiedAttributed.sqlite",delete_layer=TRUE,layer="edges")
 
 
 
@@ -127,39 +129,46 @@ elevation <- raster(paste0(data_folder, 'DEMs/DEMx10EPSG28355.tif'))
 #projectRaster(elevation, crs=CRS(paste("+init=epsg:", crs_final, sep = "")))
 #writeRaster(elevation, filename="./DEMx10EPSG28355.tif", format="GTiff", overwrite=TRUE)
 # Assiging z coordinations to nodes
-nodes_np$z <- round(raster::extract(elevation ,as(nodes_np, "Spatial"),method='bilinear'))/10 # TODO Not working properly
+nodes_p$z <- round(raster::extract(elevation ,as(nodes_p, "Spatial"),method='bilinear'))/10 # TODO Not working properly
 # replacing NA z coords to 10
-nodes_np <- nodes_np %>%
+nodes_p <- nodes_p %>%
   mutate(z = ifelse(test = is.na(z)
                     ,yes = 10,
                     no = z))
 
 # Converting nodes geometry to x and y columns
-nodes_np[,c("x", "y")] <- do.call(rbind, st_geometry(nodes_np)) %>% 
-  as_tibble() %>% setNames(c("x","y"))
+#nodes_p[,c("x", "y")] <- do.call(rbind, st_geometry(nodes_p)) %>% 
+#  as_tibble() %>% setNames(c("x","y"))
 # rearranging nodes dataframe
-nodes_np <- nodes_np %>% dplyr::select(id, x, y, z, GEOMETRY)
+nodes_p <- nodes_p %>% dplyr::select(id, x = X, y = Y, z, GEOMETRY)
 
-if (networkSimplication){
+#if (networkSimplication){
   # node clusters based on those that are connected with link with less than 10 meters lenght
-  df <- simplifyNetwork(lines_np, nodes_np, shortLinkLength = 10)
-  nodes_np <- df[[1]]
-  lines_np <- df[[2]]
-}
+#  df <- simplifyNetwork(lines_np, nodes_np, shortLinkLength = 10)
+#  nodes_np <- df[[1]]
+#  lines_np <- df[[2]]
+#}
 
-lines_np <- lines_np %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id) # removing those that there was no match in planar dataframe and those links that 
-nodes_np <- nodes_np %>% filter(id %in% lines_np$from_id | id %in% lines_np$to_id ) %>% distinct(id, x, y, z)# removing links that their nodes are removed
+lines_p_attrib <- lines_p_attrib %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id) # removing those that there was no match in planar dataframe and those links that 
+nodes_p <- nodes_p %>% filter(id %in% lines_p_attrib$from_id | id %in% lines_p_attrib$to_id ) %>% distinct(id, x, y, z)# removing links that their nodes are removed
 
 if (write_sqlite) {
   cat('\n')
-  echo(paste0('Writing the sqlite output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
-  exportSQlite(lines_np, nodes_np, outputFileName = "outputSQliteFocusedCoM")
+  echo(paste0('Writing the sqlite output: ', nrow(lines_p_attrib), ' links and ', nrow(nodes_p),' nodes\n'))
+  
+  st_write(lines_p_attrib,'outputSQliteFocusedCoM.sqlite', layer = 'lines', 
+           driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
+  st_write(nodes_p, 'outputSQliteFocusedCoM.sqlite', layer = 'nodes', 
+           driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
+  #exportSQlite(lines_p_attrib, nodes_p, outputFileName = "outputSQliteFocusedCoM")
   echo(paste0('Finished generating the sqlite output\n'))
 }
 
+# TODO There should be mode and other MATSim attributes in the lines_p_attrib
+
 if (write_xml) {
   cat('\n')
-  echo(paste0('Writing the XML output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
-  exportXML(lines_np, nodes_np, outputFileName = "outputXMLBig")
+  echo(paste0('Writing the XML output: ', nrow(lines_p_attrib), ' links and ', nrow(nodes_p),' nodes\n'))
+  exportXML(lines_p_attrib, nodes_p, outputFileName = "outputXMLBig")
   echo(paste0('Finished generating the xml output\n'))
 }

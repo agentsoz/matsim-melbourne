@@ -1,6 +1,6 @@
 simplifyNetwork <- function(l_df, n_df, osm_metadata, shortLinkLength = 10){
 # l_df=lines_np
-# n_df=nodes_np
+ # n_df=nodes_np
 # shortLinkLength = 20
 
 n_df <- n_df %>%
@@ -39,20 +39,20 @@ l_df <- l_df %>%
   # Getting components
   comp <- components(g)
   comp_df <- data.frame(segment_id=as.integer(names(comp$membership)), cluster_id=comp$membership, row.names=NULL) %>%
-    left_join(n_df_coords, by=c("segment_id"="id")) %>%
+    left_join(n_df, by=c("segment_id"="id")) %>%
     mutate(roundabout=ifelse(segment_id %in% roundabout_n,1,0))
   
   comp_df_centroid <- comp_df %>%
     group_by(cluster_id) %>%
     summarise(X=round(mean(X)),Y=round(mean(Y)),roundabout=max(roundabout)) %>%
     ungroup() %>%
-    mutate(new_id=max(n_df_coords$id)+cluster_id)
+    mutate(new_id=max(n_df$id)+cluster_id)
   
   comp_df_altered <- comp_df %>%
     left_join(comp_df_centroid,by="cluster_id") %>%
     dplyr::select(id=segment_id,new_id,X=X.y,Y=Y.y)
   
-  n_df_new <- n_df_coords %>%
+  n_df_new <- n_df %>%
     filter(!id %in% comp_df$segment_id) %>%
     mutate(roundabout=0) %>%
     rbind(dplyr::select(comp_df_centroid,id=new_id,X,Y,roundabout)) %>%
