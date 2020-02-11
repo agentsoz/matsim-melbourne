@@ -9,7 +9,7 @@ library(raster)
 library(XML)
 library(rgdal)
 
-#functions}
+#functions
 source('./functions/buildDefaultsDF.R')
 source('./functions/processRoads.R')
 source('./functions/simplifyNetwork.R')
@@ -31,10 +31,11 @@ printProgress<-function(row, total_row, char) {
 ## Seting control variables and directories 
 # Change this based on your folder structure
 data_folder <- 'D:/jafshin/cloudstor/Shared/melbNetworkScripted/' 
-data_folder <- '/home/alan/melbNetworkScripted/'
+#data_folder <- '/home/alan/melbNetworkScripted/'
 # NOTE elevation file needs to be in this crs already
 crs_final <- 28355
 
+drop_z <- T
 # Filter to a small study area or not
 smaller_study_area <- F #Crop or not (T/F) 
 # Carlton CBD test area
@@ -42,13 +43,13 @@ smaller_study_area <- F #Crop or not (T/F)
 study_area <- st_as_sfc("SRID=28355;POLYGON((318877.2 5814208.5, 321433.7 5814021.4, 321547.1 5812332.6 ,318836.3 5812083.8,  318877.2 5814208.5))")
 
 # Have a smaller area with detailed and rest with only main roads
-focus_area <- T
+focus_area <- F
 # Based on https://github.com/JamesChevalier/cities/tree/master/australia/victoria
 selected_shire <- "australia/victoria/city-of-melbourne_victoria.poly"
 focus_area_boundary <- getAreaBoundary(selected_shire, crs_final) # TODO I am usnig convex_hull, might need to go for a more accuarate one
 
 # Network simplification (T/F)
-networkSimplication <- F 
+networkSimplication <- F
 
 # Specifiying which output format wanted (T/F)
 write_xml <- T 
@@ -61,7 +62,6 @@ lines_p <- st_read(inputSQLite , layer="roads") %>%
   st_transform(crs_final) %>% 
   mutate(detailed =  ifelse(lengths(st_intersects(., focus_area_boundary)) > 0,  "Yes",
                             ifelse(focus_area, "No", "Yes")))
-
 
 # Reading the nonplanar input (processed data by Alan)
 inputSQLite_np <- paste0(data_folder, 'network.sqlite') 
@@ -116,8 +116,8 @@ nodes_np[,c("x", "y")] <- do.call(rbind, st_geometry(nodes_np)) %>%
 nodes_np <- nodes_np %>% dplyr::select(id, x, y, z, GEOMETRY)
 
 if (networkSimplication){
-  # node clusters based on those that are connected with link with less than 10 meters lenght
-  df <- simplifyNetwork(lines_np, nodes_np, shortLinkLength = 10)
+  # node clusters based on those that are connected with link with less than 20 meters lenght
+  df <- simplifyNetwork(lines_np, nodes_np, shortLinkLength = 20)
   nodes_np <- df[[1]]
   lines_np <- df[[2]]
 }
@@ -128,13 +128,13 @@ nodes_np <- nodes_np %>% filter(id %in% lines_np$from_id | id %in% lines_np$to_i
 if (write_sqlite) {
   cat('\n')
   echo(paste0('Writing the sqlite output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
-  exportSQlite(lines_np, nodes_np, outputFileName = "outputSQliteFocusedCoM")
+  exportSQlite(lines_np, nodes_np, outputFileName = "outputSQliteAllDetialedV2")
   echo(paste0('Finished generating the sqlite output\n'))
 }
 
 if (write_xml) {
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(lines_np), ' links and ', nrow(nodes_np),' nodes\n'))
-  exportXML(lines_np, nodes_np, outputFileName = "outputXMLFocusedCoM")
+  exportXML(lines_np, nodes_np, outputFileName = "outputXMLAllDetialedV2", drop_z)
   echo(paste0('Finished generating the xml output\n'))
 }

@@ -15,31 +15,31 @@ buildDefaultsDF <- function(){
                                   oneway = 1, capacity = 2500, modes = "car"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "primary", permlanes = 2, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 2000, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 2000, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "primary_link", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 800, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 800, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "secondary", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 800, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 800, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "secondary_link", permlanes = 1, freespeed = 60/3.6, 
-                                  oneway = 1, capacity = 800, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 800, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "tertiary", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 600, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "tertiary_link", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 600, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "residential", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 600, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "unclassified", permlanes = 1, freespeed = 50/3.6, 
-                                  oneway = 1, capacity = 600, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 600, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "living_street", permlanes = 1, freespeed = 20/3.6, 
-                                  oneway = 1, capacity = 300, modes = "car,bicycle"))
+                                  oneway = 1, capacity = 300, modes = "car,bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "cycleway", permlanes = 1, freespeed = 30/3.6, 
                                   oneway = 1, capacity = 300, modes = "bicycle"))
@@ -48,7 +48,7 @@ buildDefaultsDF <- function(){
                                   oneway = 1, capacity = 300, modes = "bicycle"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "service", permlanes = 1, freespeed = 40/3.6, 
-                                  oneway = 1, capacity = 200, modes = "car, bicycle"))
+                                  oneway = 1, capacity = 200, modes = "car, bicycle,walk"))
   defaults_df <- rbind(defaults_df, 
                        data.frame(highwayType = "pedestrian", permlanes = 1, freespeed = 30/3.6, 
                                   oneway = 1, capacity = 120, modes = "walk"))

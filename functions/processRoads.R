@@ -17,7 +17,7 @@ processRoads <- function(this_lines_p ,this_defaults_df){
   
   # Filtering based on whether in focus area or not
   this_lines_p <- this_lines_p %>%
-    filter(detailed == "Yes" | (detailed == "No" & highway %in% as.character(defaults_df$highwayType[1:8])) )
+    filter(detailed == "Yes" | (detailed == "No" & highway %in% as.character(defaults_df$highwayType[1:10])) )
   # Processing the "other_tags"  --------------------------------------------------
   for (i in 1:nrow(this_lines_p)){
     this_other_tags <- str_extract_all(this_lines_p$other_tags[i], boundary("word"))

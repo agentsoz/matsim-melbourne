@@ -1,8 +1,8 @@
 
-# simplifyNetwork <- function(l_df, n_df, shortLinkLength = 10){
-l_df=lines_np
-n_df=nodes_np
-shortLinkLength = 20
+ simplifyNetwork <- function(l_df, n_df, shortLinkLength = 20){
+#l_df=lines_np
+#n_df=nodes_np
+#shortLinkLength = 20
 
 n_df_coords <- n_df %>%
   st_drop_geometry() %>%
@@ -13,8 +13,7 @@ roundabout_osm <- lines_p %>%
   pull(osm_id)
 
 
-l_df <- lines_np %>%
-  st_drop_geometry() %>%
+l_df <- l_df %>% #st_drop_geometry() %>%
   rowwise() %>%
   mutate(from=min(from_id,to_id),
          to=max(from_id,to_id)) %>%
@@ -96,5 +95,7 @@ l_df_new <- l_df %>%
   st_as_sf(wkt = "GEOMETRY", crs = 28355)
 
 
-st_write(l_df_new,"networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
-st_write(n_df_new,"networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
+return(list(n_df_new, l_df_new))
+#st_write(l_df_new,"networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
+#st_write(n_df_new,"networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
+}
