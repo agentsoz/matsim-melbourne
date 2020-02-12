@@ -10,25 +10,21 @@ create_markov_chain_model<-function(modelname, activities_csv_gz) {
 
   # Get list of activities per person
   activity.chains<-activities%>%
-    group_by(Person) %>% 
-    summarise(Activity.Chain = paste0(Activity.Group, collapse=","))
+    group_by(Person,Count) %>% 
+    dplyr::summarise(Activity.Chain = list(unique(Activity.Group)))
   
   states<-unique(sort(activities$Activity.Group))
   probs<-data.frame(
     matrix(0, nrow=length(states), ncol=length(states)),
     row.names = states)
   colnames(probs)<-states
+  
   for (j in 1:length(activity.chains$Activity.Chain)) {
-    chain<-activity.chains$Activity.Chain[j]
-    sq<-strsplit(chain, ",")[[1]]
+    sq<-activity.chains[j,]$Activity.Chain[[1]]
     if(length(sq)>1) {
-      for(i in 2:length(sq)) {
-        if (sq[i]%in%states && sq[i-1]%in%states) {
-          probs[sq[i-1],sq[i]]<-probs[sq[i-1],sq[i]]+1
-        } else {
-          print(paste0(sq[i-1],"|",sq[i]))
-        }
-      }
+      sq1<-sq[min(2,length(sq)):length(sq)]
+      sq<-sq[1:length(sq)-1]
+      probs[sq,sq1]<-probs[sq,sq1]+activity.chains[j,]$Count
     }
   }
   df<-probs

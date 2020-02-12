@@ -30,7 +30,7 @@ extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_g
     dd<-df[df$Activity.Group==groups[i],]
     for(act in acts) {
       if(act=="Act.Start.Time" || act=="Act.End.Time") {
-        h<-hist(as.numeric(dd[,act]), breaks=binsize)
+        h<-hist(rep(as.numeric(dd[,act]),dd[,]$Count), breaks=binsize)
         h$counts=h$counts/sum(h$counts)
         v<-h$counts
         if(length(h$counts)>binsize) v<- h$counts[1:binsize]
@@ -115,6 +115,10 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
       ifelse(as.numeric(x["Index"]) %in% xx$Index, 0, as.numeric(x["Act.Start.Time"])
       )
     })
+    
+    # Re-assign indices (since lastact created duplicate ids) and rownames
+    dy$Index<-seq(1,length(dy$Index))
+    rownames(dy)<-dy$Index
     dy
   }
   
