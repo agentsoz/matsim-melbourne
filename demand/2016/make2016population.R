@@ -293,6 +293,8 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     r<-1
     actTag<-NULL;
     tries<-0; maxTries<-10
+    mode<-NULL
+    work_sa1<-NULL; work_xy<-NULL
     while(!done) {
       if (r==1) {
         actTag<-"Home Morning"
@@ -358,10 +360,53 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       }      
       # only progress if start time was after the end time of the last activity
       dirty<-TRUE
+      foundLocation<-TRUE
       if (r==1 || acts[r,]$start_min>acts[r-1,]$end_min) {
-        tries<-0
-        r<-r+1
-        dirty<-FALSE
+        if(r>1) {
+          # determine SA1 for this activity type given last SA1
+          if (is.null(mode) || acts[r-1,]$loc_type=="home") { # mode can change if last activity was home
+            df<-findLocation(acts[r-1,]$sa1,acts[r,]$loc_type)
+          } else {
+            df<-findLocationKnownMode(acts[r-1,]$sa1, acts[r,]$loc_type, mode)
+          }
+          # assign the SA1 and coords
+          if(acts[r,]$loc_type=="home") { # re-use home SA1 and coords
+            acts[r,]$sa1<-home_sa1 
+            acts[r,]$x<-home_xy[1]
+            acts[r,]$y<-home_xy[2]
+          } else if(acts[r,]$loc_type=="work" && !is.null(work_sa1)) { # re-use work SA1 and coords
+            acts[r,]$sa1<-work_sa1
+            acts[r,]$x<-work_xy[1]
+            acts[r,]$y<-work_xy[2]
+          } else {
+            acts[r,]$sa1<-df[2]
+            xy<-getAddressCoordinates(acts[r,]$sa1, acts[r,]$loc_type)
+            if(is.null(xy)) {
+              foundLocation<-FALSE
+            } else {
+              acts[r,]$x<-xy[1]
+              acts[r,]$y<-xy[2]
+              # if this is a work activity then also save its SA1 and XY coordinates for future re-use
+              if(acts[r,]$loc_type=="work" && is.null(work_sa1)) {
+                work_sa1<-df[2]
+                work_xy<-xy
+              }
+            }
+          }
+          if(foundLocation) {
+            # save the leg
+            mode=df[1]
+            legs[r-1,]$origin_act_id<-acts[r-1,]$act_id
+            legs[r-1,]$dest_act_id<-acts[r,]$act_id
+            legs[r-1,]$mode<-mode
+          }
+        }
+        # prepare for next iteration
+        if (r==1 || foundLocation) {
+          tries<-0
+          r<-r+1
+          dirty<-FALSE
+        }
       } else if(tries>=maxTries) {
         if (0) cat('bactrack\n') # for debugging purposes
         acts<-acts[-c(r),] # delete the rth row
