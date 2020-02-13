@@ -24,7 +24,9 @@ create_markov_chain_model<-function(modelname, activities_csv_gz) {
     if(length(sq)>1) {
       sq1<-sq[min(2,length(sq)):length(sq)]
       sq<-sq[1:length(sq)-1]
-      probs[sq,sq1]<-probs[sq,sq1]+activity.chains[j,]$Count
+      for(k in 1:length(sq)) {
+        probs[sq[k],sq1[k]]<-probs[sq[k],sq1[k]]+activity.chains[j,]$Count
+      }
     }
   }
   df<-probs
