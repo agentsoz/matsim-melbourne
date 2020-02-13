@@ -11,7 +11,7 @@ library(rgdal)
 
 #functions}
 source('./functions/buildDefaultsDF.R')
-source('./functions/processRoads.R')
+source('./functions/processOsmTags.R')
 source('./functions/simplifyNetwork.R')
 source('./functions/exportSQlite.R')
 source('./functions/exportXML.R')
@@ -36,13 +36,13 @@ data_folder <- 'data/'
 crs_final <- 28355
 
 # Filter to a small study area or not
-smaller_study_area <- F #Crop or not (T/F) 
+smaller_study_area <- T #Crop or not (T/F) 
 # Carlton CBD test area
 #study_area <- st_as_sfc("SRID=7845;POLYGON((969309.8 -4294159.6, 969309.8 -4292207.1, 971316.7 -4292207.1,971316.7 -4294159.6,  969309.8 -4294159.6))")
 study_area <- st_as_sfc("SRID=28355;POLYGON((318877.2 5814208.5, 321433.7 5814021.4, 321547.1 5812332.6 ,318836.3 5812083.8,  318877.2 5814208.5))")
 
 # Have a smaller area with detailed and rest with only main roads
-focus_area <- F
+focus_area <- T
 # Based on https://github.com/JamesChevalier/cities/tree/master/australia/victoria
 selected_shire <- "australia/victoria/city-of-melbourne_victoria.poly"
 focus_area_boundary <- getAreaBoundary(selected_shire, crs_final)
@@ -82,8 +82,8 @@ nodes_p <- df[[1]]
 lines_p <- df[[2]]
 
 # write simplified network to file
-st_write(lines_p,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
-st_write(nodes_p,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
+#st_write(lines_p,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
+#st_write(nodes_p,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
 
 
 # Croping to the study area
@@ -101,13 +101,16 @@ osm_metadata <- osm_metadata %>% filter(osm_id%in%lines_p$osm_id)
 defaults_df <- buildDefaultsDF()
 # Processing the planar network and assining attributes based on defaults df and osm tags
 system.time(
-  osm_attrib <- processOsmTags(osm_metadata, defaults_df)
+  osm_attrib <- processOsmTags(osm_metadata, defaults_df) 
 )
 #   user  system elapsed 
 # 79.248   0.020  79.249 
 
+
+
 lines_p_attrib <- lines_p %>%
-  left_join(osm_attrib, by="osm_id")
+  left_join(osm_attrib, by="osm_id") %>% 
+  mutate(id = paste0("r_",from_id, "_", to_id))
 #st_write(lines_p_attrib,"data/networkSimplifiedAttributed.sqlite",delete_layer=TRUE,layer="edges")
 
 
@@ -149,8 +152,8 @@ nodes_p <- nodes_p %>% dplyr::select(id, x = X, y = Y, z, GEOMETRY)
 #  lines_np <- df[[2]]
 #}
 
-lines_p_attrib <- lines_p_attrib %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id) # removing those that there was no match in planar dataframe and those links that 
-nodes_p <- nodes_p %>% filter(id %in% lines_p_attrib$from_id | id %in% lines_p_attrib$to_id ) %>% distinct(id, x, y, z)# removing links that their nodes are removed
+#lines_p_attrib <- lines_p_attrib %>% filter(!is.na(freespeed)) %>% filter(from_id != to_id) # removing those that there was no match in planar dataframe and those links that 
+#nodes_p <- nodes_p %>% filter(id %in% lines_p_attrib$from_id | id %in% lines_p_attrib$to_id ) %>% distinct(id, x, y, z)# removing links that their nodes are removed
 
 if (write_sqlite) {
   cat('\n')
@@ -164,11 +167,12 @@ if (write_sqlite) {
   echo(paste0('Finished generating the sqlite output\n'))
 }
 
-# TODO There should be mode and other MATSim attributes in the lines_p_attrib
-
 if (write_xml) {
+  lines_p_attrib_ng <- lines_p_attrib %>% st_set_geometry(NULL)
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(lines_p_attrib), ' links and ', nrow(nodes_p),' nodes\n'))
-  exportXML(lines_p_attrib, nodes_p, outputFileName = "outputXMLBig")
+  exportXML(lines_p_attrib_ng, nodes_p, outputFileName = "outputXMLBig")
   echo(paste0('Finished generating the xml output\n'))
 }
+
+

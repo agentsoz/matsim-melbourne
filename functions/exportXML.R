@@ -4,11 +4,13 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML"){
     xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=this_node$x, y=this_node$y, z=this_node$z))# assign attribute list to attributes tag
      return(xnn)
   }
+  #this_link <- osm_attrib[1,]
+
   
   addMATSimLink <- function(this_link){
     xll <- newXMLNode("link", attrs = c(id=as.character(this_link$id), from=as.character(this_link$from_id), to=as.character(this_link$to_id),
                                         length=this_link$length, capacity=this_link$capacity, freespeed=this_link$freespeed,
-                                        permlanes=this_link$permlanes, oneway="1", modes=as.character(this_link$modes), origid=""))
+                                        permlanes=this_link$permlanes, oneway="1", modes=as.character(this_link$modes)))
     
     attribs <- this_link %>% mutate(bicycleInfrastructureSpeedFactor = 1.0) %>% 
       dplyr::select(osm_id, type = highway, bikeway, bicycleInfrastructureSpeedFactor) %>% 

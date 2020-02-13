@@ -1,6 +1,5 @@
 
 processOsmTags <- function(osm_df,this_defaults_df){
-
   getMetadataInfo <- function(other_tags) {
     freespeed=NA
     permlanes=NA
@@ -31,12 +30,17 @@ processOsmTags <- function(osm_df,this_defaults_df){
       if(any(foot_tags=="no")) isWalk=FALSE
       if(any(foot_tags %in% c("yes","designated"))) isWalk=TRUE
       if(!is.na(bikeway)) isCycle=TRUE
+      
+      
+      
     }
     data.frame(freespeed=freespeed,permlanes=permlanes,bikeway=bikeway,isCycle=isCycle,isWalk=isWalk,isCar=isCar)
   }
   
+  
   osmAttributed <- lapply(osm_df$other_tags, getMetadataInfo)%>%bind_rows()
 
+  
   osmAttributedWithDefaults <- cbind(osm_df,osmAttributed) %>%
     dplyr::select(-other_tags) %>%
     left_join(this_defaults_df, by=c("highway"="highwayType")) %>%
@@ -46,8 +50,19 @@ processOsmTags <- function(osm_df,this_defaults_df){
     mutate(bikeway=ifelse(is.na(bikeway)&isCycle.x==TRUE,"unmarked",bikeway)) %>%
     mutate(isWalk.x=ifelse(is.na(isWalk.x),isWalk.y,isWalk.x)) %>%
     mutate(isCar.x=ifelse(is.na(isCar.x),isCar.y,isCar.x)) %>%
-    dplyr::select(osm_id,highway,freespeed=freespeed.x,permlanes=permlanes.x,
+    mutate(capacity.x = (capacity / permlanes.y) * permlanes.x ) %>% 
+    dplyr::select(osm_id,highway,freespeed=freespeed.x,permlanes=permlanes.x, capacity=capacity.x,
                   bikeway,isCycle=isCycle.x,isWalk=isWalk.x,isCar=isCar.x)
   
-  return(osmAttributedWithDefaults)
+    
+    osmAttributedWithModes <- osmAttributedWithDefaults %>% 
+      mutate(modes = if_else(condition = isCar, true = "car", false = NULL)) %>% 
+      mutate(modes = if_else(condition = isCycle, 
+                             true = if_else(condition = is.na(modes), true = "bicycle", false = paste(modes, "bicycle", sep=",")), 
+                             false = modes)) %>% 
+      mutate(modes = if_else(condition = isWalk, 
+                             true = if_else(condition = is.na(modes), true = "walk", false = paste(modes, "walk", sep=",")), 
+                             false = modes))
+               
+  return(osmAttributedWithModes)
 }

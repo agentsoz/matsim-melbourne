@@ -25,6 +25,7 @@ buildDefaultsDF <- function(){
      "pedestrian"     ,  1        ,  (30/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
      "footway"        ,  1        ,  (15/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
      "path"           ,  1        ,  (15/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
+     "corridor"       ,  1        ,  (15/3.6) ,  1     ,    50    ,  FALSE  ,  TRUE  ,  FALSE,
      "steps"          ,  1        ,  (15/3.6) ,  1     ,    10    ,  FALSE  ,  TRUE  ,  FALSE
   )
 
