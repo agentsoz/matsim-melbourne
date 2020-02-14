@@ -128,7 +128,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       return(df)
     }
     
-    sampleStartTimeInMinsFromTimeBins<-function(bins, actTag, distTag) {
+    sampleStartTimeInMinsFromTimeBins<-function(bins, actTag) {
       probs<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Start.Time.Prob",]
       probs<-probs[3:length(probs)]
       select<-selectIndexFromProbabilities(probs)
@@ -200,7 +200,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       acts[r,]$sa1<-df[2]
       acts[r,]$x<-0
       acts[r,]$y<-0
-      acts[r,]$start_min<-sampleStartTimeInMinsFromTimeBins(bins, acts[r,]$act_type)
+      acts[r,]$start_min<-acts[r-1,]$end_min + sample(1:(ncol(bins)-2),1)
       acts[r,]$end_min<-acts[r,]$start_min + sampleDurationInMinsFromTimeBins(bins, acts[r,]$act_type, acts[r,]$start_min)
       if(acts[r,]$act_type == "Home Night") acts[r,]$end_min<-(60*24)-1
       # try again if start time is before end time of last activity (not always fixable)
@@ -230,7 +230,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
         legs[r-1,]$mode<-mode
       }
     }
-    return(list(acts,legs))
+  return(list(acts,legs))
   }
   
   assignLocationsToActivities <-function(acts,legs) {
@@ -253,7 +253,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
         acts[r,]$y<-xy[2]
         # if this is a work activity then also save its SA1 and XY coordinates for future re-use
         if(acts[r,]$loc_type=="work" && is.null(work_sa1)) {
-          work_sa1<-df[2]
+          work_sa1<-acts[r,]$sa1
           work_xy<-xy
         }
       }
