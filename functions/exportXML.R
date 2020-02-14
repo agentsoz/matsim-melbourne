@@ -1,11 +1,14 @@
-exportXML <- function(l_df, n_df, outputFileName = "outputXML"){
+exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
   addMATSimNode <- function(this_node){
-    xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=this_node$x, y=this_node$y, z=this_node$z))# assign attribute list to attributes tag
+    if (addZ_coord){
+      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=this_node$x, y=this_node$y, z=this_node$z))# assign attribute list to attributes tag
+      
+    }else {
+      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=this_node$x, y=this_node$y))# assign attribute list to attributes tag
+    }
      return(xnn)
   }
-  #this_link <- osm_attrib[1,]
-
   
   addMATSimLink <- function(this_link){
     xll <- newXMLNode("link", attrs = c(id=as.character(this_link$id), from=as.character(this_link$from_id), to=as.character(this_link$to_id),

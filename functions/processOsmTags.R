@@ -1,6 +1,8 @@
-
 processOsmTags <- function(osm_df,this_defaults_df){
-  getMetadataInfo <- function(other_tags) {
+  getMetadataInfo <- function(osm_tags) {
+    hghw_tag <- osm_tags[1]
+    other_tags <- osm_tags[2]
+
     freespeed=NA
     permlanes=NA
     oneway=NA
@@ -22,14 +24,18 @@ processOsmTags <- function(osm_df,this_defaults_df){
       
       if("maxspeed" %in% tags) freespeed=as.integer(tags[which(tags=="maxspeed")+1])/3.6
       if("lanes" %in% tags) permlanes=as.integer(tags[which(tags=="lanes")+1])
-      if(any(bicycle_tags %in% c("yes","designated"))) bikeway="unmarked"
+      
+      if(hghw_tag=="cycleway") bikeway="bikepath"
+      #if(any(bicycle_tags %in% c("yes","designated"))) bikeway="unmarked"
       if(any(cycleway_tags=="shared_lane")) bikeway="shared_lane"
-      if(any(cycleway_tags=="lane")) bikeway="lane"
-      if(any(cycleway_tags=="track")) bikeway="track"
+      if(any(cycleway_tags=="lane") & hghw_tag!="cycleway") bikeway="lane"
+      if(any(cycleway_tags=="track")& hghw_tag!="cycleway") bikeway="seperated_lane"
       if(any(car_tags=="no")) isCar=FALSE
       if(any(foot_tags=="no")) isWalk=FALSE
       if(any(foot_tags %in% c("yes","designated"))) isWalk=TRUE
-      if(!is.na(bikeway)) isCycle=TRUE
+      if(!is.na(bikeway) | any(bicycle_tags %in% c("yes","designated"))) isCycle=TRUE
+      if(any(bicycle_tags %in% "no")) isCycle = FALSE
+         
       
       
       
@@ -38,7 +44,7 @@ processOsmTags <- function(osm_df,this_defaults_df){
   }
   
   
-  osmAttributed <- lapply(osm_df$other_tags, getMetadataInfo)%>%bind_rows()
+  osmAttributed <- apply(osm_df[,c("highway","other_tags")],MARGIN = 1, getMetadataInfo)%>%bind_rows()
 
   
   osmAttributedWithDefaults <- cbind(osm_df,osmAttributed) %>%
