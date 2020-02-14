@@ -1,10 +1,10 @@
 -- turning timing on
 \timing
--- transforms the geometries to a projected (i.e, x,y) system and snappes to the
--- nearest metre
+-- transforms the geometries to a projected (i.e, x,y) system and snaps to the
+-- nearest metre. Was using GDA2020 (7845), now using MGA Zone 55 (28355)
 ALTER TABLE roads
- ALTER COLUMN geom TYPE geometry(LineString,7845)
-  USING ST_SnapToGrid(ST_Transform(geom,7845),1);
+ ALTER COLUMN geom TYPE geometry(LineString,28355)
+  USING ST_SnapToGrid(ST_Transform(geom,28355),1);
 
 -- determine if the road segment is a bridge or tunnel
 ALTER TABLE roads ADD COLUMN bridge_or_tunnel BOOLEAN;
@@ -109,7 +109,9 @@ WHERE
   ST_Intersects(ST_EndPoint(a.geom),b.geom);
 
 
-
+-- This doesn't seem to be necessary, but will keep this in in case we do need
+-- it for other networks. It finds all the unique ids used by the line_cut table
+-- and builds an index on it.
 DROP TABLE IF EXISTS unique_node_ids;
 CREATE TABLE unique_node_ids AS
 SELECT DISTINCT c.id
@@ -121,7 +123,7 @@ FROM
   FROM line_cut AS b) as c;
 CREATE UNIQUE INDEX unique_node_ids_idx ON unique_node_ids (id);
 
-
+-- filters endpoints_clustered to only have the nodes used in line_cut
 DROP TABLE IF EXISTS endpoints_filtered;
 CREATE TABLE endpoints_filtered AS
 SELECT a.id, a.geom

@@ -1,3 +1,7 @@
+#!/bin/bash
+
+# change to the directory this script is located in
+cd "$(dirname "$0")"
 # extract the roads from the osm file, put in melbourne.sqlite
 ogr2ogr -update -overwrite -nln roads -f "SQLite" -dsco SPATIALITE=YES \
   -dialect SQLite -sql \
@@ -14,7 +18,7 @@ ogr2ogr -update -overwrite -nln roads -f "SQLite" -dsco SPATIALITE=YES \
         other_tags NOT LIKE '%abandoned%' AND \
         other_tags NOT LIKE '%parking%' AND \
         other_tags NOT LIKE '%\"access\"=>\"private\"%')) " \
-  melbourne.sqlite melbourne.osm
+  ./data/melbourne.sqlite ./data/melbourne.osm
 
 # extract the traffic signals, put in melbourne.sqlite
 ogr2ogr -update -overwrite -nln roads_points -f "SQLite" -dsco SPATIALITE=YES \
@@ -22,7 +26,7 @@ ogr2ogr -update -overwrite -nln roads_points -f "SQLite" -dsco SPATIALITE=YES \
   "SELECT CAST(osm_id AS DOUBLE PRECISION) AS osm_id, highway, other_tags, \
     GEOMETRY FROM points \
     WHERE highway LIKE '%traffic_signals%' " \
-  melbourne.sqlite melbourne.osm
+  ./data/melbourne.sqlite ./data/melbourne.osm
 
 # extract the train and tram lines and add to melbourne.sqlite
 # apparently there are minature railways
@@ -53,11 +57,11 @@ psql -c 'create extension postgis' ${DB_NAME} postgres
 
 ogr2ogr -overwrite -lco GEOMETRY_NAME=geom -lco SCHEMA=public -f "PostgreSQL" \
   PG:"host=localhost port=5432 user=postgres dbname=${DB_NAME}" \
-  -a_srs "EPSG:4326" melbourne.sqlite roads
+  -a_srs "EPSG:4326" ./data/melbourne.sqlite roads
 
 # run the sql statements
 psql -U postgres -d ${DB_NAME} -a -f melbNetwork.sql
 
 # extract the nodes and edges to the network file
-ogr2ogr -update -overwrite -f SQLite -dsco SPATIALITE=yes network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.line_cut -nln edges
-ogr2ogr -update -overwrite -f SQLite -update network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.endpoints_clustered -nln nodes
+ogr2ogr -update -overwrite -f SQLite -dsco SPATIALITE=yes ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.line_cut -nln edges
+ogr2ogr -update -overwrite -f SQLite -update ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.endpoints_filtered -nln nodes
