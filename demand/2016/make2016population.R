@@ -86,105 +86,6 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     return(hhmmss)
   }
   
-  # Function to create activities and legs from given trip chain
-  createActivitiesAndLegs <- function(person, tc, tcacts, bins) {
-    # get a person and determine its home SA1 and coordinates
-    home_sa1<-as.character(person$SA1_MAINCODE_2016)
-    home_xy<-getAddressCoordinates(home_sa1,"home")
-    if(is.null(home_xy)) return(NULL)
-    
-    # data frames for storing this person's activities and connecting legs
-    acts<-data.frame(act_id=NA, act_type=NA, sa1=NA, x=NA, y=NA, loc_type=NA, end_hhmmss=NA)
-    legs<-data.frame(origin_act_id=NA,mode=NA,dest_act_id=NA)
-    
-    # first activity is always home
-    if (tc[1] != "home") stop(paste0('First activity in trip chain must be `home` but was `',tc[1],'`'))
-    acts[1,]$act_id<-1
-    acts[1,]$act_type<-tcacts[1]
-    acts[1,]$loc_type<-tc[1]
-    acts[1,]$sa1<-home_sa1
-    acts[1,]$x<-home_xy[1]
-    acts[1,]$y<-home_xy[2]
-
-    # select end time based on known end time probabilities for that activity group
-    vv<-bins[bins$Activity.Group=="Home Morning" & bins$Activity.Stat=="Act.End.Time",]
-    vv<-vv[3:length(vv)]
-    select<-selectIndexFromProbabilities(vv)
-    secs<-60*60*24*((select-1)/length(vv))
-    binSizeInSecs<-floor(60*60*24)/length(vv)
-    setTime<-secs+sample(1:binSizeInSecs, 1)
-    acts[1,]$end_hhmmss<-toHHMMSS(setTime)
-    
-    
-    # determine the SA1 and coordinartes for the remaining activites
-    mode<-NULL
-    work_sa1<-NULL; work_xy<-NULL
-    for(i in 2:length(tc)) {
-      acts[i,]$act_id<-i
-      acts[i,]$act_type<-tcacts[i]
-      acts[i,]$loc_type<-tc[i]
-      # determine SA1 for this activity type given last SA1
-      if (is.null(mode) || tc[i-1]=="home") { # mode can change if last activity was home
-        df<-findLocation(acts[i-1,]$sa1,acts[i,]$loc_type)
-      } else {
-        df<-findLocationKnownMode(acts[i-1,]$sa1, acts[i,]$loc_type, mode)
-      }
-      # assign the SA1 and coords
-      if(tc[i]=="home") { # re-use home SA1 and coords
-        acts[i,]$sa1<-home_sa1 
-        acts[i,]$x<-home_xy[1]
-        acts[i,]$y<-home_xy[2]
-      } else if(tc[i]=="work" && !is.null(work_sa1)) { # re-use work SA1 and coords
-        acts[i,]$sa1<-work_sa1
-        acts[i,]$x<-work_xy[1]
-        acts[i,]$y<-work_xy[2]
-      } else {
-        acts[i,]$sa1<-df[2]
-        xy<-getAddressCoordinates(acts[i,]$sa1,acts[i,]$loc_type)
-        if(is.null(xy)) return(NULL)
-        acts[i,]$x<-xy[1]
-        acts[i,]$y<-xy[2]
-        # if this is a work activity then also save its SA1 and XY coordinates for future re-use
-        if(tc[i]=="work" && is.null(work_sa1)) {
-          work_sa1<-df[2]
-          work_xy<-xy
-        }
-      }
-      
-      # TODO: assign sensible end times for activities
-      #acts[i,]$end_hhmmss<-paste0(
-      #  str_pad(6+i,2,pad="0"),":", # using activitiy id to define end hour past 6am
-      #  str_pad(sample(seq(0,59),1),2,pad="0"),":", # random minutes in that hour
-      #  str_pad(sample(seq(0,59),1),2,pad="0")) # random seconds in that minute
-      
-      # select end time based on known end time probabilities for that activity group
-      vv<-bins[bins$Activity.Group==acts[i,]$act_type & bins$Activity.Stat=="Act.End.Time",]
-      vv<-vv[3:length(vv)]
-      select<-selectIndexFromProbabilities(vv)
-      secs<-60*60*24*((select-1)/length(vv))
-      binSizeInSecs<-floor(60*60*24)/length(vv)
-      nextTime<-secs+sample(1:binSizeInSecs, 1)
-      acts[i,]$end_hhmmss<-toHHMMSS(nextTime)
-      # if we rolled the dice to a time before end time of last activity,
-      # then just swap end times with the last activity
-      if(nextTime < setTime) { 
-        acts[i,]$end_hhmmss<-toHHMMSS(setTime)
-        acts[i-1,]$end_hhmmss<-toHHMMSS(nextTime)      
-      }
-      setTime<-nextTime # update setTime
-      
-      # save the leg
-      mode=df[1]
-      legs[i-1,]$origin_act_id<-acts[i-1,]$act_id
-      legs[i-1,]$dest_act_id<-acts[i,]$act_id
-      legs[i-1,]$mode<-mode
-    }
-    
-    rownames(acts)<-seq(1:nrow(acts))
-    rownames(legs)<-seq(1:nrow(legs))
-    return(list(acts,legs))
-  }
-  
   echo<- function(msg) {
     cat(paste0(as.character(Sys.time()), ' | ', msg))  
   }
@@ -195,6 +96,169 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     cat(char)
     if(row%%10==0) cat('|')
     if(row%%50==0) cat(paste0(' ', row,'\n'))
+  }
+  
+  
+  createActivitiesAndLegs <-function(mc, bins, person) {
+    
+    nextActAndLocType <- function(lastActTag) {
+      if (is.null(lastActTag)) {
+        actTag<-"Home Morning"
+      } else {
+        actTag<-rmarkovchain(n=1,mc,t0=lastActTag)
+        while(actTag=="With Someone" # don't care about secondary persons
+              || actTag=="Mode Change" # ignore mode change for now, improve later
+              #      || (actTag=="Home Daytime" && lastTag=="Home Morning") # remove successive home activities
+              #      || (actTag=="Home Daytime" && lastTag=="Home Daytime") # remove successive home activities
+              #      || (actTag=="Home Night" && lastTag=="Home Daytime") # remove successive home activities
+        ) {
+          actTag<-rmarkovchain(n=1,mc,t0=lastActTag)
+        }
+      }
+      locTag<-replaceActivityWithLocationTags(actTag)
+      return(list(actTag, locTag))
+    }
+    
+    nextModeAndSa1 <- function(fromSA1, toLocType, currentMode) {
+      if (is.null(currentMode) || toLocType=="home") { # mode can change if last activity was home
+        df<-findLocation(fromSA1, toLocType)
+      } else {
+        df<-findLocationKnownMode(fromSA1, toLocType, mode)
+      }
+      return(df)
+    }
+    
+    sampleStartTimeInMinsFromTimeBins<-function(bins, actTag, distTag) {
+      probs<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Start.Time.Prob",]
+      probs<-probs[3:length(probs)]
+      select<-selectIndexFromProbabilities(probs)
+      mins<-60*24*((select-1)/length(probs))
+      binSizeInMins<-floor(60*24)/length(probs)
+      actTime<-mins+sample(1:binSizeInMins, 1)
+      return(actTime)
+    }
+    
+    sampleDurationInMinsFromTimeBins<-function(bins, actTag, startTimeInMins) {
+      means<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Mean",]
+      means<-means[,3:ncol(means)]
+      sigmas<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Sigma",]
+      sigmas<-sigmas[,3:ncol(sigmas)]
+      binIndex<-1+startTimeInMins%/%ncol(means)
+      mean<-means[1,binIndex]
+      sigma<-sigmas[1,binIndex]
+      if(is.na(mean) || is.na(sigma) || mean<=0 || sigma<=0) {
+        duration<-0
+      } else {
+        duration<- -1
+        while(duration<0) duration<-round(rnorm(1,mean,sigma))
+      }
+      return(duration)
+    }
+    
+    # determine  home SA1 and coordinates
+    home_sa1<-as.character(person$SA1_MAINCODE_2016)
+    home_xy<-getAddressCoordinates(home_sa1,"home")
+    if(is.null(home_xy)) {
+      # can be NULL sometimes if type of location required for some activiy cannot be found in given SA1
+      discarded<-rbind(discarded,person)
+      printProgress(row,'x')
+      return(NULL) # cannot continue without a home location 
+    } 
+    
+    # data frames for storing this person's activities and connecting legs
+    acts<-data.frame(act_id=NA, act_type=NA, sa1=NA, x=NA, y=NA, loc_type=NA, 
+                     start_min=NA, end_min=NA, start_hhmmss=NA, end_hhmmss=NA)
+    legs<-data.frame(origin_act_id=NA,mode=NA,dest_act_id=NA)
+    
+    # Start at home
+    r=1
+    acts[r,]$act_id<-r
+    acts[r,]$act_type<-"Home Morning"
+    acts[r,]$loc_type<-"home"
+    acts[r,]$sa1<-home_sa1
+    acts[r,]$x<-home_xy[1]
+    acts[r,]$y<-home_xy[2]
+    acts[r,]$start_min<-0
+    acts[r,]$end_min<-acts[r,]$start_min + sampleDurationInMinsFromTimeBins(bins, acts[r,]$act_type, acts[r,]$start_min)
+
+    mode<-NULL # current transport mode
+    tries<-0
+    while(r==0 || acts[r,]$act_type != "Home Night") {
+      r<-r+1
+      if(r==1) {
+        # resample the end time of the Home Morning activity; 
+        # we can end up here if we were unable to sequence subsequent activities after several tries
+        acts[r,]$end_min<-acts[r,]$start_min + sampleDurationInMinsFromTimeBins(bins, acts[r,]$act_type, acts[r,]$start_min)
+        next
+      }
+      acts[r,]$act_id<-r
+      df<-nextActAndLocType(acts[r-1,]$act_type)
+      acts[r,]$act_type<-df[[1]]
+      acts[r,]$loc_type<-df[[2]]
+      df<-nextModeAndSa1(acts[r-1,]$sa1, acts[r,]$loc_type, mode)
+      mode=df[1]
+      acts[r,]$sa1<-df[2]
+      acts[r,]$x<-0
+      acts[r,]$y<-0
+      acts[r,]$start_min<-sampleStartTimeInMinsFromTimeBins(bins, acts[r,]$act_type)
+      acts[r,]$end_min<-acts[r,]$start_min + sampleDurationInMinsFromTimeBins(bins, acts[r,]$act_type, acts[r,]$start_min)
+      if(acts[r,]$act_type == "Home Night") acts[r,]$end_min<-(60*24)-1
+      # try again if start time is before end time of last activity (not always fixable)
+      if (acts[r,]$start_min <= acts[r-1,]$end_min) {
+        tries<- tries+1
+        if (tries>=5) {
+          # if we have tried enough times and failed to sequence this activity following the previous one
+          # then it might be time to backtrack and pick a different previous activity, since this
+          # combination might just happen to be very unlikely as per the activity start/end time distributions,
+          # even though this sequence was picked by the markov probability model.
+          acts<-acts[-c(r),] # delete this activity
+          r<-max(0,r-2) # backtrack to previous activity
+          tries<-0
+        } else {
+          r<-r-1 
+        }
+      }
+    }
+    for(r in 1:nrow(acts)) {
+      # assign hhmmss time
+      acts[r,]$start_hhmmss<-toHHMMSS((acts[r,]$start_min*60)+sample(0:59, 1))
+      acts[r,]$end_hhmmss<-toHHMMSS((acts[r,]$end_min*60)+sample(0:59, 1))
+      # save the leg
+      if(r>1) {
+        legs[r-1,]$origin_act_id<-acts[r-1,]$act_id
+        legs[r-1,]$dest_act_id<-acts[r,]$act_id
+        legs[r-1,]$mode<-mode
+      }
+    }
+    return(list(acts,legs))
+  }
+  
+  assignLocationsToActivities <-function(acts,legs) {
+    work_sa1<-NULL; work_xy<-NULL
+    for(r in 2:nrow(acts)) {
+      mode<-legs[r-1,]$mode
+      # assign the SA1 and coords
+      if(acts[r,]$loc_type=="home") { # re-use home SA1 and coords
+        acts[r,]$sa1<-acts[1,]$sa1 
+        acts[r,]$x<-acts[1,]$x
+        acts[r,]$y<-acts[1,]$y
+      } else if(acts[r,]$loc_type=="work" && !is.null(work_sa1)) { # re-use work SA1 and coords
+        acts[r,]$sa1<-work_sa1
+        acts[r,]$x<-work_xy[1]
+        acts[r,]$y<-work_xy[2]
+      } else {
+        xy<-getAddressCoordinates(acts[r,]$sa1, acts[r,]$loc_type)
+        if(is.null(xy)) return(NULL)
+        acts[r,]$x<-xy[1]
+        acts[r,]$y<-xy[2]
+        # if this is a work activity then also save its SA1 and XY coordinates for future re-use
+        if(acts[r,]$loc_type=="work" && is.null(work_sa1)) {
+          work_sa1<-df[2]
+          work_xy<-xy
+        }
+      }
+    }
+    return(list(acts,legs))
   }
   
   ## start here
@@ -267,163 +331,27 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   discarded<-persons[FALSE,]
   allpax<-NULL; allacts<-NULL; alllegs<-NULL;
   for (row in 1:nrow(persons)) {
-    error=FALSE
     # get the person
     person<-persons[row,]
     pid<-row-1
     
-    # get a person and determine their home SA1 and coordinates
-    home_sa1<-as.character(person$SA1_MAINCODE_2016)
-    home_xy<-getAddressCoordinates(home_sa1,"home")
-    if(is.null(home_xy)) {
-      # can be NULL sometimes if type of location required for some activiy cannot be found in given SA1
+    # create activities and legs
+    df<-createActivitiesAndLegs(mc, bins, person)
+    if(is.null(df)) {
       discarded<-rbind(discarded,person)
-      error=TRUE
       printProgress(row,'x')
-      break
-    } 
-    
-    # data frames for storing this person's activities and connecting legs
-    acts<-data.frame(act_id=NA, act_type=NA, sa1=NA, x=NA, y=NA, loc_type=NA, 
-                     start_min=NA, end_min=NA, start_hhmmss=NA, end_hhmmss=NA)
-    legs<-data.frame(origin_act_id=NA,mode=NA,dest_act_id=NA)
-
-    # start adding activities and legs    
-    done<-FALSE
-    r<-1
-    actTag<-NULL;
-    tries<-0; maxTries<-10
-    mode<-NULL
-    work_sa1<-NULL; work_xy<-NULL
-    while(!done) {
-      if (r==1) {
-        actTag<-"Home Morning"
-      } else {
-        actTag<-rmarkovchain(n=1,mc,t0=acts[r-1,]$act_type) # find a new activity
-        while(actTag=="With Someone" # don't care about secondary persons
-              || actTag=="Mode Change" # ignore mode change for now, improve later
-        #      || (actTag=="Home Daytime" && lastTag=="Home Morning") # remove successive home activities
-        #      || (actTag=="Home Daytime" && lastTag=="Home Daytime") # remove successive home activities
-        #      || (actTag=="Home Night" && lastTag=="Home Daytime") # remove successive home activities
-        ) {
-          actTag<-rmarkovchain(n=1,mc,t0=acts[r-1,]$act_type) # find a new activity
-        }
-      }
-      locTag<-replaceActivityWithLocationTags(actTag)
-      
-      acts[r,]$act_id<-r
-      acts[r,]$act_type<-actTag
-      acts[r,]$loc_type<-locTag
-      acts[r,]$sa1<-home_sa1
-      acts[r,]$x<-home_xy[1]
-      acts[r,]$y<-home_xy[2]
-      acts[r,]$start_min<-0
-      acts[r,]$end_min<-0
-      
-      # select start time based on known end time probabilities for that activity group
-      if (actTag=="Home Morning") {
-        select<-1
-        actTime<-0
-      } else {
-        probs<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Start.Time.Prob",]
-        probs<-probs[3:length(probs)]
-        select<-selectIndexFromProbabilities(probs)
-        mins<-60*24*((select-1)/length(probs))
-        binSizeInMins<-floor(60*24)/length(probs)
-        actTime<-mins+sample(1:binSizeInMins, 1)
-      }
-      acts[r,]$start_min<-actTime
-      acts[r,]$start_hhmmss<-toHHMMSS(actTime)
-      
-      # select end time based on known end time probabilities for that activity group
-      if (actTag=="Home Night") {
-        endTime<-(60*24)-1
-      } else {
-        means<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Mean",]
-        sigmas<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Sigma",]
-        mean<-means[1,2+select]
-        sigma<-sigmas[1,2+select]
-        if(is.na(mean) || is.na(sigma) || mean<=0 || sigma<=0) {
-          duration<-0
-        } else {
-          duration<- -1
-          while(duration<0) duration<-round(rnorm(1,mean,sigma))
-        }
-        endTime<-actTime+duration
-      }
-      acts[r,]$end_min<-endTime
-      acts[r,]$end_hhmmss<-toHHMMSS(endTime)
-
-      if(0){ # for debugging purposes
-        if (r>1) cat(paste0(acts[r-1,]$act_type, "(", acts[r-1,]$start_min, ",", acts[r-1,]$end_min, ")", "->"))
-        cat(paste0(acts[r,]$act_type, "(", acts[r,]$start_min, ",", acts[r,]$end_min, ") ", tries, "\n"))
-      }      
-      # only progress if start time was after the end time of the last activity
-      dirty<-TRUE
-      foundLocation<-TRUE
-      if (r==1 || acts[r,]$start_min>acts[r-1,]$end_min) {
-        if(r>1) {
-          # determine SA1 for this activity type given last SA1
-          if (is.null(mode) || acts[r-1,]$loc_type=="home") { # mode can change if last activity was home
-            df<-findLocation(acts[r-1,]$sa1,acts[r,]$loc_type)
-          } else {
-            df<-findLocationKnownMode(acts[r-1,]$sa1, acts[r,]$loc_type, mode)
-          }
-          # assign the SA1 and coords
-          if(acts[r,]$loc_type=="home") { # re-use home SA1 and coords
-            acts[r,]$sa1<-home_sa1 
-            acts[r,]$x<-home_xy[1]
-            acts[r,]$y<-home_xy[2]
-          } else if(acts[r,]$loc_type=="work" && !is.null(work_sa1)) { # re-use work SA1 and coords
-            acts[r,]$sa1<-work_sa1
-            acts[r,]$x<-work_xy[1]
-            acts[r,]$y<-work_xy[2]
-          } else {
-            acts[r,]$sa1<-df[2]
-            xy<-getAddressCoordinates(acts[r,]$sa1, acts[r,]$loc_type)
-            if(is.null(xy)) {
-              foundLocation<-FALSE
-            } else {
-              acts[r,]$x<-xy[1]
-              acts[r,]$y<-xy[2]
-              # if this is a work activity then also save its SA1 and XY coordinates for future re-use
-              if(acts[r,]$loc_type=="work" && is.null(work_sa1)) {
-                work_sa1<-df[2]
-                work_xy<-xy
-              }
-            }
-          }
-          if(foundLocation) {
-            # save the leg
-            mode=df[1]
-            legs[r-1,]$origin_act_id<-acts[r-1,]$act_id
-            legs[r-1,]$dest_act_id<-acts[r,]$act_id
-            legs[r-1,]$mode<-mode
-          }
-        }
-        # prepare for next iteration
-        if (r==1 || foundLocation) {
-          tries<-0
-          r<-r+1
-          dirty<-FALSE
-        }
-      } else if(tries>=maxTries) {
-        if (0) cat('bactrack\n') # for debugging purposes
-        acts<-acts[-c(r),] # delete the rth row
-        tries<-0
-        r<-r-1 # backtrack if we can't seem to find a path forward
-        if (r<=1) {
-          r=1
-          tries<-0
-        }
-      } 
-      tries<-tries+1
-      # all done if we just finished with the home night activity
-      if (!is.null(actTag) && actTag=="Home Night" && !dirty) {
-        done=TRUE
-      }
+      next # continue to next person if we could not create activities and legs
     }
-    
+    acts<-df[[1]]
+    legs<-df[[2]]
+    df<-assignLocationsToActivities(acts,legs)
+    if(is.null(df)) {
+      discarded<-rbind(discarded,person)
+      printProgress(row,'x')
+      next # continue to next person if we could not assign locations
+    }
+    acts<-df[[1]]
+    legs<-df[[2]]
     # also save all persons, activities, and legs for outputting to CSV
     if (is.null(allacts)) allacts<-acts[FALSE,]
     if (is.null(alllegs)) alllegs<-legs[FALSE,]
@@ -434,8 +362,9 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     pp<-generateMATSimPersonXML(pid, person, acts, legs)
     # attach person XML node to the population
     addChildren(popn,pp)
-    printProgress(row,'.')
+    printProgress(row,'.')    
   }
+  
   cat('\n')
   echo(paste0('Finished generating ',nrow(persons)-nrow(discarded),'/',nrow(persons),' persons\n'))
   if(nrow(discarded)>0) {
