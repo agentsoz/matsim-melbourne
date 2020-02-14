@@ -53,7 +53,7 @@ processOsmTags <- function(osm_df,this_defaults_df){
     mutate(freespeed.x=ifelse(is.na(freespeed.x),freespeed.y,freespeed.x)) %>%
     mutate(permlanes.x=ifelse(is.na(permlanes.x),permlanes.y,permlanes.x)) %>%
     mutate(isCycle.x=ifelse(is.na(isCycle.x),isCycle.y,isCycle.x)) %>%
-    mutate(bikeway=ifelse(is.na(bikeway)&isCycle.x==TRUE,"unmarked",bikeway)) %>%
+    #mutate(bikeway=ifelse(is.na(bikeway)&isCycle.x==TRUE,"unmarked",bikeway)) %>%
     mutate(isWalk.x=ifelse(is.na(isWalk.x),isWalk.y,isWalk.x)) %>%
     mutate(isCar.x=ifelse(is.na(isCar.x),isCar.y,isCar.x)) %>%
     mutate(capacity.x = (capacity / permlanes.y) * permlanes.x ) %>% 
@@ -69,6 +69,8 @@ processOsmTags <- function(osm_df,this_defaults_df){
       mutate(modes = if_else(condition = isWalk, 
                              true = if_else(condition = is.na(modes), true = "walk", false = paste(modes, "walk", sep=",")), 
                              false = modes))
-               
-  return(osmAttributedWithModes)
+    
+    osmAttributedCleaned  <- osmAttributedWithModes %>% 
+                                filter(!is.na(modes) & !is.na(freespeed) & !is.na(permlanes) & !is.na(capacity))
+  return(osmAttributedCleaned)
 }

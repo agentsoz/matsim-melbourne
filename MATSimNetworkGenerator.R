@@ -94,12 +94,11 @@ system.time(
 
 lines_p_attrib <- lines_p %>%
   left_join(osm_attrib, by="osm_id") %>% 
-  mutate(id = paste0("r_",from_id, "_", to_id))
-
+  filter(from_id != to_id) %>% 
+  mutate(id = paste(from_id, to_id, row_number(), sep = "_")) # TODO we should think of a good naming system to use across all the works
 
 
 #TODO: Add in the PT network generation here. Fix the DEM so it covers the entire area.
-
 
 
 
@@ -126,14 +125,22 @@ if(addZ){
   nodes_p <- nodes_p %>% dplyr::select(id, x = X, y = Y, GEOMETRY)
 }
 
+
+# Cleaning before writing
+lines_p_attrib_cleaned  <- lines_p_attrib %>% 
+                            filter(!is.na(modes) & !is.na(freespeed) & !is.na(permlanes) & !is.na(capacity))
+nodes_p_cleaned <- nodes_p %>% 
+  filter(id %in% lines_p_attrib_cleaned$from_id | id %in% lines_p_attrib_cleaned$to_id)
+
+
 ## writing outputs - sqlite
 if (write_sqlite) {
   cat('\n')
   echo(paste0('Writing the sqlite output: ', nrow(lines_p_attrib), ' links and ', nrow(nodes_p),' nodes\n'))
   
-  st_write(lines_p_attrib,'outputSQliteFocusedCoM2.sqlite', layer = 'lines', 
+  st_write(lines_p_attrib_cleaned,'outputSQliteNoPTMaster.sqlite', layer = 'lines', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-  st_write(nodes_p, 'outputSQliteFocusedCoM2.sqlite', layer = 'nodes', 
+  st_write(nodes_p_cleaned, 'outputSQliteNoPTMaster.sqlite', layer = 'nodes', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
   #exportSQlite(lines_p_attrib, nodes_p, outputFileName = "outputSQliteFocusedCoM")
   echo(paste0('Finished generating the sqlite output\n'))
@@ -141,11 +148,9 @@ if (write_sqlite) {
 
 ## writing outputs - MATSim XML - TODO make the xml writer dynamic based on the optional network attributes
 if (write_xml) {
-  lines_p_attrib_ng <- lines_p_attrib %>% st_set_geometry(NULL)
+  lines_p_attrib_ng <- lines_p_attrib_cleaned %>% st_set_geometry(NULL)
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(lines_p_attrib), ' links and ', nrow(nodes_p),' nodes\n'))
-  exportXML(lines_p_attrib_ng, nodes_p, outputFileName = "outputXMLBig", addZ)
+  exportXML(lines_p_attrib_ng, nodes_p, outputFileName = "outputXMLNoPTMaster", addZ)
   echo(paste0('Finished generating the xml output\n'))
 }
-
-
