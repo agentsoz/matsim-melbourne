@@ -10,6 +10,8 @@ distanceMatrix <- readRDS(file="data/distanceMatrix.rds")
 # Some SA1s ended up snapping their centroid to the same node in the road
 # network so we need to use an index.
 distanceMatrixIndex <- read.csv("data/distanceMatrixIndex.csv")
+distanceMatrixIndex_dt<-data.table(distanceMatrixIndex)
+setkey(distanceMatrixIndex_dt, sa1_main16)
 
 # Reading in the attributed SA1 regions. I'm removing the geometry since it
 # won't be used here. Joining with the distance matrix index so the regions are
@@ -18,6 +20,8 @@ SA1_attributed <- inner_join(distanceMatrixIndex,
                              st_read("data/SA1_attributed.sqlite", quiet=TRUE),
                              by=c("sa1_main16"="sa1_mainco")) %>%
   dplyr::select(-GEOMETRY)
+SA1_attributed_dt<-data.table(SA1_attributed)
+setkey(SA1_attributed_dt,sa1_main16)
 
 # Reading in the addresses. I'm removing the geometry and converting it to X,Y.
 # These coordinates are in EPSG:7845, which is a projected coordinate system.
@@ -41,8 +45,9 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
   # destination_category="commercial"
   # mode="car"
   
-  index <- distanceMatrixIndex %>%
-    filter(sa1_main16 == SA1_id) %>%
+  #index <- distanceMatrixIndex %>%
+  #  filter(sa1_main16 == SA1_id) %>%
+  index <- distanceMatrixIndex_dt[.(as.numeric(SA1_id))] %>%
     pull(index)
   distances <-data.frame(index=1:10244,
                          distance=distanceMatrix[index,]) %>%
@@ -51,21 +56,22 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
   
   modeMean <- NULL
   modeSD <- NULL
+  filteredset<-SA1_attributed_dt[.(as.numeric(SA1_id))]
   if(mode=="walk"){
-    modeMean <- filter(SA1_attributed,sa1_main16==SA1_id)$walking_mean
-    modeSD <- filter(SA1_attributed,sa1_main16==SA1_id)$walking_sd
+    modeMean <- filteredset$walking_mean
+    modeSD <- filteredset$walking_sd
   }
   if(mode=="car"){
-    modeMean <- filter(SA1_attributed,sa1_main16==SA1_id)$driving_mean
-    modeSD <- filter(SA1_attributed,sa1_main16==SA1_id)$driving_sd
+    modeMean <- filteredset$driving_mean
+    modeSD <- filteredset$driving_sd
   }
   if(mode=="pt"){
-    modeMean <- filter(SA1_attributed,sa1_main16==SA1_id)$pt_mean
-    modeSD <- filter(SA1_attributed,sa1_main16==SA1_id)$pt_sd
+    modeMean <- filteredset$pt_mean
+    modeSD <- filteredset$pt_sd
   }
   if(mode=="bike"){
-    modeMean <- filter(SA1_attributed,sa1_main16==SA1_id)$bicycle_mean
-    modeSD <- filter(SA1_attributed,sa1_main16==SA1_id)$bicycle_sd
+    modeMean <- filteredset$bicycle_mean
+    modeSD <- filteredset$bicycle_sd
   }
   
   attractionProbDensity <- SA1_attributed[,match(destination_category,colnames(SA1_attributed))] %>%
@@ -94,10 +100,12 @@ chooseMode <- function(SA1_id,destination_category) {
   # SA1_id=20604112202
   # destination_category="commercial"
   
-  modeProbability <- SA1_attributed %>%
-    filter(sa1_main16==SA1_id) %>%
+  #modeProbability <- SA1_attributed %>%
+  #  filter(sa1_main16==SA1_id) %>%
+  modeProbability <- SA1_attributed_dt[.(as.numeric(SA1_id))] %>%
     dplyr::select(bicycle_proportion:walking_proportion) %>%
     unlist()
+  
   modeProbabilityDF <- data.frame(mode=c("bike","car","pt","walk"),
                                   modeProbability,
                                   stringsAsFactors=FALSE)

@@ -232,7 +232,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     }
   return(list(acts,legs))
   }
-  
+
   assignLocationsToActivities <-function(acts,legs) {
     work_sa1<-NULL; work_xy<-NULL
     for(r in 2:nrow(acts)) {
@@ -325,8 +325,8 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   close(gz1)
   
   # Start profiling
-  #library(profvis)
-  #profvis({
+  #Rprof(paste0(outdir,'/',outfileprefix,'.prof.out'))
+  #library(profvis); profvis({
     
   # Start MATSim population XML
   doc <- newXMLDoc()
@@ -373,8 +373,9 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   echo(paste0('Finished generating ',nrow(persons)-nrow(discarded),'/',nrow(persons),' persons\n'))
   
   # Stop profiling
-  #})
-
+  #}) # end profvis
+  #Rprof(NULL)
+  
   if(nrow(discarded)>0) {
     outfile<-paste0(outdir, '/', outfileprefix,'.discarded.csv.gz')
     write.csv(discarded, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
