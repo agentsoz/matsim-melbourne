@@ -1,23 +1,31 @@
+suppressPackageStartupMessages(library(data.table)) 
+
 assignSa1Maincode <- function(persons_csv_gz, out_persons_csv_gz, sa1_csv_gz) {
   
+
   # read in the SA1s file
   gz1<-gzfile(sa1_csv_gz, 'rt')
   sa1s<-read.csv(gz1, header=T, stringsAsFactors=F, strip.white=T)
   close(gz1)
-  sa1s$SA1_MAINCODE_2016<-as.character(sa1s$SA1_MAINCODE_2016)
-  sa1s$SA1_7DIGITCODE_2016<-as.character(sa1s$SA1_7DIGITCODE_2016)
+  sa1s$SA1_MAINCODE_2016<-as.numeric(sa1s$SA1_MAINCODE_2016)
+  sa1s$SA1_7DIGITCODE_2016<-as.numeric(sa1s$SA1_7DIGITCODE_2016)
+  sa1s_dt<-data.table(sa1s)
+  setkey(sa1s_dt, SA1_7DIGITCODE_2016, SA2_MAINCODE_2016)
   
   # read in the persons
   gz1<-gzfile(persons_csv_gz, 'rt')
   persons<-read.csv(gz1, header=T, stringsAsFactors=F, strip.white=T)
   close(gz1)
-
+  persons$SA1_7DIGCODE<-as.numeric(persons$SA1_7DIGCODE)
+  persons$SA2_MAINCODE<-as.numeric(persons$SA2_MAINCODE)
+  
   # create a new column for SA1_MAINCODE_2016
   #persons$SA1_MAINCODE_2016<-""
   
   # match and assign
   df<-apply(persons, 1, function(p) {
-    sa1<-sa1s[sa1s$SA1_7DIGITCODE_2016==p['SA1_7DIGCODE'] & sa1s$SA2_MAINCODE_2016==p['SA2_MAINCODE'],]
+    #sa1<-sa1s[sa1s$SA1_7DIGITCODE_2016==p['SA1_7DIGCODE'] & sa1s$SA2_MAINCODE_2016==p['SA2_MAINCODE'],]
+    sa1<-sa1s_dt[.(as.numeric(p['SA1_7DIGCODE']),as.numeric(p['SA2_MAINCODE']))]
     p['SA1_MAINCODE_2016']<-sa1$SA1_MAINCODE_2016
     p
   })

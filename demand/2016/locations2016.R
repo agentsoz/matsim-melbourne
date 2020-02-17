@@ -1,6 +1,7 @@
 suppressPackageStartupMessages(library(sf)) # for spatial things
 suppressPackageStartupMessages(library(dplyr)) # for manipulating data
 suppressPackageStartupMessages(library(scales)) # for scaling datasets
+suppressPackageStartupMessages(library(data.table)) # for sa1_main16 indexing for faster lookups
 
 # Read in the distance matrix. This matrix is symmetric so it doesn't matter if
 # you do lookups by column or row.
@@ -23,6 +24,8 @@ SA1_attributed <- inner_join(distanceMatrixIndex,
 addresses <- st_read("data/valid_addresses.sqlite", quiet=TRUE)
 addresses <- cbind(st_drop_geometry(addresses),
                    st_coordinates(addresses))
+addresses_dt<-data.table(addresses)
+setkey(addresses_dt, sa1_main16)
 
 # This returns a dataframe with possible SA1_ids and their probabilities.
 # There are three probabilites returned:
@@ -142,8 +145,11 @@ getReturnProbability <- function(source_SA1,destination_SA1,destination_category
 getAddressCoordinates <- function(SA1_id,destination_category) {
   # SA1_id=20604112202
   # destination_category="commercial"
-  potentialAddresses <- addresses %>%
-    filter(sa1_main16==SA1_id & category==destination_category) %>%
+  #potentialAddresses <- addresses %>%
+  #  filter(sa1_main16==SA1_id & category==destination_category) %>%
+  #  dplyr::mutate(id=row_number())
+  potentialAddresses <- addresses_dt[.(SA1_id),]
+  potentialAddresses <- potentialAddresses[potentialAddresses$category==destination_category,] %>%
     dplyr::mutate(id=row_number())
   if(nrow(potentialAddresses)==0) return(NULL);
   address_id <- sample(potentialAddresses$id, size=1,

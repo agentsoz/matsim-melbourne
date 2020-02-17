@@ -157,7 +157,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     
     # determine  home SA1 and coordinates
     home_sa1<-as.character(person$SA1_MAINCODE_2016)
-    home_xy<-getAddressCoordinates(home_sa1,"home")
+    home_xy<-getAddressCoordinates(as.numeric(home_sa1),"home")
     if(is.null(home_xy)) {
       # can be NULL sometimes if type of location required for some activiy cannot be found in given SA1
       discarded<-rbind(discarded,person)
@@ -247,7 +247,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
         acts[r,]$x<-work_xy[1]
         acts[r,]$y<-work_xy[2]
       } else {
-        xy<-getAddressCoordinates(acts[r,]$sa1, acts[r,]$loc_type)
+        xy<-getAddressCoordinates(as.numeric(acts[r,]$sa1), acts[r,]$loc_type)
         if(is.null(xy)) return(NULL)
         acts[r,]$x<-xy[1]
         acts[r,]$y<-xy[2]
@@ -269,6 +269,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   # load functions and data
   echo('Initialising\n')
   library(stringr)
+  library(profvis)
   source('util2016.R', local=TRUE)
   source('sample2016.R', local=TRUE)
   source('vista2016.R', local=TRUE)
@@ -323,6 +324,10 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   bins<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
   close(gz1)
   
+  # Start profiling
+  #library(profvis)
+  #profvis({
+    
   # Start MATSim population XML
   doc <- newXMLDoc()
   popn<-newXMLNode("population", doc=doc)
@@ -364,9 +369,12 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     addChildren(popn,pp)
     printProgress(row,'.')    
   }
-  
   cat('\n')
   echo(paste0('Finished generating ',nrow(persons)-nrow(discarded),'/',nrow(persons),' persons\n'))
+  
+  # Stop profiling
+  #})
+
   if(nrow(discarded)>0) {
     outfile<-paste0(outdir, '/', outfileprefix,'.discarded.csv.gz')
     write.csv(discarded, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
