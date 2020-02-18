@@ -92,10 +92,10 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   
   
   printProgress<-function(row, char) {
-    if((row-1)%%50==0) echo('')
+    if((row-1)%%100==0) echo('')
     cat(char)
     if(row%%10==0) cat('|')
-    if(row%%50==0) cat(paste0(' ', row,'\n'))
+    if(row%%100==0) cat(paste0(' ', row,'\n'))
   }
   
   
@@ -140,17 +140,21 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     
     sampleDurationInMinsFromTimeBins<-function(bins, actTag, startTimeInMins) {
       means<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Mean",]
-      means<-means[,3:ncol(means)]
       sigmas<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Sigma",]
-      sigmas<-sigmas[,3:ncol(sigmas)]
-      binIndex<-1+startTimeInMins%/%ncol(means)
-      mean<-means[1,binIndex]
-      sigma<-sigmas[1,binIndex]
-      if(is.na(mean) || is.na(sigma) || mean<=0 || sigma<=0) {
-        duration<-0
-      } else {
-        duration<- -1
-        while(duration<0) duration<-round(rnorm(1,mean,sigma))
+      duration<-0
+      if(length(means)>3 && length(sigmas)>3) {
+        means<-means[,3:length(means)]
+        sigmas<-sigmas[,3:length(sigmas)]
+        binIndex<-1+startTimeInMins%/%length(means)
+        mean<-means[1,binIndex]
+        sigma<-sigmas[1,binIndex]
+        if(is.numeric(mean) && is.numeric(sigma)) {
+          duration<-abs(round(rnorm(1,mean,sigma))) # WARNING: taking abs will change the distribution
+        } else {
+          cat(paste0('\n','binIndex=[',binIndex,'] mean=[', mean, '] sigma=[', sigma, ']'))
+          cat(paste0('\n','means=[',means,']'))
+          cat(paste0('\n','sigmas=[',sigmas,']'))
+        }
       }
       return(duration)
     }
@@ -160,8 +164,6 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     home_xy<-getAddressCoordinates(as.numeric(home_sa1),"home")
     if(is.null(home_xy)) {
       # can be NULL sometimes if type of location required for some activiy cannot be found in given SA1
-      discarded<-rbind(discarded,person)
-      printProgress(row,'x')
       return(NULL) # cannot continue without a home location 
     } 
     
@@ -260,6 +262,14 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     }
     return(list(acts,legs))
   }
+  
+  # compile some functions for speedup
+  library(compiler)
+  toHHMMSS<-cmpfun(toHHMMSS)
+  selectIndexFromProbabilities<-cmpfun(selectIndexFromProbabilities)
+  createActivitiesAndLegs<-cmpfun(createActivitiesAndLegs)
+  echo<-cmpfun(echo)
+  printProgress<-cmpfun(printProgress)
   
   ## start here
   
@@ -379,11 +389,11 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   if(nrow(discarded)>0) {
     outfile<-paste0(outdir, '/', outfileprefix,'.discarded.csv.gz')
     write.csv(discarded, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
-    echo(paste0('Wrote discarded persons to ', outfile , '\n'))
+    echo(paste0('Wrote ',nrow(discarded),' discarded persons to ', outfile , '\n'))
   }
   outfile<-paste0(outdir, '/', outfileprefix,'.pax.csv.gz')
   write.csv(allpax, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
-  echo(paste0('Wrote persons to ', outfile , '\n'))
+  echo(paste0('Wrote ',nrow(allpax),' persons to ', outfile , '\n'))
   outfile<-paste0(outdir, '/', outfileprefix,'.acts.csv.gz')
   write.csv(allacts, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
   echo(paste0('Wrote activities to ', outfile , '\n'))

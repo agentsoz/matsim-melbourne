@@ -14,7 +14,7 @@ sampleMelbourne2016Population <- function(samplePercentage, outcsvgz) {
       # clip to within 0-100 %
       percent<-max(min(samplePercent,100),0) 
     }
-    sampleSize<-floor(rows*percent)
+    sampleSize<-round(rows*(percent/100.0))
     
     # get the csv header
     gz1<-gzfile(infile, 'rt')
