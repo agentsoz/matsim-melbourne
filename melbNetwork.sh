@@ -43,7 +43,7 @@ ogr2ogr -update -overwrite -nln pt -f "SQLite" -dialect SQLite -sql \
       other_tags NOT LIKE '%preserved%' AND \
       other_tags NOT LIKE '%construction%' AND \
       other_tags NOT LIKE '%\"service\"=>\"yard\"%'" \
-  melbourne.sqlite melbourne.osm
+  ./data/melbourne.sqlite ./data/melbourne.osm
 
 # the postgres database name.
 DB_NAME="network_test"
