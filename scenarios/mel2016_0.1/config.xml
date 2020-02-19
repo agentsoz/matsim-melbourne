@@ -6,16 +6,10 @@
 					<param name="coordinateSystem" value="EPSG:28355" />
 	</module>
 	<!-- =================================================================== -->	<module name="network" >
-		<!--
-		<param name="inputNetworkFile" value="https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fscenarios%2Fmel2016_0.0001&files=net.xml.gz" />
-		-->
 		<param name="inputNetworkFile" value="net.xml.gz" />
 	</module>
 	<!-- =================================================================== -->	<module name="plans" >
-		<!--
-		<param name="inputPlansFile" value="https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fscenarios%2Fmel2016_0.0001&files=mel2016_0.0001.xml.gz" />
-		-->
-		<param name="inputPlansFile" value="mel2016_0.0001.xml.gz" />
+		<param name="inputPlansFile" value="mel2016_0.1.xml.gz" />
 	</module>
 	<!-- =================================================================== -->	<module name="qsim" >
 		<param name="flowCapacityFactor" value="0.01" />

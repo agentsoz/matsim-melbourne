@@ -1,6 +1,6 @@
 # MATSim Melbourne 2016 Example Scenario
 
-This example is of a very small population sample (~0.0001%), see [video](https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fscenarios%2Fmel2016_0.0001&files=mel2016_0.0001.via.mp4) and associated [legend for colours used](https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fscenarios%2Fmel2016_0.0001&files=mel2016_0.0001.via.legend.png).
+This example is of a very small population sample (0.1%), see [video](https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fscenarios%2Fmel2016_0.1&files=mel2016_0.1.via.mp4) and associated [legend for colours used](https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fscenarios%2Fmel2016_0.1&files=mel2016_0.1.via.legend.png).
 
 To run the example, first download the required files manually or by doing:
 ```
