@@ -45,7 +45,7 @@ if(test_area_flag){
 }
 
 # Have a smaller area with detailed and rest with only main roads
-focus_area_flag <-F # TODO there is no place to filter to Focus area?!!!
+focus_area_flag <-F # TODO Test if focus area works properly
 if(focus_area_flag){
   # Select the focus area based on https://github.com/JamesChevalier/cities/tree/master/australia/victoria
   selected_shire <- "australia/victoria/city-of-melbourne_victoria.poly"
@@ -117,6 +117,15 @@ system.time(
 )
 lines_p_attrib <- lines_p %>%
   left_join(osm_attrib, by="osm_id")
+
+
+if(focus_area_flag){
+  lines_p_attrib <- lines_p_attrib %>%
+    filter((lengths(st_intersects(., focus_area)) > 0) |  highway %in% defaults_df$highwayType[1:8])
+  
+  nodes_p<- nodes_p %>%
+    filter(id%in%lines_p_attrib$from_id | id%in%lines_p_attrib$to_id)
+}
 
 
 #TODO: Add in the PT network generation here. Fix the DEM so it covers the entire area.
