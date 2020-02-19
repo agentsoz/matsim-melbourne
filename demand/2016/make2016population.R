@@ -142,19 +142,15 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       means<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Mean",]
       sigmas<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Sigma",]
       duration<-0
+      binLength<-length(means)-2
       if(length(means)>3 && length(sigmas)>3) {
         means<-means[,3:length(means)]
         sigmas<-sigmas[,3:length(sigmas)]
         binIndex<-1+startTimeInMins%/%length(means)
+        binIndex<-min(max(0,binIndex), binLength) # FIXME: startTimeInMins is sometimes out of range
         mean<-means[1,binIndex]
         sigma<-sigmas[1,binIndex]
-        if(is.numeric(mean) && is.numeric(sigma)) {
-          duration<-abs(round(rnorm(1,mean,sigma))) # WARNING: taking abs will change the distribution
-        } else {
-          cat(paste0('\n','binIndex=[',binIndex,'] mean=[', mean, '] sigma=[', sigma, ']'))
-          cat(paste0('\n','means=[',means,']'))
-          cat(paste0('\n','sigmas=[',sigmas,']'))
-        }
+        duration<-abs(round(rnorm(1,mean,sigma))) # WARNING: taking abs will change the distribution
       }
       return(duration)
     }
