@@ -20,7 +20,7 @@ extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_g
   pp<-data.frame(matrix(0, nrow = length(groups), ncol = 2+binsize))
   colnames(pp)<-c("Activity.Group", "Activity.Stat", seq(1,binsize))
   
-  # population the dataframe with probabilities
+  # populate the dataframe with probabilities
   df<-activities
   rowid<-1
   binSizeInMins<-floor(60*24)/binsize
@@ -69,24 +69,14 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   close(gz1)
   
   datacols<-c("PERSID",
-              "TRAVDOW",
               "ORIGPURP1",
               "DESTPURP1",
               "STARTIME","ARRTIME",
-              "CW_WDTRIPWGT_LGA",
-              "CW_WETRIPWGT_LGA")
+              "WDTRIPWGT",
+              "WETRIPWGT")
               
   orig<-vista_data[,datacols]
-  
-  # For each trip (row) we need to use the weight to represent the number of such trips in the full population.
-  # Doesn't matter if we use CW_*_LGA or CW_*_SA3 since we are only looking at the full set and not cut up by 
-  # region. Though the respective cols do not add up to the same number (see bleow) so maybe I don't understand 
-  # this correctly:
-  #  > sum(orig$CW_ADSTOPWGT_SA3, na.rm = TRUE)
-  #  [1] 16487629
-  #  > sum(orig$CW_ADSTOPWGT_LGA, na.rm = TRUE)
-  #  [1] 16117137
-  
+
   get_activities<-function (dataset) {
     # Get the activities and their start/end times
     df<-data.frame(row.names = 1:length(dataset$PERSID)) # create a data frame of the correct row size
@@ -98,7 +88,7 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
     df$Count<-dataset$Count
     
     # What is left is the final "Go Home" activity of each person
-    lastact<-dataset[dataset$DESTPURP1=="At or Go Home",c("PERSID","DESTPURP1","ARRTIME", "Count")] # get all the "Go Home" activities
+    lastact<-dataset[dataset$DESTPURP1=="Go Home",c("PERSID","DESTPURP1","ARRTIME", "Count")] # get all the "Go Home" activities
     colnames(lastact)<-c("Person","Activity", "Act.Start.Time", "Count") # rename the cols
     lastact$Index<-as.numeric(rownames(lastact)) # save the index of the activity
     lastact<-aggregate(lastact,by=list(lastact$Person),FUN=tail,n=1) # remove all but the last "Go Home" for each person
@@ -124,9 +114,9 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   
   # Split into weekday/weekend and set the weights (ie counts here) correctly
   week<-orig[,datacols]
-  isWeekday<-week$TRAVDOW!="Saturday" & week$TRAVDOW!="Sunday"
-  weekdays<-week[isWeekday,]; weekdays$Count<- weekdays$CW_WDTRIPWGT_LGA
-  weekends<-week[!isWeekday,]; weekends$Count<-weekends$CW_WETRIPWGT_LGA
+  isWeekday<-week$WDTRIPWGT!=""
+  weekdays<-week[isWeekday,]; weekdays$Count<- weekdays$WDTRIPWGT
+  weekends<-week[!isWeekday,]; weekends$Count<-weekends$WETRIPWGT
 
   # Fix any rows where the weights are not defined
   if(any(is.na(weekends$Count))) {
@@ -135,6 +125,9 @@ extract_and_write_activities_from<-function(in_vista_csv, out_weekday_activities
   if(any(is.na(weekdays$Count))) {
     weekdays[is.na(weekdays$Count),]$Count<-0
   }
+  
+  weekdays$Count<-as.numeric(gsub(",", "", weekdays$Count)) # remove commas from Count
+  weekends$Count<-as.numeric(gsub(",", "", weekends$Count)) # remove commas from Count
   
   # Get the activities for each set
   weekday_activities<-get_activities(weekdays)
@@ -184,7 +177,10 @@ simplify_activities_and_create_groups<-function(gzfile) {
   # Assign activities into groups as follows:
   df$Activity.Group<-""
   df$Activity.Group<-ifelse(
-    df$Activity=="At or Go Home", 
+    df$Activity=="At Home", 
+    "Home", df$Activity.Group)
+  df$Activity.Group<-ifelse(
+    df$Activity=="Go Home", 
     "Home", df$Activity.Group)
   df$Activity.Group<-ifelse(
     df$Activity=="Personal Business", 

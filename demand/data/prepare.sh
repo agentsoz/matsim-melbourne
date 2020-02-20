@@ -11,7 +11,7 @@ FILES=(
 )
 ZIPS=(
   "melbourne-2016-population.zip"
-  "vista_2012_16_v1_sa1_csv.zip"
+  "VISTA_12_18_CSV.zip"
 )
 
 # function to check if program exists

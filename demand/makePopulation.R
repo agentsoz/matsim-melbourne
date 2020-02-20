@@ -1,33 +1,33 @@
 # Usage example:
-# make2016MATSimMelbournePopulation(0.0001, "mel2016_0.0001") # build a 0.0001% sapopulation for Melbourne 
+# makeMATSimMelbournePopulation(0.0001, "mel_0.1") # build a 0.1% sample population for Melbourne
 #
-make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
+makeMATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
 
   options(scipen=999) # disable scientific notation for more readible filenames with small sample sizes
-  
+
   # Function to pre-process some data; need only be run once
   setup<-function(setupDir) {
-    
+
     dir.create(setupDir, showWarnings = FALSE)
-    
+
     # Logging function
     echo<- function(msg) {
-      cat(paste0(as.character(Sys.time()), ' | ', msg))  
+      cat(paste0(as.character(Sys.time()), ' | ', msg))
     }
-    if (!file.exists('./data/vista_2012_16_v1_sa1_csv.zip.dir/VISTA_2012_16_v1_SA1_CSV/T_VISTA12_16_SA1_V1.csv')) {
+    if (!file.exists('data/VISTA_12_18_CSV.zip.dir/T_VISTA1218_V1.csv')) {
       echo(paste0('Some required files are missing in the ./data directory. ',
                   'Please see ./data/README.md\n'))
       return(FALSE)
     }
-    
+
     # Extract VISTA activities and save separately into weekday and weekend activities
-    vista_csv <- './data/vista_2012_16_v1_sa1_csv.zip.dir/VISTA_2012_16_v1_SA1_CSV/T_VISTA12_16_SA1_V1.csv'
-    out_weekday_activities_csv_gz <- paste0(setupDir,'/vista_2012_16_extracted_activities_weekday.csv.gz')
-    out_weekend_activities_csv_gz <- paste0(setupDir,'/vista_2012_16_extracted_activities_weekend.csv.gz')
+    vista_csv <- 'data/VISTA_12_18_CSV.zip.dir/T_VISTA1218_V1.csv'
+    out_weekday_activities_csv_gz <- paste0(setupDir,'/vista_2012_18_extracted_activities_weekday.csv.gz')
+    out_weekend_activities_csv_gz <- paste0(setupDir,'/vista_2012_18_extracted_activities_weekend.csv.gz')
     echo(paste0('Extracting VISTA weekday/end activities from ', vista_csv, ' (can take a while)\n'))
     extract_and_write_activities_from(vista_csv, out_weekday_activities_csv_gz, out_weekend_activities_csv_gz)
     echo(paste0('Wrote ', out_weekday_activities_csv_gz, ' and ', out_weekend_activities_csv_gz,'\n'))
-    
+
     # Simplify some activitiy classes to activity groups
     echo(paste0('Grouping some VISTA activities\n'))
     simplify_activities_and_create_groups(out_weekday_activities_csv_gz)
@@ -38,8 +38,8 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     # Write out the activity probabilitities by time bins
     binsize<-48 # 30-min bins
     echo(paste0('Extracting VISTA weekday/end activities times into ',binsize,' bins (can take a while)\n'))
-    out_weekday_activities_time_bins_csv_gz<-paste0(setupDir,'/vista_2012_16_extracted_activities_weekday_time_bins.csv.gz')
-    out_weekend_activities_time_bins_csv_gz<-paste0(setupDir,'/vista_2012_16_extracted_activities_weekend_time_bins.csv.gz')
+    out_weekday_activities_time_bins_csv_gz<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
+    out_weekend_activities_time_bins_csv_gz<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekend_time_bins.csv.gz')
     extract_and_write_activities_time_bins(
       out_weekday_activities_csv_gz,
       out_weekday_activities_time_bins_csv_gz,
@@ -49,13 +49,13 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       out_weekend_activities_time_bins_csv_gz,
       binsize)
     echo(paste0('Wrote ', out_weekday_activities_time_bins_csv_gz, ' and ', out_weekend_activities_time_bins_csv_gz,'\n'))
-    
+
     # Create markov chain model for trip chains
-    prefix<-paste0(setupDir,'/vista_2012_16_extracted_activities_weekday')
+    prefix<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekday')
     infile<-paste0(prefix,'.csv.gz')
     outfile<-paste0(prefix,'_markov_chain_model.rds')
     pdffile<-paste0(prefix,'_markov_chain_model.pdf')
-    
+
     echo(paste0('Generating markov chain model of VISTA activities from ', infile, ' (can take a while)\n'))
     mc<-create_markov_chain_model('Weekday Activities',infile)
     saveRDS(mc, file = outfile)
@@ -67,7 +67,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     echo('Setup complete\n')
     return(TRUE)
   }
-  
+
   selectIndexFromProbabilities <-function(vv) {
     vv<-vv/sum(vv) # normalise to 1
     v<-data.frame(t(apply(vv,1,cumsum))) # cumulative sum to 1
@@ -75,32 +75,32 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     select<-match(TRUE,v>roll) # pick the first col that is higher than the dice roll
     return(select)
   }
-  
+
   toHHMMSS <- function(secs) {
     h<-secs %/% (60*60)
     m<-(secs - (h*60*60)) %/% 60
     s<-secs - (h*60*60) - (m*60)
-    hhmmss<-paste0(str_pad(h,2,pad="0"),":", 
+    hhmmss<-paste0(str_pad(h,2,pad="0"),":",
                    str_pad(m,2,pad="0"),":",
                    str_pad(s,2,pad="0"))
     return(hhmmss)
   }
-  
+
   echo<- function(msg) {
-    cat(paste0(as.character(Sys.time()), ' | ', msg))  
+    cat(paste0(as.character(Sys.time()), ' | ', msg))
   }
-  
-  
+
+
   printProgress<-function(row, char) {
     if((row-1)%%100==0) echo('')
     cat(char)
     if(row%%10==0) cat('|')
     if(row%%100==0) cat(paste0(' ', row,'\n'))
   }
-  
-  
+
+
   createActivitiesAndLegs <-function(mc, bins, person) {
-    
+
     nextActAndLocType <- function(lastActTag) {
       if (is.null(lastActTag)) {
         actTag<-"Home Morning"
@@ -118,7 +118,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       locTag<-replaceActivityWithLocationTags(actTag)
       return(list(actTag, locTag))
     }
-    
+
     nextModeAndSa1 <- function(fromSA1, toLocType, currentMode) {
       if (is.null(currentMode) || toLocType=="home") { # mode can change if last activity was home
         df<-findLocation(fromSA1, toLocType)
@@ -127,7 +127,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       }
       return(df)
     }
-    
+
     sampleStartTimeInMinsFromTimeBins<-function(bins, actTag) {
       probs<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Start.Time.Prob",]
       probs<-probs[3:length(probs)]
@@ -137,7 +137,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       actTime<-mins+sample(1:binSizeInMins, 1)
       return(actTime)
     }
-    
+
     sampleDurationInMinsFromTimeBins<-function(bins, actTag, startTimeInMins) {
       means<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Mean",]
       sigmas<-bins[bins$Activity.Group==actTag & bins$Activity.Stat=="Act.Duration.Mins.Sigma",]
@@ -154,20 +154,20 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       }
       return(duration)
     }
-    
+
     # determine  home SA1 and coordinates
     home_sa1<-as.character(person$SA1_MAINCODE_2016)
     home_xy<-getAddressCoordinates(as.numeric(home_sa1),"home")
     if(is.null(home_xy)) {
       # can be NULL sometimes if type of location required for some activiy cannot be found in given SA1
-      return(NULL) # cannot continue without a home location 
-    } 
-    
+      return(NULL) # cannot continue without a home location
+    }
+
     # data frames for storing this person's activities and connecting legs
-    acts<-data.frame(act_id=NA, act_type=NA, sa1=NA, x=NA, y=NA, loc_type=NA, 
+    acts<-data.frame(act_id=NA, act_type=NA, sa1=NA, x=NA, y=NA, loc_type=NA,
                      start_min=NA, end_min=NA, start_hhmmss=NA, end_hhmmss=NA)
     legs<-data.frame(origin_act_id=NA,mode=NA,dest_act_id=NA)
-    
+
     # Start at home
     r=1
     acts[r,]$act_id<-r
@@ -184,7 +184,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     while(r==0 || acts[r,]$act_type != "Home Night") {
       r<-r+1
       if(r==1) {
-        # resample the end time of the Home Morning activity; 
+        # resample the end time of the Home Morning activity;
         # we can end up here if we were unable to sequence subsequent activities after several tries
         acts[r,]$end_min<-acts[r,]$start_min + sampleDurationInMinsFromTimeBins(bins, acts[r,]$act_type, acts[r,]$start_min)
         next
@@ -213,7 +213,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
           r<-max(0,r-2) # backtrack to previous activity
           tries<-0
         } else {
-          r<-r-1 
+          r<-r-1
         }
       }
     }
@@ -237,7 +237,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       mode<-legs[r-1,]$mode
       # assign the SA1 and coords
       if(acts[r,]$loc_type=="home") { # re-use home SA1 and coords
-        acts[r,]$sa1<-acts[1,]$sa1 
+        acts[r,]$sa1<-acts[1,]$sa1
         acts[r,]$x<-acts[1,]$x
         acts[r,]$y<-acts[1,]$y
       } else if(acts[r,]$loc_type=="work" && !is.null(work_sa1)) { # re-use work SA1 and coords
@@ -258,7 +258,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     }
     return(list(acts,legs))
   }
-  
+
   # compile some functions for speedup
   library(compiler)
   toHHMMSS<-cmpfun(toHHMMSS)
@@ -266,28 +266,28 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   createActivitiesAndLegs<-cmpfun(createActivitiesAndLegs)
   echo<-cmpfun(echo)
   printProgress<-cmpfun(printProgress)
-  
+
   ## start here
-  
+
   # save log
   sink(paste0(outfileprefix,".log"), append=FALSE, split=TRUE) # sink to both console and log file
-  
+
   # load functions and data
   echo('Initialising\n')
   library(stringr)
   library(profvis)
-  source('util2016.R', local=TRUE)
-  source('sample2016.R', local=TRUE)
-  source('vista2016.R', local=TRUE)
-  source('markov2016.R', local=TRUE)
-  source('locations2016.R', local=TRUE)
+  source('util.R', local=TRUE)
+  source('sample.R', local=TRUE)
+  source('vista.R', local=TRUE)
+  source('markov.R', local=TRUE)
+  source('locations.R', local=TRUE)
   source('matsimXML.R', local=TRUE)
-  
+
   # one-off setup
   setupDir<-"./setup"
   if (!dir.exists(setupDir)) {
     echo(paste0('Pre-processing data into ',setupDir,'\n'))
-    
+
     if(!setup(setupDir)) { # setup failed
       sink() # end the diversion
       return(NULL)
@@ -295,16 +295,16 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   } else {
     echo(paste0('Found setup directory ',setupDir,', so will use it\n'))
   }
-  
+
   popnfile<-paste0(outdir,'/',outfileprefix,'.sample.csv.gz')
-  if (!file.exists(popnfile)) {  
+  if (!file.exists(popnfile)) {
     # Create the output dir
     echo(paste0('Creating output directory ', outdir, '\n'))
     dir.create(outdir, showWarnings = FALSE, recursive = TRUE, mode = "0777")
-    
+
     # Create a desired sample of the Melbourne 2016 population (persons with census attributes)
     sampleMelbourne2016Population(sampleSize, popnfile) # create the sample
-    
+
     # Fix their home location SA1 code (convert from SA1_7DIGCODE to SA1_MAINCODE_2016)
     echo(paste0('Assigning SA1_MAINCODE_2016 to persons in ', popnfile, ' (can take a while)\n'))
     assignSa1Maincode(popnfile, popnfile, 'data/sa1_2016_aust.csv.gz') # overwriting outfile
@@ -312,28 +312,28 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   } else {
     echo(paste0('Found ', popnfile,', so will use it\n'))
   }
-  
+
   # Read in the persons
   gz1<-gzfile(popnfile, 'rt')
   echo(paste0('Loading census-like persons from ', popnfile, '\n'))
   persons<-read.csv(gz1, header=T, stringsAsFactors=F, strip.white=T)
   close(gz1)
-  
+
   # Read the markov chain model for activity chains
-  modelfile<-paste0(setupDir,'/vista_2012_16_extracted_activities_weekday_markov_chain_model.rds')
+  modelfile<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekday_markov_chain_model.rds')
   echo(paste0('Loading markov chain model from ', modelfile, '\n'))
   mc<-readRDS(modelfile)
-  
+
   # Read in the time bins
-  csv<-paste0(setupDir,'/vista_2012_16_extracted_activities_weekday_time_bins.csv.gz')
+  csv<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
   gz1 <- gzfile(csv,'rt')
   bins<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
   close(gz1)
-  
+
   # Start profiling
   #Rprof(paste0(outdir,'/',outfileprefix,'.prof.out'))
   #library(profvis); profvis({
-    
+
   # Start MATSim population XML
   popnWriteInterval<-100 # must be greater than 0
   popnWriteBuffer=list()
@@ -345,7 +345,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     '<population>'
   )
   cat(str,file=popnout, sep="\n")
-      
+
   # Create the activities and legs
   echo(paste0('Generating VISTA-like activities and trips for ', nrow(persons), ' census-like persons (can take a while)\n'))
   discarded<-persons[FALSE,]
@@ -354,7 +354,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     # get the person
     person<-persons[row,]
     pid<-row-1
-    
+
     # create activities and legs
     df<-createActivitiesAndLegs(mc, bins, person)
     if(is.null(df)) {
@@ -378,7 +378,7 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     allacts<-rbind(allacts,cbind(personId=pid,acts));
     alllegs<-rbind(alllegs,cbind(personId=pid,legs));
     allpax<-rbind(allpax,cbind(personId=pid,person));
-    
+
     # generate MATSim XML for this person
     popnWriteBuffer[[1+((row-1)%%popnWriteInterval)]]<-generateMATSimPersonXML(pid, person, acts, legs)
     # and write it out at regular intervals
@@ -390,20 +390,20 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       }, file=popnout, append=TRUE, sep="\n")
       popnWriteBuffer=list() # clear the buffer after writing it out
     }
-    
+
     # report progress
-    printProgress(row,'.')    
+    printProgress(row,'.')
   }
   cat('\n')
   echo(paste0('Finished generating ',nrow(persons)-nrow(discarded),'/',nrow(persons),' persons\n'))
-  
+
   # close off the population XML
   cat('</population>',file=popnout, append=TRUE,sep="\n")
-  
+
   # Stop profiling
   #}) # end profvis
   #Rprof(NULL)
-  
+
   if(nrow(discarded)>0) {
     outfile<-paste0(outdir, '/', outfileprefix,'.discarded.csv.gz')
     write.csv(discarded, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
@@ -420,6 +420,5 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   echo(paste0('Wrote trips to ', outfile, '\n'))
   echo(paste0('All done (see ', outfileprefix,'.log)\n'))
   sink() # end the diversion
-  
-}
 
+}
