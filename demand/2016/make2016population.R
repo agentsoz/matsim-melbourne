@@ -335,8 +335,17 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   #library(profvis); profvis({
     
   # Start MATSim population XML
-  doc <- newXMLDoc()
-  popn<-newXMLNode("population", doc=doc)
+  popnWriteInterval<-100 # must be greater than 0
+  popnWriteBuffer=list()
+  popnout<-paste0(outdir, '/', outfileprefix,'.xml')
+  echo(paste0('Saving MATSim population to ', popnfile, '\n'))
+  str=c(
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<!DOCTYPE population SYSTEM "http://www.matsim.org/files/dtd/population_v6.dtd">',
+    '<population>'
+  )
+  cat(str,file=popnout, sep="\n")
+      
   # Create the activities and legs
   echo(paste0('Generating VISTA-like activities and trips for ', nrow(persons), ' census-like persons (can take a while)\n'))
   discarded<-persons[FALSE,]
@@ -369,14 +378,27 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
     allacts<-rbind(allacts,cbind(personId=pid,acts));
     alllegs<-rbind(alllegs,cbind(personId=pid,legs));
     allpax<-rbind(allpax,cbind(personId=pid,person));
+    
     # generate MATSim XML for this person
-    pp<-generateMATSimPersonXML(pid, person, acts, legs)
-    # attach person XML node to the population
-    addChildren(popn,pp)
+    popnWriteBuffer[[1+((row-1)%%popnWriteInterval)]]<-generateMATSimPersonXML(pid, person, acts, legs)
+    # and write it out at regular intervals
+    if (row%%popnWriteInterval==0 || row==nrow(persons)) {
+      lapply(popnWriteBuffer, function(x, file, append, sep) {
+        if (!is.null(x)) {
+          cat(saveXML(x), file=file, append=append, sep=sep)
+        }
+      }, file=popnout, append=TRUE, sep="\n")
+      popnWriteBuffer=list() # clear the buffer after writing it out
+    }
+    
+    # report progress
     printProgress(row,'.')    
   }
   cat('\n')
   echo(paste0('Finished generating ',nrow(persons)-nrow(discarded),'/',nrow(persons),' persons\n'))
+  
+  # close off the population XML
+  cat('</population>',file=popnout, append=TRUE,sep="\n")
   
   # Stop profiling
   #}) # end profvis
@@ -396,13 +418,6 @@ make2016MATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
   outfile<-paste0(outdir, '/', outfileprefix,'.legs.csv.gz')
   write.csv(alllegs, file=gzfile(outfile), quote=TRUE, row.names = FALSE)
   echo(paste0('Wrote trips to ', outfile, '\n'))
-  outfile<-paste0(outdir, '/', outfileprefix,'.xml')
-  echo(paste0('Saving MATSim population to ', outfile, '\n'))
-  # save using cat since direct save using saveXML loses formatting
-  cat(saveXML(doc, 
-              prefix=paste0('<?xml version="1.0" encoding="utf-8"?>\n',
-                            '<!DOCTYPE population SYSTEM "http://www.matsim.org/files/dtd/population_v6.dtd">')),
-      file=outfile)
   echo(paste0('All done (see ', outfileprefix,'.log)\n'))
   sink() # end the diversion
   
