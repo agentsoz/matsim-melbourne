@@ -60,16 +60,13 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
   if(mode=="walk"){
     modeMean <- filteredset$walking_mean
     modeSD <- filteredset$walking_sd
-  }
-  if(mode=="car"){
+  } else if(mode=="car"){
     modeMean <- filteredset$driving_mean
     modeSD <- filteredset$driving_sd
-  }
-  if(mode=="pt"){
+  } else if(mode=="pt"){
     modeMean <- filteredset$pt_mean
     modeSD <- filteredset$pt_sd
-  }
-  if(mode=="bike"){
+  } else if(mode=="bike"){
     modeMean <- filteredset$bicycle_mean
     modeSD <- filteredset$bicycle_sd
   }
@@ -78,19 +75,34 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
     rescale(to=c(0,1))
   attractionProbability <- attractionProbDensity/sum(attractionProbDensity, na.rm=TRUE) #normalising here so the sum of the probabilities equals 1
 
-  distProbDensity <- dnorm(distances,mean=modeMean,sd=modeSD)
-  distProbDensity[is.na(attractionProbDensity)] <- NA # We aren't considering regions with no valid destination types
-  distProbability <- distProbDensity/sum(distProbDensity, na.rm=TRUE) # normalising here so the sum of the probabilities equals 1
+  #distProbDensity <- dnorm(distances,mean=modeMean,sd=modeSD)
+  #distProbDensity[is.na(attractionProbDensity)] <- NA # We aren't considering regions with no valid destination types
+  #distProbability <- distProbDensity/sum(distProbDensity, na.rm=TRUE) # normalising here so the sum of the probabilities equals 1
+
+  # alternative way to compute distance probabilities for SA1s clipped to a much smaller set
+  # within 3 standard deviations of the mode mean - Dhi, 21/Feb/20
+  dd<-distances 
+  dd[dd<(modeMean-(2*modeSD)) | (dd>modeMean+(2*modeSD))]<- NA # discard anything >3SDs either side
+  dd[is.na(attractionProbDensity)] <- NA # discard regions with no valie destination types
+  if (sum(!is.na(dd)) == 0) return(NULL) # return NULL if nothing is left
+  if(sum(!is.na(dd)) == 1) {
+    dd[!is.na(dd)]<-1
+  } else {
+    dd<-(max(dd, na.rm=TRUE)-dd)/max(dd, na.rm=TRUE) # prob of visiting based on distance
+    dd<-dd/sum(dd, na.rm=TRUE)
+  }
+  distProbability<-dd
 
   # I've set distance probability to 4x more important than destination 
   # attraction. This is arbitrary.
-  combinedDensity <- 4*distProbability+attractionProbability
+  multiplier=1 #  changed this from 4 to 1 - Dhi, 21/Feb/20
+  combinedDensity <- multiplier*distProbability+attractionProbability
   combinedProbability <- combinedDensity/sum(combinedDensity, na.rm=TRUE) # normalising here so the sum of the probabilities equals 1
   probabilityDF <- data.frame(sa1_main16=SA1_attributed$sa1_main16,
                               distProb=distProbability,
                               attractProb=attractionProbability,
                               combinedProb=combinedProbability) %>%
-    filter(!is.na(combinedProb))
+                              filter(!is.na(combinedProb))
   return(probabilityDF)
 }
 
@@ -99,7 +111,7 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
 chooseMode <- function(SA1_id,destination_category) {
   # SA1_id=20604112202
   # destination_category="commercial"
-  
+
   #modeProbability <- SA1_attributed %>%
   #  filter(sa1_main16==SA1_id) %>%
   modeProbability <- SA1_attributed_dt[.(as.numeric(SA1_id))] %>%
@@ -109,26 +121,31 @@ chooseMode <- function(SA1_id,destination_category) {
   modeProbabilityDF <- data.frame(mode=c("bike","car","pt","walk"),
                                   modeProbability,
                                   stringsAsFactors=FALSE)
-  return(sample(modeProbabilityDF$mode, size=1,
-                prob=modeProbabilityDF$modeProbability))
-}
-
-# Find a destination SA1 given a source SA1 and destination category
-findLocation <- function(SA1_id,destination_category) {
-  mode <- chooseMode(SA1_id,destination_category)
-  probabilityDF <- calculateProbabilities(SA1_id,destination_category,mode)
-  destinationSA1 <- sample(probabilityDF$sa1_main16, size=1,
-                           prob=probabilityDF$combinedProb)
-  return(c(mode,destinationSA1))
+  mode<-sample(modeProbabilityDF$mode, size=1,
+                prob=modeProbabilityDF$modeProbability)
+  return(mode)
 }
 
 # Assuming the transport mode is restricted, this will find a destination SA1
 findLocationKnownMode <- function(SA1_id,destination_category,mode) {
+  #cat(paste0("\nSA1_id=[",SA1_id,"] destination_category=[",destination_category,"] mode=[",mode,"]\n"))
   probabilityDF <- calculateProbabilities(SA1_id,destination_category,mode)
-  destinationSA1 <- sample(probabilityDF$sa1_main16, size=1,
+  #cat(str(probabilityDF))
+  if(is.null(probabilityDF)) return(NULL)
+  if(length(probabilityDF$sa1_main16)==1) {
+    destinationSA1<-probabilityDF$sa1_main16
+  } else {
+    destinationSA1 <- sample(probabilityDF$sa1_main16, size=1,
                            prob=probabilityDF$combinedProb)
+  }
   return(c(mode,destinationSA1))
 }
+
+# Find a destination SA1 given a source SA1 and destination category
+findLocation <- function(SA1_id,destination_category) {
+  return(findLocationKnownMode(SA1_id,destination_category,chooseMode(SA1_id,destination_category)))
+}
+
 
 # Determine the chances of returning home for a given destination and transport mode
 getReturnProbability <- function(source_SA1,destination_SA1,destination_category,mode) {

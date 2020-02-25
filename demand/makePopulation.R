@@ -193,16 +193,22 @@ makeMATSimMelbournePopulation<-function(sampleSize, outdir, outfileprefix) {
       df<-nextActAndLocType(acts[r-1,]$act_type)
       acts[r,]$act_type<-df[[1]]
       acts[r,]$loc_type<-df[[2]]
-      df<-nextModeAndSa1(acts[r-1,]$sa1, acts[r,]$loc_type, mode)
-      mode=df[1]
-      acts[r,]$sa1<-df[2]
+      #cat(paste0("\n1 r=",r," sa=",acts[r-1,]$sa1, " loc=", acts[r,]$loc_type, " mode=[", mode, "]"))
+      modeAndSa1<-nextModeAndSa1(acts[r-1,]$sa1, acts[r,]$loc_type, mode)
+      if(is.null(modeAndSa1)) {
+        mode<-NULL;
+        acts[r,]$sa1<-NULL
+      } else {
+        mode<-modeAndSa1[1]
+        acts[r,]$sa1<-modeAndSa1[2]
+      }
       acts[r,]$x<-0
       acts[r,]$y<-0
       acts[r,]$start_min<-acts[r-1,]$end_min + sample(1:(ncol(bins)-2),1)
       acts[r,]$end_min<-acts[r,]$start_min + sampleDurationInMinsFromTimeBins(bins, acts[r,]$act_type, acts[r,]$start_min)
       if(acts[r,]$act_type == "Home Night") acts[r,]$end_min<-(60*24)-1
       # try again if start time is before end time of last activity (not always fixable)
-      if (acts[r,]$start_min <= acts[r-1,]$end_min) {
+      if (is.null(modeAndSa1) || (acts[r,]$start_min <= acts[r-1,]$end_min)) {
         tries<- tries+1
         if (tries>=5) {
           # if we have tried enough times and failed to sequence this activity following the previous one
