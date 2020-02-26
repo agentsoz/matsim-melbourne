@@ -30,11 +30,11 @@ extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_g
     dd<-df[df$Activity.Group==groups[i],]
     for(act in acts) {
       if(act=="Act.Start.Time" || act=="Act.End.Time") {
-        h<-hist(rep(as.numeric(dd[,act]),dd[,]$Count), breaks=binsize)
-        h$counts=h$counts/sum(h$counts)
-        v<-h$counts
-        if(length(h$counts)>binsize) v<- h$counts[1:binsize]
-        if(length(h$counts)<binsize) v<- c(h$counts, rep(0,binsize-length(h$counts)))
+        #h<-hist(rep(as.numeric(dd[,act]),dd[,]$Count), breaks=binsize)
+        h<-as.vector(table(cut(rep(as.numeric(dd[,act]),dd[,]$Count), breaks=c(binStartMins, last(binEndMins)), include.lowest = TRUE)))
+        v<-h/sum(h)
+        #if(length(h$counts)>binsize) v<- h$counts[1:binsize]
+        #if(length(h$counts)<binsize) v<- c(h$counts, rep(0,binsize-length(h$counts)))
         pp[rowid,]<-c(groups[i], paste0(act,".Prob"), v)
         rowid<-rowid+1
       } else if (act=="Act.Duration") {
