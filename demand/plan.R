@@ -106,9 +106,23 @@ createNewPlan <- function(bins, newbins, binCols) {
     # save it
     plan[nrow(plan)+1,]<-list(act, sbin, ebin)
     # pick the next time bin
-    bin<-ebin+1
+    bin<-ebin
   }
 
+  # Sew up Home Morning/Night activities properly
+  
+  # First activity should always be Home Morning, and starting in Bin1 
+  if(plan[1,]$Activity != "Home Morning" && plan[1,]$StartBin!=1) {
+    plan<-rbind(data.frame(Activity="Home Morning", StartBin=c(1), EndBin=c(plan[1,]$StartBin)), plan)
+  }
+  # If last activity is not Home Night, then make it so
+  if(plan[nrow(plan),]$Activity != "Home Night") {
+    plan[nrow(plan)+1,]<-list("Home Night", plan[nrow(plan),]$StartBin, binsize)
+  }
+  # If last activity is Home Night, then make sure it ends in the last bin
+  if(plan[nrow(plan),]$Activity == "Home Night" && plan[nrow(plan),]$EndBin != binsize) {
+    plan[nrow(plan),]$EndBin<-binsize
+  }
   #if(plan[1,]$Activity != "Home Morning") plan<-rbind(data.frame(Activity="Home Morning", StartBin=c(1), EndBin=c(1)), plan)
   #if(plan[nrow(plan),]$Activity != "Home Night") plan[nrow(plan)+1,]<-list("Home Night", binsize, binsize)
 
@@ -142,7 +156,7 @@ close(gz1)
 newbins<-data.frame(bins)
 newbins[,binCols]<-0
 binIndexOffset<-head(binCols,1)-1
-for(i in 1:4000) {
+for(i in 1:5000) {
   printProgress(i,'.')
   plan<-createNewPlan(bins, newbins, binCols)
   # record progress
@@ -158,31 +172,41 @@ for(i in 1:4000) {
 
 
 groups<-getActivityGroups(bins)
+stats<-c("Act.Start.Time.Prob", "Act.End.Time.Prob") #unique(bins$Activity.Stat)
 binsize<-length(binCols)
 binSizeInMins<-floor(60*24)/binsize
-pp<-data.frame(matrix(0, nrow = binsize*length(groups), ncol = 4))
-colnames(pp)<-c("Activity", "Bin", "Expected", "Actual")
+pp<-data.frame(matrix(0, nrow = binsize*length(groups), ncol = 5))
+colnames(pp)<-c("Activity", "Stat", "Bin", "Expected", "Actual")
 rowid<-1
 for (act in groups) {
-  # Home Morning activity end times
-  e<-as.numeric(bins[bins$Activity.Group==act & bins$Activity.Stat=="Act.Start.Time.Prob",binCols])
-  e<-e/sum(e)
-  a<-as.numeric(newbins[newbins$Activity.Group==act & newbins$Activity.Stat=="Act.Start.Time.Prob",binCols])
-  a<-a/sum(a)
-  shift<-(rowid-1)*binsize
-  pp[shift+(1:binsize),"Activity"]<-rep(act,binsize)
-  pp[shift+(1:binsize),"Bin"]<-1:binsize
-  pp[shift+(1:binsize),"Expected"]<-e
-  pp[shift+(1:binsize),"Actual"]<-a
-  rowid<-rowid+1
+  for (stat in stats) {
+    e<-as.numeric(bins[bins$Activity.Group==act & bins$Activity.Stat==stat,binCols])
+    e<-e/sum(e)
+    a<-as.numeric(newbins[newbins$Activity.Group==act & newbins$Activity.Stat==stat,binCols])
+    a<-a/sum(a)
+    shift<-(rowid-1)*binsize
+    pp[shift+(1:binsize),"Activity"]<-rep(act,binsize)
+    pp[shift+(1:binsize),"Stat"]<-rep(stat,binsize)
+    pp[shift+(1:binsize),"Bin"]<-1:binsize
+    pp[shift+(1:binsize),"Expected"]<-e
+    pp[shift+(1:binsize),"Actual"]<-a
+    rowid<-rowid+1
+  }
 }
 
 suppressMessages(library(ggplot2))
-gg<-ggplot(pp, aes(x=Expected, y=Actual)) + 
+gg<-ggplot(pp[pp$Stat=="Act.Start.Time.Prob",], aes(x=Expected, y=Actual)) + 
   geom_abline(aes(colour='red', slope = 1, intercept=0)) +
   geom_point(aes(fill=Bin), colour = 'blue', size=3, shape=21, alpha=0.9) + guides(colour=FALSE) +
   #theme(legend.position="none") + theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(paste0('Activity Start Time Probabilities in ',binSizeInMins,'-Min Bins')) +
   facet_wrap(~Activity, scales="free", ncol=2)
 ggsave("analysis.act.start.pdf", gg, width=8.5, height=11)
+gg<-ggplot(pp[pp$Stat=="Act.End.Time.Prob",], aes(x=Expected, y=Actual)) + 
+  geom_abline(aes(colour='red', slope = 1, intercept=0)) +
+  geom_point(aes(fill=Bin), colour = 'blue', size=3, shape=21, alpha=0.9) + guides(colour=FALSE) +
+  #theme(legend.position="none") + theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste0('Activity End Time Probabilities in ',binSizeInMins,'-Min Bins')) +
+  facet_wrap(~Activity, scales="free", ncol=2)
+ggsave("analysis.act.end.pdf", gg, width=8.5, height=11)
 
