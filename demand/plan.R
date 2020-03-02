@@ -8,6 +8,17 @@ selectIndexFromProbabilities <-function(vv) {
   return(select)
 }
 
+echo<- function(msg) {
+  cat(paste0(as.character(Sys.time()), ' | ', msg))
+}
+
+printProgress<-function(row, char) {
+  if((row-1)%%100==0) echo('')
+  cat(char)
+  if(row%%10==0) cat('|')
+  if(row%%100==0) cat(paste0(' ', row,'\n'))
+}
+
 getActivityGroups <- function(bins) {
   groups<-unique(bins$Activity.Group)
   groups<-groups[groups!="Mode Change" & groups !="With Someone"]
@@ -35,49 +46,72 @@ createNewPlan <- function(bins, newbins, binCols) {
   
   groups<-getActivityGroups(bins)
   astp <- getProbabilitiesMatrix(bins, "Act.Start.Time.Prob", binCols)
-  astp <- getProbabilitiesMatrix(bins, "Act.Start.Time.Prob", binCols)
+  aetp <- getProbabilitiesMatrix(bins, "Act.End.Time.Prob", binCols)
   admm <- getProbabilitiesMatrix(bins, "Act.Duration.Mins.Mean", binCols)
   adms <- getProbabilitiesMatrix(bins, "Act.Duration.Mins.Sigma", binCols)
 
   nastp <- getProbabilitiesMatrix(newbins, "Act.Start.Time.Prob", binCols)
-  nastp <- getProbabilitiesMatrix(newbins, "Act.Start.Time.Prob", binCols)
+  naetp <- getProbabilitiesMatrix(newbins, "Act.End.Time.Prob", binCols)
   nadmm <- getProbabilitiesMatrix(newbins, "Act.Duration.Mins.Mean", binCols)
   nadms <- getProbabilitiesMatrix(newbins, "Act.Duration.Mins.Sigma", binCols)
+
+  # normalise new-activity-start-time-probs (nastp) row-wise if non-zero
+  xastp<-t(apply(nastp, 1, function(x) {
+    if (sum(x==0)!=length(x)) {
+      x/sum(x)
+    } else {
+      x
+    }
+  }))
+
+  # get the difference from expected
+  xastp<-(astp-xastp)
+  xastp<-t(apply(xastp,1,function(x) {
+    (x-min(x))^2
+  }))
+  xastp[astp==0]<-0
+  # normalise new-activity-start-time-probs (nastp) row-wise if non-zero
+  xastp<-t(apply(xastp, 1, function(x) {
+    if (sum(x==0)!=length(x)) {
+      x/sum(x)
+    } else {
+      x
+    }
+  }))
   
-    
   plan<-data.frame(Activity=factor(levels=groups), StartBin=integer(), EndBin=integer())
   bin<-1
   while(bin<=binsize) {
-    # get the expected and actual probabilities of activities starting in this bin
-    eprobs<-as.vector(astp[,bin])
-    nprobs<-as.vector(nastp[,bin])
-    if (sum(nprobs==0)!=length(nprobs)) nprobs<-nprobs/sum(nprobs) # normalise if non-zero
-    # calculate the error (negative values indicate oversampled probabilities)
-    probs<-eprobs-nprobs
-    probs<-(probs-min(probs))^2
-    probs[1]<-0 # Make the probability of selecting "Home Morning" zero
-    #probs[probs<0]<-0 # remove the negative values (we want to try and avoid sampling those)
-    #probs[probs>0]<-probs[probs>0]+1 # just to give others a non-zero probability (so one of them does get sampled)
+    probs<-as.vector(xastp[,bin]) # pick the column probabilities
+    filter<-probs==0 & astp[,bin]!=0 # find cols that are zero but shouldn't be and give them a small probability
+    probs[filter]<- 0.001
     # if no activity can start in this bin then progress to the next bin
     if(sum(probs==0)==length(probs)) { bin<-bin+1; next }
+    # if unlikely to start some activity in this bin then progress to the next bin
+    if(runif(1)<1-sum(probs)) { bin<-bin+1; next }
+    # normalise if non-zero
+    if (sum(probs==0)!=length(probs)) probs<-probs/sum(probs) 
     # pick a new activity for this bin
-    act<-ifelse(nrow(plan)==0, "Home Morning", rownames(astp)[selectIndexFromProbabilities(probs)])
-    if(bin==binsize) act<-"Home Night"
-    # pick a start bin for this activity  
-    sbin<-bin # selectIndexFromProbabilities(as.vector(astp[act,]))
+    act<-rownames(astp)[selectIndexFromProbabilities(probs)]
+    # this will be the start bin for this activity  
+    sbin<-bin 
     # pick duration for activity starting in this bin
     mean<-admm[act,bin]; sigma<-adms[act,bin]
     duration<-ifelse(mean==0||sigma==0, 
                      binSizeInMins, 
                      abs(round(rnorm(1,admm[act,bin],adms[act,bin]))) # WARNING: abs will change the distribution
     )
-    # pick an end bin for this activity
-    ebin<-ifelse(act=="Home Night", binsize, min(binsize-1, sbin + duration %/% binSizeInMins))
+    # pick an end bin for this activity (clipped to last bin)
+    ebin<-min(binsize, sbin + duration %/% binSizeInMins)
     # save it
     plan[nrow(plan)+1,]<-list(act, sbin, ebin)
     # pick the next time bin
     bin<-ebin+1
   }
+
+  #if(plan[1,]$Activity != "Home Morning") plan<-rbind(data.frame(Activity="Home Morning", StartBin=c(1), EndBin=c(1)), plan)
+  #if(plan[nrow(plan),]$Activity != "Home Night") plan[nrow(plan)+1,]<-list("Home Night", binsize, binsize)
+
   return(plan)
 }
 
@@ -108,9 +142,8 @@ close(gz1)
 newbins<-data.frame(bins)
 newbins[,binCols]<-0
 binIndexOffset<-head(binCols,1)-1
-for(i in 1:1000) {
-  if((i-1)%%100==0) cat(paste0("\n", Sys.time(), " | "))
-  cat(".")
+for(i in 1:4000) {
+  printProgress(i,'.')
   plan<-createNewPlan(bins, newbins, binCols)
   # record progress
   for(j in 1:nrow(plan)) {
@@ -147,8 +180,8 @@ for (act in groups) {
 suppressMessages(library(ggplot2))
 gg<-ggplot(pp, aes(x=Expected, y=Actual)) + 
   geom_abline(aes(colour='red', slope = 1, intercept=0)) +
-  geom_point(colour = 'blue', fill='blue', size=3, shape=21, alpha=0.3) + 
-  theme(legend.position="none") + theme(plot.title = element_text(hjust = 0.5)) +
+  geom_point(aes(fill=Bin), colour = 'blue', size=3, shape=21, alpha=0.9) + guides(colour=FALSE) +
+  #theme(legend.position="none") + theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(paste0('Activity Start Time Probabilities in ',binSizeInMins,'-Min Bins')) +
   facet_wrap(~Activity, scales="free", ncol=2)
 ggsave("analysis.act.start.pdf", gg, width=8.5, height=11)
