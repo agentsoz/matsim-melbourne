@@ -4,12 +4,8 @@ setup<-function(setupDir) {
   source("util.R")
   source("vista.R")
   
-  dir.create(setupDir, showWarnings = FALSE)
+  dir.create(setupDir, showWarnings=FALSE, recursive=TRUE)
   
-  # Logging function
-  echo<- function(msg) {
-    cat(paste0(as.character(Sys.time()), ' | ', msg))
-  }
   if (!file.exists('data/VISTA_12_18_CSV.zip.dir/T_VISTA1218_V1.csv')) {
     echo(paste0('Some required files are missing in the ./data directory. ',
                 'Please see ./data/README.md\n'))
@@ -65,5 +61,7 @@ setup<-function(setupDir) {
   return(TRUE)
 }
 
-# usage:
-setup('./setup')
+# example usage
+runexample<- function() {
+  status<-setup('output/1.setup')
+}

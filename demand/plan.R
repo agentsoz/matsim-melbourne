@@ -234,7 +234,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   options(scipen=999) # disable scientific notation for more readible filenames with small sample sizes
   
   # create the output directory if needed
-  dir.create(outdir, showWarnings = FALSE)
+  dir.create(outdir, showWarnings = FALSE, recursive=TRUE)
   
   # Read in the time bins
   echo(paste0("Loading extracted VISTA 2012-18 activities by time bins from ", csv, "\n"))
@@ -259,10 +259,10 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   binIndexOffset<-head(binCols,1)-1
   
   # generate the plans
-  outfile<-paste0(outdir, "/plans.csv")
+  outfile<-paste0(outdir, '/plan.',N,'.csv')
   echo(paste0("Generating ",N," VISTA-like daily travel plans into ", outfile, "\n"))
   plans<-data.frame(Id=integer(), Activity=factor(levels=getActivityGroups(bins)), StartBin=integer(), EndBin=integer())
-  write.table(plans, file=outfile, append=FALSE, row.names=FALSE)
+  write.table(plans, file=outfile, append=FALSE, row.names=FALSE, sep = ',')
   for(i in 1:N) {
     # print progress
     printProgress(i,'.')
@@ -275,7 +275,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     plans<-rbind(plans, plan)
     # write it out at regular intervals
     if (i%%writeInterval==0 || i==N) {
-      write.table(plans, file=outfile, append=TRUE, row.names=FALSE, col.names=FALSE)
+      write.table(plans, file=outfile, append=TRUE, row.names=FALSE, col.names=FALSE, sep = ',')
       plans<-plans[FALSE,] # remove all rows
     }
   }
@@ -286,10 +286,12 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   
 }
 
-# usage:
-N<-10000 # generate 10k VISTA 2012-18 like daily plans
-csv<-paste0('./setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
-binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each
-outdir<-paste0("./plan",N)
-writeInterval <- 1000 # write to file every 1000 plans
-generatePlans(N, csv, binCols, outdir, writeInterval)
+# example usage
+runexample<- function() {
+  N<-5000 # generate 10k VISTA 2012-18 like daily plans
+  csv<-paste0('./output/1.setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
+  binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each
+  outdir<-'./output/3.plan'
+  writeInterval <- 1000 # write to file every 1000 plans
+  generatePlans(N, csv, binCols, outdir, writeInterval)
+}  
