@@ -156,7 +156,7 @@ close(gz1)
 newbins<-data.frame(bins)
 newbins[,binCols]<-0
 binIndexOffset<-head(binCols,1)-1
-for(i in 1:5000) {
+for(i in 1:10000) {
   printProgress(i,'.')
   plan<-createNewPlan(bins, newbins, binCols)
   # record progress
@@ -194,19 +194,75 @@ for (act in groups) {
   }
 }
 
+suppressMessages(library(reshape2))
 suppressMessages(library(ggplot2))
+
+outfile<-"analysis-start-times-by-activity-qq.pdf"
+echo(paste0("Writing ", outfile, "\n"))
 gg<-ggplot(pp[pp$Stat=="Act.Start.Time.Prob",], aes(x=Expected, y=Actual)) + 
   geom_abline(aes(colour='red', slope = 1, intercept=0)) +
   geom_point(aes(fill=Bin), colour = 'blue', size=3, shape=21, alpha=0.9) + guides(colour=FALSE) +
-  #theme(legend.position="none") + theme(plot.title = element_text(hjust = 0.5)) +
+  #theme(legend.position="none") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(paste0('Activity Start Time Probabilities in ',binSizeInMins,'-Min Bins')) +
   facet_wrap(~Activity, scales="free", ncol=2)
-ggsave("analysis.act.start.pdf", gg, width=8.5, height=11)
+ggsave(outfile, gg, width=210, height=297, units = "mm")
+
+outfile<-"analysis-end-times-by-activity-qq.pdf"
+echo(paste0("Writing ", outfile, "\n"))
 gg<-ggplot(pp[pp$Stat=="Act.End.Time.Prob",], aes(x=Expected, y=Actual)) + 
   geom_abline(aes(colour='red', slope = 1, intercept=0)) +
   geom_point(aes(fill=Bin), colour = 'blue', size=3, shape=21, alpha=0.9) + guides(colour=FALSE) +
-  #theme(legend.position="none") + theme(plot.title = element_text(hjust = 0.5)) +
+  #theme(legend.position="none") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
   ggtitle(paste0('Activity End Time Probabilities in ',binSizeInMins,'-Min Bins')) +
   facet_wrap(~Activity, scales="free", ncol=2)
-ggsave("analysis.act.end.pdf", gg, width=8.5, height=11)
+ggsave(outfile, gg, width=210, height=297, units = "mm")
 
+outfile<-"analysis-start-times-by-bin-qq.pdf"
+echo(paste0("Writing ", outfile, "\n"))
+gg<-ggplot(pp[pp$Stat=="Act.Start.Time.Prob",], aes(x=Expected, y=Actual)) + 
+  geom_abline(aes(colour='red', slope = 1, intercept=0)) +
+  geom_point(aes(fill=Activity, colour=Activity), size=2, shape=21, alpha=1)  +
+  guides(colour=FALSE, fill=guide_legend(title="")) +
+  theme(legend.position="bottom") + 
+  theme(plot.title = element_text(hjust = 0.5), strip.background = element_blank(), strip.text.x = element_blank()) +
+  ggtitle(paste0('Activity Start Time Probabilities in ',binSizeInMins,'-Min Bins')) +
+  facet_wrap(~Bin, scales="free", ncol=6)
+ggsave(outfile, gg, width=297, height=210, units = "mm")
+
+outfile<-"analysis-end-times-by-bin-qq.pdf"
+echo(paste0("Writing ", outfile, "\n"))
+gg<-ggplot(pp[pp$Stat=="Act.End.Time.Prob",], aes(x=Expected, y=Actual)) + 
+  geom_abline(aes(colour='red', slope = 1, intercept=0)) +
+  geom_point(aes(fill=Activity, colour=Activity), size=2, shape=21, alpha=1)  +
+  guides(colour=FALSE, fill=guide_legend(title="")) +
+  theme(legend.position="bottom") + 
+  theme(plot.title = element_text(hjust = 0.5), strip.background = element_blank(), strip.text.x = element_blank()) +
+  ggtitle(paste0('Activity End Time Probabilities in ',binSizeInMins,'-Min Bins')) +
+  facet_wrap(~Bin, scales="free", ncol=6)
+ggsave(outfile, gg, width=297, height=210, units = "mm")
+
+outfile<-"analysis-start-times-by-activity.pdf"
+echo(paste0("Writing ", outfile, "\n"))
+dd<-melt(pp[pp$Stat=="Act.Start.Time.Prob",], id.vars = c("Activity", "Stat", "Bin"))
+gg<-ggplot(dd, aes(x=Bin, y=value, col=variable, fill=variable)) + 
+  geom_bar(stat="identity", size=0.1, position = "stack") + 
+  guides(colour=FALSE, fill=guide_legend(title="")) +
+  facet_wrap(~Activity, scales="free", ncol=2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("30-min time bins") + ylab("Proportion of population") +
+  ggtitle(paste0('Activities\' start times by time of day'))
+ggsave(outfile, gg, width=210, height=297, units = "mm")
+
+outfile<-"analysis-end-times-by-activity.pdf"
+echo(paste0("Writing ", outfile, "\n"))
+dd<-melt(pp[pp$Stat=="Act.End.Time.Prob",], id.vars = c("Activity", "Stat", "Bin"))
+gg<-ggplot(dd, aes(x=Bin, y=value, col=variable, fill=variable)) + 
+  geom_bar(stat="identity", size=0.1, position = "stack") + 
+  guides(colour=FALSE, fill=guide_legend(title="")) +
+  facet_wrap(~Activity, scales="free", ncol=2) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("30-min time bins") + ylab("Proportion of population") +
+  ggtitle(paste0('Activities\' end times by time of day'))
+ggsave(outfile, gg, width=210, height=297, units = "mm")
