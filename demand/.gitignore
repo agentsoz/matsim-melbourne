@@ -8,4 +8,4 @@ vista_*_extracted_activities_weekday_time_bins.csv.gz
 vista_*_extracted_activities_weekend_time_bins.csv.gz
 vista_*_extracted_activities_weekday_markov_chain_model.pdf
 vista_*_extracted_activities_weekday_markov_chain_model.rds
-/analysis*.pdf
+/plan*/

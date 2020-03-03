@@ -5,26 +5,9 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   # binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each
   # outdir<-"."
   # writeInterval <- 1000 # write to file every 1000 plans
-  
-  selectIndexFromProbabilities <-function(vv) {
-    vv<-vv/sum(vv) # normalise to 1
-    v<-cumsum(vv) # cumulative sum to 1
-    roll<-runif(1)
-    select<-match(TRUE,v>roll) # pick the first col that is higher than the dice roll
-    return(select)
-  }
-  
-  echo<- function(msg) {
-    cat(paste0(as.character(Sys.time()), ' | ', msg))
-  }
-  
-  printProgress<-function(row, char) {
-    if((row-1)%%100==0) echo('')
-    cat(char)
-    if(row%%10==0) cat('|')
-    if(row%%100==0) cat(paste0(' ', row,'\n'))
-  }
-  
+
+  source("./util.R")  
+
   getActivityGroups <- function(bins) {
     groups<-unique(bins$Activity.Group)
     groups<-groups[groups!="Mode Change" & groups !="With Someone"]
@@ -231,7 +214,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
       facet_wrap(~Activity, scales="free", ncol=2) +
       theme(plot.title = element_text(hjust = 0.5)) +
       xlab("30-min time bins") + ylab("Proportion of population") +
-      ggtitle(paste0('Activities\' start times by time of day'))
+      ggtitle(paste0('Activity Start Time by time of day'))
     ggsave(outfile, gg, width=210, height=297, units = "mm")
     
     outfile<-paste0(outdir,"/analysis-end-times-by-activity.pdf")
@@ -243,7 +226,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
       facet_wrap(~Activity, scales="free", ncol=2) +
       theme(plot.title = element_text(hjust = 0.5)) +
       xlab("30-min time bins") + ylab("Proportion of population") +
-      ggtitle(paste0('Activities\' end times by time of day'))
+      ggtitle(paste0('Activity End Time by time of day'))
     ggsave(outfile, gg, width=210, height=297, units = "mm")
     
   }
@@ -303,12 +286,10 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   
 }
 
-# example inputs:
+# usage:
 N<-10000 # generate 10k VISTA 2012-18 like daily plans
 csv<-paste0('./setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
 binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each
 outdir<-paste0("./plan",N)
 writeInterval <- 1000 # write to file every 1000 plans
-
-# run it
 generatePlans(N, csv, binCols, outdir, writeInterval)
