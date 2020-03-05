@@ -25,23 +25,33 @@ cleanNetwork <- function(lines_df, nodes_df, cleaning_modes = "car"){
   
   lines_df  <- lines_df %>% 
     filter(from_id != to_id) %>% 
+    filter(capacity != "NA" & capacity != "0.0" & modes != "NA") %>% 
     mutate(id = paste("p",from_id, to_id, row_number(), sep = "_"))%>%
     mutate(from_id=paste0("p_",from_id)) %>% 
     mutate(to_id=paste0("p_",to_id))  
-    
-
-  lines_df_filtered <- lines_df[0,]
-  for (mode in cleaning_modes){
-    temp_df <- get_biggest_component(lines_df,mode)
-    lines_df_filtered<- rbind(lines_df_filtered, temp_df)
-  }
   
   # Removing repeatitive links and adding P to the begining of node IDs
-  lines_df_filtered <- lines_df_filtered %>% distinct(id, .keep_all = TRUE)
+  lines_df <- lines_df %>% distinct(id, .keep_all = TRUE)
+  
+  if(cleaning_modes!=""){
+    lines_df_filtered <- lines_df[0,]
+    for (mode in cleaning_modes){
+      warning(paste('Cleaning network for ', mode))
+      temp_df <- get_biggest_component(lines_df,mode)
+      lines_df_filtered<- rbind(lines_df_filtered, temp_df)
+    }
+  }else if(cleaning_modes==""){
+    warning('Empty list of network modes, skip cleaning')
+    lines_df_filtered <- lines_df
+  }else{
+    warning('Proper mode for cleaning is not provided, skip cleaning')
+    lines_df_filtered <- lines_df
+  }
   
   nodes_p_cleaned <- nodes_p %>% 
     mutate(id = paste0("p_",id)) %>% 
     filter(id %in% lines_df_filtered$from_id | id %in% lines_df_filtered$to_id)
+  
   
   return(list(nodes_p_cleaned,lines_df_filtered))
   

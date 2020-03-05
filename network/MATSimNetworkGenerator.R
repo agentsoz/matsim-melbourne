@@ -153,19 +153,21 @@ if(add_z_flag){
 
 # Cleaning before writing
 system.time(
-  df <- cleanNetwork(lines_p_attrib, nodes_p, "car")
+  df <- cleanNetwork(lines_p_attrib, nodes_p, "")
 ) 
-nodes_p_cleaned <- df[[1]]
-lines_p_cleaned <- df[[2]]
+nodes_p<- df[[1]]
+lines_p<- df[[2]]
+
+
 
 ## writing outputs - sqlite
 if (write_sqlite) {
   cat('\n')
-  echo(paste0('Writing the sqlite output: ', nrow(lines_p_cleaned), ' links and ', nrow(nodes_p_cleaned),' nodes\n'))
+  echo(paste0('Writing the sqlite output: ', nrow(lines_p), ' links and ', nrow(nodes_p),' nodes\n'))
   
-  st_write(lines_p_cleaned,'GMelb_2D_NoPT_GMelb_20m_Cleaned.sqlite', layer = 'lines', 
+  st_write(lines_p,'GMel_2D_NoPT_GMel_20m.sqlite', layer = 'lines', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-  st_write(nodes_p_cleaned, 'GMelb_2D_NoPT_GMelb_20m.sqlite', layer = 'nodes', 
+  st_write(nodes_p, 'GMel_2D_NoPT_GMel_20m.sqlite', layer = 'nodes', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
   #exportSQlite(lines_p_attrib, nodes_p, outputFileName = "outputSQliteFocusedCoM")
   echo(paste0('Finished generating the sqlite output\n'))
@@ -175,7 +177,7 @@ if (write_sqlite) {
 if (write_xml) {
   #lines_p_attrib_ng <- lines_p_attrib_cleaned %>% st_set_geometry(NULL) # Geometry in XML will 
   cat('\n')
-  echo(paste0('Writing the XML output: ', nrow(lines_p_cleaned), ' links and ', nrow(nodes_p_cleaned),' nodes\n'))
-  exportXML(lines_p_cleaned, nodes_p_cleaned, outputFileName = "GMel_2D_NoPT_GMel_20m_Cleaned", add_z_flag) #File Nameing: TotalArea_Dimensions_FocusArea_simplificationTreshold.xml
+  echo(paste0('Writing the XML output: ', nrow(lines_p), ' links and ', nrow(nodes_p),' nodes\n'))
+  exportXML(lines_p, nodes_p, outputFileName = "GMel_2D_NoPT_GMel_20m", add_z_flag) #File Nameing: TotalArea_Dimensions_FocusArea_simplificationTreshold.xml
   echo(paste0('Finished generating the xml output\n'))
 }
