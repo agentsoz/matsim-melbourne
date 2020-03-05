@@ -1,5 +1,7 @@
-assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outcsv, writeInterval) {
+assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outdir, outcsv, writeInterval) {
 
+  options(scipen=999) # disable scientific notation for more readible filenames with small sample sizes
+  
   suppressPackageStartupMessages(library(dplyr))
   suppressPackageStartupMessages(library(stringi))
 
@@ -85,12 +87,15 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outc
     persons[persons$AgentId==x["AgentId"],]$SA1_MAINCODE_2016
   })
 
-  echo('Assigning activities\' SA1 locations and travel modes (can take a while)\n')
+  echo('Assigning activities\' SA1s and travel modes (can take a while)\n')
   wplans<-plans[1,]
-  write.table(wplans, file=outfile, append=FALSE, row.names=FALSE, sep = ',')
+  write.table(wplans, file=outcsv, append=FALSE, row.names=FALSE, sep = ',')
+  discarded<-persons[FALSE,]
+  doutfile<-paste0(outdir, '/persons.discarded.csv')
+  write.table(discarded, file=doutfile, append=FALSE, row.names=FALSE, sep = ',')
   pp<-plans
   i=1
-  processed<-0
+  processed<-0; ndiscarded<-0
   while(i<nrow(pp)) {
     i<-i+1
     # skip home start locations as we have already assigned their SA1
@@ -100,13 +105,16 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outc
       # assign the mode and SA1
       pp[i,]$ArrivingMode<-ifelse(is.null(modeAndSa1),NA,modeAndSa1[1])
       pp[i,]$SA1_MAINCODE_2016<-ifelse(is.null(modeAndSa1),NA,modeAndSa1[2])
-      if(pp[i,]$PlanId != pp[i+1,]$PlanId) {
+      if(i==nrow(pp) || pp[i,]$PlanId != pp[i+1,]$PlanId) {
         processed<-processed+1
         printProgress(processed, '.')
       }
       # add it to our list
       wplans<-rbind(wplans, pp[i,])
     } else {
+      # failed to find a suitable SA1/mode for this activity, so will just discard this person
+      person<-persons[persons$AgentId==pp[i,]$AgentId,]
+      discarded<-rbind(discarded,person)
       # make all modes for this plan with 'x' (will delete these later)
       pp[pp$PlanId==pp[i,]$PlanId,]$ArrivingMode<-'x'
       # move to the first rown of the next plan
@@ -117,10 +125,19 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outc
     }
     # write it out at regular intervals
     if (processed%%writeInterval==0 || i==nrow(pp)) {
-      write.table(wplans, file=outfile, append=TRUE, row.names=FALSE, col.names=FALSE, sep = ',')
+      write.table(wplans, file=outcsv, append=TRUE, row.names=FALSE, col.names=FALSE, sep = ',')
       wplans<-wplans[FALSE,] # remove all rows
+      if(nrow(discarded)>0) {
+        ndiscarded<-ndiscarded + nrow(discarded)
+        write.table(discarded, file=doutfile, append=TRUE, row.names=FALSE, col.names=FALSE, sep = ',')
+        discarded<-discarded[FALSE,]
+      }
     }
   }
+  cat('\n')
+  echo(paste0('Wrote ',(processed-ndiscarded),' plans to ', outcsv , '\n'))
+  echo(paste0('Wrote ',ndiscarded,' discarded persons to ', doutfile , '\n'))
+  
 }
 
 # example usage
@@ -130,8 +147,8 @@ runexample<- function() {
   matchcsv<-'output/4.match/match.csv.gz'
   outdir<-'output/5.locate'
   dir.create(outdir, showWarnings = FALSE, recursive=TRUE)
-  outcsv<-paste0(outdir,'/locate.csv.gz')
+  outcsv<-paste0(outdir,'/plan.csv')
   writeInterval <- 100 # write to file every so many plans
   
-  assignActivityAreasAndTravelModes(censuscsv, vistacsv, matchcsv, outcsv, writeInterval)
+  assignActivityAreasAndTravelModes(censuscsv, vistacsv, matchcsv, outdir, outcsv, writeInterval)
 }
