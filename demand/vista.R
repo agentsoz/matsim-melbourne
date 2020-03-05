@@ -10,7 +10,7 @@ extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_g
   close(gz1)
   
   # split home activitiy into morning/daytime/night
-  activities<-split_home_activity(trips_data)
+  activities<- trips_data # split_home_activity(trips_data)
   activities$Act.Duration<- activities$Act.End.Time - activities$Act.Start.Time
   
   groups<-unique(activities$Activity.Group) # unique activity names

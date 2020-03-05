@@ -6,6 +6,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   # outdir<-"."
   # writeInterval <- 1000 # write to file every 1000 plans
 
+  suppressPackageStartupMessages(library(dplyr))
   source("./util.R")  
 
   getActivityGroups <- function(bins) {
@@ -100,22 +101,27 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     
     # Sew up Home Morning/Night activities properly
     
-    # First activity should always be Home Morning, and starting in Bin1 
-    if(plan[1,]$Activity != "Home Morning" && plan[1,]$StartBin!=1) {
-      plan<-rbind(data.frame(Activity="Home Morning", StartBin=c(1), EndBin=c(plan[1,]$StartBin)), plan)
+    # First activity should always be Home, and starting in Bin1 
+    if(plan[1,]$Activity != "Home") {
+      plan<-rbind(data.frame(Activity="Home", StartBin=c(1), EndBin=c(plan[1,]$StartBin)), plan)
     }
-    # If last activity is not Home Night, then make it so
-    if(plan[nrow(plan),]$Activity != "Home Night") {
-      plan[nrow(plan)+1,]<-list("Home Night", plan[nrow(plan),]$StartBin, binsize)
+    # If last activity is not Home, then make it so
+    if(plan[nrow(plan),]$Activity != "Home") {
+      plan[nrow(plan)+1,]<-list("Home", plan[nrow(plan),]$EndBin, binsize)
     }
-    # If last activity is Home Night, then make sure it ends in the last bin
-    if(plan[nrow(plan),]$Activity == "Home Night" && plan[nrow(plan),]$EndBin != binsize) {
+    # If last activity is Home, then make sure it ends in the last bin
+    if(plan[nrow(plan),]$Activity == "Home" && plan[nrow(plan),]$EndBin != binsize) {
       plan[nrow(plan),]$EndBin<-binsize
     }
-    #if(plan[1,]$Activity != "Home Morning") plan<-rbind(data.frame(Activity="Home Morning", StartBin=c(1), EndBin=c(1)), plan)
-    #if(plan[nrow(plan),]$Activity != "Home Night") plan[nrow(plan)+1,]<-list("Home Night", binsize, binsize)
+    # Collapse blocks of same activity into one
+    # see https://stackoverflow.com/questions/32529854/group-data-in-r-for-consecutive-rows
+    plan <- plan %>%
+      group_by(Activity, group_weight = cumsum(c(1, diff(rank(Activity)) != 0)), Activity) %>%
+      summarise(StartBin=min(StartBin), EndBin=max(EndBin)) %>%
+      arrange(group_weight) %>%
+      select(-group_weight)
     
-    return(plan)
+    return(as.data.frame(plan))
   }
   
   recordProgress <- function(plan, newbins, binCols) {
@@ -261,14 +267,14 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   # generate the plans
   outfile<-paste0(outdir, '/plan.',N,'.csv')
   echo(paste0("Generating ",N," VISTA-like daily travel plans into ", outfile, "\n"))
-  plans<-data.frame(Id=integer(), Activity=factor(levels=getActivityGroups(bins)), StartBin=integer(), EndBin=integer())
+  plans<-data.frame(PlanId=integer(), Activity=factor(levels=getActivityGroups(bins)), StartBin=integer(), EndBin=integer())
   write.table(plans, file=outfile, append=FALSE, row.names=FALSE, sep = ',')
   for(i in 1:N) {
     # print progress
     printProgress(i,'.')
     # create a new plan and add it to the list
     plan<-createNewPlan(bins, newbins, binCols)
-    plan<-cbind(Id=i-1, plan)
+    plan<-cbind(PlanId=i, plan)
     # record progress
     newbins<-recordProgress(plan, newbins, binCols)
     # add it to our list

@@ -17,8 +17,10 @@ match<-function(censuscsv, vistacsv, outcsv) {
   
   # TODO: to be replaced with demographics based matching
   echo(paste0('Matching census-like persons toVISTA-like plans\n'))
-  size<-min(nrow(persons), nrow(plans))
-  match<-data.frame(PersonId=persons[1:size,]$AgentId, PlanId=plans[1:size,]$Id)
+  size<-min(length(unique(persons$AgentId)), length(unique(plans$PlanId)))
+  personIds<-unique(persons$AgentId)[1:size]
+  planIds<-unique(plans$PlanId)[1:size]
+  match<-data.frame(PlanId=planIds, AgentId=personIds)
   gz1<-gzfile(outcsv, 'wt')
   write.table(match, file=gz1, append=FALSE, row.names=FALSE, sep = ',')
   close(gz1)
