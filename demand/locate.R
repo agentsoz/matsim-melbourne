@@ -88,40 +88,46 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outd
   })
 
   echo('Assigning activities\' SA1s and travel modes (can take a while)\n')
-  wplans<-plans[1,]
-  write.table(wplans, file=outcsv, append=FALSE, row.names=FALSE, sep = ',')
+  write.table(plans[FALSE,], file=outcsv, append=FALSE, row.names=FALSE, sep = ',')
   discarded<-persons[FALSE,]
   doutfile<-paste0(outdir, '/persons.discarded.csv')
   write.table(discarded, file=doutfile, append=FALSE, row.names=FALSE, sep = ',')
+  wplans<-plans[1,]
   pp<-plans
   i=1
   processed<-0; ndiscarded<-0
   while(i<nrow(pp)) {
     i<-i+1
-    # skip home start locations as we have already assigned their SA1
-    if(pp[i,]$LocationType=="home" && pp[i,]$PlanId != pp[i-1,]$PlanId) next 
-    modeAndSa1<-nextModeAndSa1(as.numeric(pp[i-1,]$SA1_MAINCODE_2016), pp[i,]$LocationType, pp[i-1,]$ArrivingMode)
-    if(!is.null(modeAndSa1)) {
-      # assign the mode and SA1
-      pp[i,]$ArrivingMode<-ifelse(is.null(modeAndSa1),NA,modeAndSa1[1])
-      pp[i,]$SA1_MAINCODE_2016<-ifelse(is.null(modeAndSa1),NA,modeAndSa1[2])
-      if(i==nrow(pp) || pp[i,]$PlanId != pp[i+1,]$PlanId) {
-        processed<-processed+1
-        printProgress(processed, '.')
-      }
-      # add it to our list
+    startOfDay<-pp[i,]$PlanId != pp[i-1,]$PlanId && pp[i,]$LocationType=="home"
+    if(startOfDay) {
+      # nothing to do since home SA1s are already assigned; just save and continue
       wplans<-rbind(wplans, pp[i,])
     } else {
-      # failed to find a suitable SA1/mode for this activity, so will just discard this person
-      person<-persons[persons$AgentId==pp[i,]$AgentId,]
-      discarded<-rbind(discarded,person)
-      # make all modes for this plan with 'x' (will delete these later)
-      pp[pp$PlanId==pp[i,]$PlanId,]$ArrivingMode<-'x'
-      # move to the first rown of the next plan
-      i<-as.numeric(rownames(last(pp[pp$PlanId==pp[i,]$PlanId,])))
-      # report error
+      modeAndSa1<-nextModeAndSa1(as.numeric(pp[i-1,]$SA1_MAINCODE_2016), pp[i,]$LocationType, pp[i-1,]$ArrivingMode)
+      if(!is.null(modeAndSa1)) {
+        # assign the mode and SA1
+        pp[i,]$ArrivingMode<-ifelse(is.null(modeAndSa1),NA,modeAndSa1[1])
+        pp[i,]$SA1_MAINCODE_2016<-ifelse(is.null(modeAndSa1),NA,modeAndSa1[2])
+        # add it to our list
+        wplans<-rbind(wplans, pp[i,])
+      } else {
+        # failed to find a suitable SA1/mode for this activity, so will just discard this person
+        person<-persons[persons$AgentId==pp[i,]$AgentId,]
+        discarded<-rbind(discarded,person)
+        # make all modes for this plan with 'x' (will delete these later)
+        pp[pp$PlanId==pp[i,]$PlanId,]$ArrivingMode<-'x'
+        # move to the first rown of the next plan
+        i<-as.numeric(rownames(last(pp[pp$PlanId==pp[i,]$PlanId,])))
+      }
+    }
+    # record progress for each person
+    if(i==nrow(pp) || pp[i,]$AgentId != pp[i+1,]$AgentId) {
       processed<-processed+1
-      printProgress(processed, 'x')
+      if(is.null(modeAndSa1)) {
+        printProgress(processed, 'x')
+      } else {
+        printProgress(processed, '.')
+      }
     }
     # write it out at regular intervals
     if (processed%%writeInterval==0 || i==nrow(pp)) {
