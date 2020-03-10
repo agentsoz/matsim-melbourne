@@ -1,6 +1,6 @@
 sampleMelbourne2016Population <- function(samplePercentage, outcsvgz) {
   
-  source('util.R')
+  source('util.R', local=TRUE)
   
   assignSa1Maincode <- function(persons_csv_gz, out_persons_csv_gz, sa1_csv_gz) {
     # read in the SA1s file

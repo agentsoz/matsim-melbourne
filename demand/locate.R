@@ -4,8 +4,7 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outd
   
   suppressPackageStartupMessages(library(dplyr))
   suppressPackageStartupMessages(library(stringi))
-
-  source('util.R')
+  source('util.R', local=TRUE)
   
   echo("Loading locations database\n")
   source('locations.R')

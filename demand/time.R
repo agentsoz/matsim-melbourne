@@ -3,7 +3,7 @@ assignTimesToActivities <- function(plancsv, binSizeInMins, outcsv, writeInterva
   options(scipen=999) # disable scientific notation for more readible filenames with small sample sizes
   
   suppressPackageStartupMessages(library(stringr))
-  source('util.R')
+  source('util.R', local=TRUE)
   
   # Converts mins to HH:MM:SS format
   toHHMMSS <- function(mins) {
@@ -31,7 +31,6 @@ assignTimesToActivities <- function(plancsv, binSizeInMins, outcsv, writeInterva
   write.table(wplans, file=outcsv, append=FALSE, row.names=FALSE, sep = ',')
   processed<-0
   i=0
-  error<-FALSE
   while(i<nrow(pp)) {
     i<-i+1
     
@@ -63,11 +62,7 @@ assignTimesToActivities <- function(plancsv, binSizeInMins, outcsv, writeInterva
     # record progress for each person
     if(i==nrow(pp) || pp[i,]$AgentId != pp[i+1,]$AgentId) {
       processed<-processed+1
-      if(error) {
-        printProgress(processed, 'x')
-      } else {
-        printProgress(processed, '.')
-      }
+      printProgress(processed, '.')
     }
     # write it out at regular intervals
     if (processed%%writeInterval==0 || i==nrow(pp)) {

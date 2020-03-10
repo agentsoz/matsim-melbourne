@@ -7,7 +7,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   # writeInterval <- 1000 # write to file every 1000 plans
 
   suppressPackageStartupMessages(library(dplyr))
-  source("./util.R")  
+  source("./util.R", local=TRUE)  
 
   getActivityGroups <- function(bins) {
     groups<-unique(bins$Activity.Group)

@@ -1,8 +1,8 @@
 # Function to pre-process some data; need only be run once
 setup<-function(setupDir) {
   
-  source("util.R")
-  source("vista.R")
+  source("util.R", local=TRUE)
+  source("vista.R", local=TRUE)
   
   dir.create(setupDir, showWarnings=FALSE, recursive=TRUE)
   

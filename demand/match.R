@@ -1,7 +1,7 @@
 # Matches ABS census-like persons to VISTA-like plans
 match<-function(censuscsv, vistacsv, outcsv) {
   
-  source('util.R')
+  source('util.R', local=TRUE)
   
   # Read in the persons
   gz1<-gzfile(censuscsv, 'rt')

@@ -20,12 +20,9 @@ writePlanAsMATSimXML <- function(plancsv, outxml, writeInterval) {
   cat(str,file=outxml, sep="\n")
   
   pp<-plans
-  pp<-pp[1:13,]
   popnWriteBuffer=list()
   processed<-0
   i=0
-  error<-FALSE
-  actslegs<-NULL
   while(i<nrow(pp)) {
     i<-i+1
     
@@ -39,8 +36,6 @@ writePlanAsMATSimXML <- function(plancsv, outxml, writeInterval) {
       pplan<-newXMLNode("plan", attrs=c(selected="yes"))
       # attach plan to person
       addChildren(pxml,pplan)
-      # attach the activities and legs to the plan
-      addChildren(pplan,actslegs)
     } else {
       # if not the first activity then also add a leg
       leg<-newXMLNode("leg", attrs=c(mode=pp[i,]$ArrivingMode))

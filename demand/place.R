@@ -2,10 +2,7 @@ assignLocationsToActivities <- function(plancsv, outcsv, writeInterval) {
 
   options(scipen=999) # disable scientific notation for more readible filenames with small sample sizes
   
-  suppressPackageStartupMessages(library(dplyr))
-  suppressPackageStartupMessages(library(stringi))
-  
-  source('util.R')
+  source('util.R', local=TRUE)
   
   echo("Loading locations database\n")
   source('locations.R')
@@ -23,7 +20,6 @@ assignLocationsToActivities <- function(plancsv, outcsv, writeInterval) {
   write.table(wplans, file=outcsv, append=FALSE, row.names=FALSE, sep = ',')
   processed<-0
   i=0
-  error<-FALSE
   homexy<-NA; workxy<-NA
   while(i<nrow(pp)) {
     i<-i+1
@@ -48,11 +44,7 @@ assignLocationsToActivities <- function(plancsv, outcsv, writeInterval) {
     # record progress for each person
     if(i==nrow(pp) || pp[i,]$AgentId != pp[i+1,]$AgentId) {
       processed<-processed+1
-      if(error) {
-        printProgress(processed, 'x')
-      } else {
-        printProgress(processed, '.')
-      }
+      printProgress(processed, '.')
     }
     # write it out at regular intervals
     if (processed%%writeInterval==0 || i==nrow(pp)) {
