@@ -11,18 +11,6 @@ selectIndexFromProbabilities <-function(vv) {
   return(select)
 }
 
-# Converts seconds to HH:MM:SS format
-toHHMMSS <- function(secs) {
-  if(is.null(secs) || is.na(secs) || !is.numeric(secs)) return("??:??:??")
-  h<-secs %/% (60*60)
-  m<-(secs - (h*60*60)) %/% 60
-  s<-secs - (h*60*60) - (m*60)
-  hhmmss<-paste0(str_pad(h,2,pad="0"),":",
-                 str_pad(m,2,pad="0"),":",
-                 str_pad(s,2,pad="0"))
-  return(hhmmss)
-}
-
 # Timestamped console output
 echo<- function(msg) {
   cat(paste0(as.character(Sys.time()), ' | ', msg))
