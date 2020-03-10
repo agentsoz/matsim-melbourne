@@ -40,8 +40,8 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outd
     return(tc)
   }
   
-  nextModeAndSa1 <- function(fromSA1, toLocType, currentMode) {
-    if (is.na(currentMode) || is.null(currentMode) || toLocType=="home") { # mode can change if last activity was home
+  nextModeAndSa1 <- function(fromSA1, toLocType, currentMode, allowModeChange) {
+    if (is.na(currentMode) || is.null(currentMode) || allowModeChange) { # mode can change if last activity was home
       df<-findLocation(fromSA1, toLocType)
     } else {
       df<-findLocationKnownMode(fromSA1, toLocType, currentMode)
@@ -99,11 +99,14 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outd
   while(i<nrow(pp)) {
     i<-i+1
     startOfDay<-pp[i,]$PlanId != pp[i-1,]$PlanId && pp[i,]$LocationType=="home"
+    endOfDay<- i==nrow(pp) || (pp[i,]$AgentId != pp[i+1,]$AgentId)
+      
     if(startOfDay) {
       # nothing to do since home SA1s are already assigned; just save and continue
       wplans<-rbind(wplans, pp[i,])
     } else {
-      modeAndSa1<-nextModeAndSa1(as.numeric(pp[i-1,]$SA1_MAINCODE_2016), pp[i,]$LocationType, pp[i-1,]$ArrivingMode)
+      allowModeChange<- !endOfDay && pp[i,]$LocationType=="home" # allow mode change at home during the day
+      modeAndSa1<-nextModeAndSa1(as.numeric(pp[i-1,]$SA1_MAINCODE_2016), pp[i,]$LocationType, pp[i-1,]$ArrivingMode, allowModeChange)
       if(!is.null(modeAndSa1)) {
         # assign the mode and SA1
         pp[i,]$ArrivingMode<-ifelse(is.null(modeAndSa1),NA,modeAndSa1[1])
