@@ -18,6 +18,8 @@ source('./functions/exportSQlite.R')
 source('./functions/exportXML.R')
 source('./functions/getAreaBoundary.R')
 source('./functions/cleanNetwork.R')
+source('./functions/gtfs2PtNetowrk.R')
+
 
 echo<- function(msg) {
   cat(paste0(as.character(Sys.time()), ' | ', msg))  
@@ -29,7 +31,6 @@ printProgress<-function(row, total_row, char) {
   if(row%%500==0) cat('|')
   if(row%%2500==0) cat(paste0(char,' ', row, ' of ', total_row, '\n'))
 }
-
 
 # Seting control variables and directories  -------------------------------
 
@@ -53,7 +54,7 @@ if(focus_area_flag){
 }
 
 # simplification
-shortLinkLength = 20 
+shortLinkLength = 20
 
 # Add elevation (T/F)
 add_z_flag <- F
@@ -76,18 +77,8 @@ write_sqlite <- T
 osm_metadata <- st_read(paste0(data_folder, 'melbourne.sqlite'),layer="roads")%>%st_drop_geometry() # geometries are not important in this, we will use osm ids
 # Reading the nonplanar input (processed data by Alan)
 inputSQLite_np <- paste0(data_folder, 'network.sqlite') 
-
 lines_np <- st_read(inputSQLite_np , layer="edges") # lines
 nodes_np <- st_read(inputSQLite_np , layer="nodes") # nodes
-
-#correction_links_2 <- left_join(correction_links, )
-#write.csv(correction_links, "correction_links.csv")
-
-
-#### A Correction due to unwanted links in input
-#correction_links <- read.csv("correction_links.csv")
-#lines_np_2 <- lines_np %>% filter(!(osm_id %in% correction_links$osm_id))
-#nodes_np_2 <- nodes_np %>% filter(id %in% lines_np$from_id | id %in% lines_np$to_id)
 
 # making the simplified network -------------------------------------------
 
@@ -130,21 +121,17 @@ if(focus_area_flag){
 
 #TODO: Add in the PT network generation here. Fix the DEM so it covers the entire area.
 
+add.pt.flag <- F
 
-
-
+if(add.pt.flag){
+  pt.network <- gtfs2PtNetowrk() # IS NOT WORKING YET, Error: This tidyselect interface doesn't support predicates yet.
+}
 
 
 ## Adding elevation
 if(add_z_flag){
   # Assiging z coordinations to nodes
   nodes_p$z <- round(raster::extract(elevation ,as(nodes_p, "Spatial"),method='bilinear'))/10 # TODO Not working properly
-  # replacing NA z coords to 10
-  nodes_p <- nodes_p %>%
-    mutate(z = ifelse(test = is.na(z)
-                      ,yes = 10,
-                      no = z))
-  
   nodes_p <- nodes_p %>% dplyr::select(id, x = X, y = Y, z, GEOMETRY) %>% distinct(id, x, y, z, GEOMETRY) # id's should be unique
   
 }else{
@@ -165,9 +152,9 @@ if (write_sqlite) {
   cat('\n')
   echo(paste0('Writing the sqlite output: ', nrow(lines_p), ' links and ', nrow(nodes_p),' nodes\n'))
   
-  st_write(lines_p,'GMel_2D_NoPT_GMel_20m.sqlite', layer = 'lines', 
+  st_write(lines_p,'GMel_2D_NoPT_GMel_20m_v010.sqlite', layer = 'lines', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-  st_write(nodes_p, 'GMel_2D_NoPT_GMel_20m.sqlite', layer = 'nodes', 
+  st_write(nodes_p, 'GMel_2D_NoPT_GMel_20m_v010.sqlite', layer = 'nodes', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
   #exportSQlite(lines_p_attrib, nodes_p, outputFileName = "outputSQliteFocusedCoM")
   echo(paste0('Finished generating the sqlite output\n'))
@@ -178,6 +165,6 @@ if (write_xml) {
   #lines_p_attrib_ng <- lines_p_attrib_cleaned %>% st_set_geometry(NULL) # Geometry in XML will 
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(lines_p), ' links and ', nrow(nodes_p),' nodes\n'))
-  exportXML(lines_p, nodes_p, outputFileName = "GMel_2D_NoPT_GMel_20m", add_z_flag) #File Nameing: TotalArea_Dimensions_FocusArea_simplificationTreshold.xml
+  exportXML(lines_p, nodes_p, outputFileName = "GMel_2D_NoPT_GMel_20m_v010", add_z_flag) #File Nameing: TotalArea_Dimensions_FocusArea_simplificationTreshold.xml
   echo(paste0('Finished generating the xml output\n'))
 }
