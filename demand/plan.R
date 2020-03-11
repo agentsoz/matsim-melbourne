@@ -143,7 +143,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     stats<-c("Act.Start.Time.Prob", "Act.End.Time.Prob") #unique(bins$Activity.Stat)
     binsize<-length(binCols)
     binSizeInMins<-floor(60*24)/binsize
-    pp<-data.frame(matrix(0, nrow = binsize*length(groups), ncol = 5))
+    pp<-data.frame(matrix(0, nrow = binsize*length(groups)*length(stats), ncol = 5))
     colnames(pp)<-c("Activity", "Stat", "Bin", "Expected", "Actual")
     rowid<-1
     for (act in groups) {
@@ -160,6 +160,21 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
         pp[shift+(1:binsize),"Actual"]<-a
         rowid<-rowid+1
       }
+    }
+    qq<-data.frame(matrix(0, nrow = binsize*length(stats), ncol = 4))
+    colnames(qq)<-c("Stat", "Bin", "Expected", "Actual")
+    rowid<-1
+    for (stat in stats) {
+      e<-as.numeric(colSums(bins[bins$Activity.Stat==stat,binCols]))
+      e<-e/sum(e)
+      a<-as.numeric(colSums(newbins[newbins$Activity.Stat==stat,binCols]))
+      a<-a/sum(a)
+      shift<-(rowid-1)*binsize
+      qq[shift+(1:binsize),"Stat"]<-rep(stat,binsize)
+      qq[shift+(1:binsize),"Bin"]<-1:binsize
+      qq[shift+(1:binsize),"Expected"]<-e
+      qq[shift+(1:binsize),"Actual"]<-a
+      rowid<-rowid+1
     }
     
     suppressMessages(library(reshape2))
@@ -180,7 +195,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     echo(paste0("Writing ", outfile, "\n"))
     gg<-ggplot(pp[pp$Stat=="Act.End.Time.Prob",], aes(x=Expected, y=Actual)) + 
       geom_abline(aes(colour='red', slope = 1, intercept=0)) +
-      geom_point(aes(fill=Bin), colour = 'blue', size=3, shape=21, alpha=0.9) + guides(colour=FALSE) +
+      geom_point(aes(fill=Bin), colour='blue', size=4, shape=21, alpha=0.9) + guides(colour=FALSE) +
       #theme(legend.position="none") + 
       theme(plot.title = element_text(hjust = 0.5)) +
       ggtitle(paste0('Activity End Time Probabilities in ',binSizeInMins,'-Min Bins')) +
@@ -214,8 +229,10 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     outfile<-paste0(outdir,"/analysis-start-times-by-activity.pdf")
     echo(paste0("Writing ", outfile, "\n"))
     dd<-melt(pp[pp$Stat=="Act.Start.Time.Prob",], id.vars = c("Activity", "Stat", "Bin"))
-    gg<-ggplot(dd, aes(x=Bin, y=value, col=variable, fill=variable)) + 
-      geom_bar(stat="identity", size=0.1, position = "stack") + 
+    gg<-ggplot(dd, aes(x=Bin, y=value, fill=variable)) + 
+      geom_bar(stat="identity", width=1, position = "dodge") + 
+      scale_color_manual(values=c('#009B95', '#FF7100')) + 
+      scale_fill_manual(values=c('#009B95', '#FF7100')) + 
       guides(colour=FALSE, fill=guide_legend(title="")) +
       facet_wrap(~Activity, scales="free", ncol=2) +
       theme(plot.title = element_text(hjust = 0.5)) +
@@ -227,12 +244,28 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     echo(paste0("Writing ", outfile, "\n"))
     dd<-melt(pp[pp$Stat=="Act.End.Time.Prob",], id.vars = c("Activity", "Stat", "Bin"))
     gg<-ggplot(dd, aes(x=Bin, y=value, col=variable, fill=variable)) + 
-      geom_bar(stat="identity", size=0.1, position = "stack") + 
-      guides(colour=FALSE, fill=guide_legend(title="")) +
+      geom_bar(stat="identity", width=1, position = "dodge") + 
+      scale_color_manual(values=c('#009B95', '#FF7100')) + 
+      scale_fill_manual(values=c('#009B95', '#FF7100')) + 
       facet_wrap(~Activity, scales="free", ncol=2) +
       theme(plot.title = element_text(hjust = 0.5)) +
       xlab("30-min time bins") + ylab("Proportion of population") +
       ggtitle(paste0('Activity End Time by time of day'))
+    ggsave(outfile, gg, width=210, height=297, units = "mm")
+    
+    outfile<-paste0(outdir,"/analysis-activity-times-by-bin.pdf")
+    echo(paste0("Writing ", outfile, "\n"))
+    dd<-melt(qq, id.vars = c("Stat", "Bin"))
+    gg<-ggplot(dd, aes(x=Bin, y=value, col=variable, fill=variable)) + 
+      geom_bar(stat="identity", width=0.8, position = "dodge") + 
+      scale_color_manual(values=c('#009B95', '#FF7100')) + 
+      scale_fill_manual(values=c('#009B95', '#FF7100')) + 
+      guides(colour=FALSE, fill=guide_legend(title="")) +
+      theme(legend.position="bottom") + 
+      #theme(plot.title = element_text(hjust = 0.5), strip.background = element_blank(), strip.text.x = element_blank()) +
+      xlab("30-min time bins") + ylab("Proportion of population") +
+      ggtitle(paste0('Activity Start/End Time Probabilities in ',binSizeInMins,'-Min Bins')) +
+      facet_wrap(~Stat, scales="free", ncol=1)
     ggsave(outfile, gg, width=210, height=297, units = "mm")
     
   }
@@ -288,8 +321,6 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   # write out the analyses PDFs
   echo(paste0("Generating analysis graphs\n"))
   analysePlans(bins, newbins, outdir)
-  echo("All done\n")
-  
 }
 
 # example usage
