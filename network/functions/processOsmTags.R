@@ -70,7 +70,10 @@ processOsmTags <- function(osm_df,this_defaults_df){
                              true = if_else(condition = is.na(modes), true = "walk", false = paste(modes, "walk", sep=",")), 
                              false = modes))
     
-    osmAttributedCleaned  <- osmAttributedWithModes %>% 
-                                filter(!is.na(modes) & !is.na(freespeed) & !is.na(permlanes) & !is.na(capacity))
+    osmAttributedCleaned  <- osmAttributedWithModes %>%
+      filter(!is.na(modes) & !is.na(freespeed) & !is.na(permlanes) & !is.na(capacity)) %>%
+      mutate(permlanes = replace(permlanes, permlanes == 0.0, 1.0)) %>% 
+      mutate(capacity = replace(capacity, capacity == 0.0, 100.0))
+                    
   return(osmAttributedCleaned)
 }
