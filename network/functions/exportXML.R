@@ -2,10 +2,11 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
   addMATSimNode <- function(this_node){
     if (addZ_coord){
-      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=this_node$x, y=this_node$y, z=this_node$z))# assign attribute list to attributes tag
+      this_node <- this_node %>% mutate(z = if_else(is.na(z), true = 10, ))
+      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y), z=as.character(this_node$z)))# assign attribute list to attributes tag
       
     }else {
-      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=this_node$x, y=this_node$y))# assign attribute list to attributes tag
+      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y)))# assign attribute list to attributes tag
     }
      return(xnn)
   }
@@ -15,9 +16,9 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
                                         length=this_link$length, capacity=this_link$capacity, freespeed=this_link$freespeed,
                                         permlanes=this_link$permlanes, oneway="1", modes=as.character(this_link$modes)))
     
-    attribs <- this_link %>% mutate(bicycleInfrastructureSpeedFactor = 1.0) %>% 
-      dplyr::select(osm_id, type = highway, bikeway, bicycleInfrastructureSpeedFactor) %>% 
-      mutate(bikeway = if_else(is.na(bikeway),true = "No", bikeway))
+    attribs <- this_link  %>% 
+      dplyr::select(osm_id, type, bikeway, bicycleInfrastructureSpeedFactor)
+    
     
     xlattribs <- lapply(
       seq_along(attribs),
@@ -37,7 +38,7 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
   echo('Starting to write the XML\n')
   # Set the output file
-  xml_file <- paste0('../outputs/outputNetworks/',outputFileName,'.xml')
+  xml_file <- paste0('./generatedNetworks/',outputFileName,'.xml')
   
   # Adding the prefix
   cat("<?xml version=\"1.0\" encoding=\"UTF-8\"?>
@@ -59,6 +60,19 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
   echo('\n')
   echo('Starting to add links to XML\n')
+  
+  # adding missing columns
+  fncols <- function(data, cname) {
+    add <-cname[!cname%in%names(data)]
+    if(length(add)!=0) data[add] <- NA
+    data
+  }
+  l_df <-  fncols(l_df, c("osm_id", "highway", "bikeway", "bicycleInfrastructureSpeedFactor")) 
+  l_df <- l_df %>%
+    mutate(osm_id = replace(osm_id, is.na(osm_id), 9999999999)) %>% 
+    mutate(type = replace(highway, is.na(highway), "NotSpecified")) %>% 
+    mutate(bikeway = replace(bikeway, is.na(bikeway),"No")) %>% 
+    mutate(bicycleInfrastructureSpeedFactor = replace(bicycleInfrastructureSpeedFactor, is.na(bicycleInfrastructureSpeedFactor),1.0))
   
   for (i in 1:nrow(l_df)) {
     if(i %%50 == 0) printProgress(i, nrow(l_df), 'link')
