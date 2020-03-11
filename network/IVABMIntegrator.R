@@ -1,0 +1,167 @@
+# This code integrates RMIT generated network with PT and Park and Ride related network from IVABM
+# Required inputs from IVABM:
+#   - network file (.xml)
+#   - Transit schedule file (.xml)
+#   - PnR lookup file, contains links and parking capacity (.xml)
+
+library(XML)
+library(dplyr)
+library(sf)
+library(data.table)
+
+source('./functions/exportXML.R')
+
+echo<- function(msg) {
+  cat(paste0(as.character(Sys.time()), ' | ', msg))  
+}
+
+printProgress<-function(row, total_row, char) {
+  if((row-50)%%2500==0) echo('')
+  cat('.')
+  if(row%%500==0) cat('|')
+  if(row%%2500==0) cat(paste0(char,' ', row, ' of ', total_row, '\n'))
+}
+
+xml.2.df <- function(xml.file.URL){
+  this.xml <- xmlParse(xml.file.URL)
+  this.nodes.xml <- xmlRoot(this.xml)[2]
+  this.links.xml <- xmlRoot(this.xml)[4]
+  
+  this.links.df <- xmlToList(this.links.xml[[1]]) %>% 
+    unlist() %>%
+    matrix(nrow = xmlSize(this.links.xml[[1]]), ncol = 12, byrow = T) %>% 
+    as.data.frame() %>% 
+    dplyr::select(id = V4, from_id = V5, to_id = V6, length = V7, freespeed = V8, capacity = V9, permlanes = V10, oneway = V11, modes = V12) %>% 
+    filter(modes %like% "car")
+  
+  this.nodes.df <- xmlToList(this.nodes.xml[[1]]) %>% 
+    unlist() %>% 
+    matrix(nrow = xmlSize(this.nodes.xml[[1]]), ncol = 4, byrow = T) %>% 
+    as.data.frame() %>%
+    dplyr::select(-1) %>% 
+    rename(id = V2, x = V3, y = V4) %>% 
+    filter(id %in% this.links.df$from_id | id %in% this.links.df$to_id)
+  
+  return(this.nodes.df, this.links.df)
+}
+
+# Reading network 1 -------------------------------------------------------
+# NOTE start from a cleaned matsim network
+xml.file.URL <- "./data/GMel_2D_NoPT_GMel_20m_v2_CarBicycle.xml.gz"
+df <- xml.2.df(xml.file.URL)
+net1.nodes.df <- df[[1]]
+net1.links.df <- df[[2]]
+net1.nodes.sf <- net1.nodes.df %>%  mutate_if(is.factor, as.character) %>% 
+  st_as_sf(coords = c("x", "y"), crs = 28355, remove = F) 
+
+# Reading network 2 -------------------------------------------------------
+xml.file.URL <- "./data/ivabm/network_2016_v3.xml"
+df <- xml.2.df(xml.file.URL)
+net2.nodes.df <- df[[1]]
+net2.links.df <- df[[2]]
+net2.nodes.sf <- net2.nodes.df %>% 
+  dplyr::select(id, x, y) %>% 
+  st_as_sf(coords = c("x", "y"), crs = 28355, remove = F) 
+
+# Getting transit network -------------------------------------------------
+# Get Transit Lines from schedule - to check everything is covered
+pt.schedule.xml <- xmlParse("./data/ivabm/Schedule/transitSchedule_2016_v2_scheduleD.xml")
+pt.routes.xml <- xmlRoot(pt.schedule.xml)[2]
+pt.routes.df <- data.frame() # Sorry for this sin R community
+for (tr in 1:xmlSize(pt.routes.xml[[1]])){
+  mode <- xmlToList(pt.routes.xml[[1]][[tr]][[2]]) %>% unlist()
+  this_tr <- xmlToList(pt.routes.xml[[1]][[tr]][[4]]) %>% unlist() %>% matrix(ncol = 1) %>% as.data.frame() %>% mutate(modes = mode)
+  pt.routes.df <- rbind(pt.routes.df, this_tr)
+}
+pt.routes.df <- pt.routes.df %>% rename(id = V1) %>%  distinct(id, modes)
+
+# Extracting Transit Links from Net2
+pt.links.df <- net2.links.df  %>%  
+  mutate(mode_temp = if_else(condition = id %in% pt.routes.df$id, true = "pt", 
+                             false = "NA")) %>% 
+  mutate(mode_temp = if_else(condition = (modes %like% "bus" & modes %like% "tram"), true = "bus,tram", 
+                             false = mode_temp)) %>% 
+  mutate(mode_temp = if_else(condition = (!(modes %like% "bus") & modes %like% "tram"), true = "tram", 
+                             false = mode_temp)) %>% 
+  mutate(mode_temp = if_else(condition = (!(modes %like% "tram") & modes %like% "bus"), true = "bus", 
+                             false = mode_temp)) %>% 
+  mutate(mode_temp = if_else(condition = (modes %like% "train"), true = "train", 
+                             false = mode_temp))  %>% 
+  filter(!mode_temp == "NA") %>% 
+  dplyr::select(-modes, -X) %>% 
+  dplyr::rename(modes=mode_temp)
+
+pt.nodes.df <- net2.nodes.sf %>% filter(id %in% pt.links.df$from_id | id %in% pt.links.df$to_id)  
+
+# Extracting PnR links ----------------------------------------------------
+# Finding park and ride links
+pnr.df <- read.csv("./data/ivabm/PnR_2016_1pct_v1.csv", header = F)
+pnr.links <- pnr.df %>% dplyr::select(V2:V7) %>% unlist() %>% as.character()
+pnr.links.df <- net2.links.df  %>%  
+  mutate(mode_temp = if_else(condition = (id %in% pnr.links), true = "car", false = "NA")) %>% 
+  filter(mode_temp == "car") %>% 
+  dplyr::select(-modes) %>% 
+  dplyr::rename(modes=mode_temp)
+
+# Connecting PnR links to the main network --------------------------------
+library(nngeo)
+# PnR from
+pnr.from.nodes <- net2.nodes.sf %>% filter(id %in% pnr.links.df$from_id) 
+
+closest <- data.frame(row=st_nn(st_geometry(pnr.from.nodes),st_geometry(net1.nodes.sf),k=1,returnDist=FALSE)  %>% 
+  unlist()) 
+
+pnr.from.nodes <- cbind(st_drop_geometry(pnr.from.nodes), closest) %>% 
+  inner_join(net1.nodes.df%>%mutate(id_closest=row_number()), by=c("row"="id_closest")) %>% 
+  dplyr::select(old_id = id.x, new_id = id.y )
+
+# PnR to
+pnr.to.nodes <- net2.nodes.sf %>% filter(id %in% pnr.links.df$to_id) 
+
+closest1 <- data.frame(row=st_nn(st_geometry(pnr.to.nodes),st_geometry(net1.nodes.sf),k=1,returnDist=FALSE) %>%
+                         unlist()) 
+closest2 <- data.frame(row=st_nn(st_geometry(pnr.to.nodes),st_geometry(net1.nodes.sf),k=2,returnDist=FALSE)  %>% 
+                         unlist()) %>%  dplyr::filter(row_number() %% 2 == 0)
+
+pnr.to.nodes <- cbind(st_drop_geometry(pnr.to.nodes), closest1) %>% 
+  inner_join(net1.nodes.df%>%mutate(id_closest=row_number()), by=c("row"="id_closest")) %>% 
+  dplyr::select(old_id = id.x, new_id = id.y )
+
+pnr.to.nodes <- cbind(pnr.to.nodes, closest2) %>% 
+  inner_join(net1.nodes.df%>%mutate(id_closest=row_number()), by=c("row"="id_closest")) %>% 
+  dplyr::select(old_id, new_id, new_id2 = id )
+  
+
+# Merging all the links and nodes -----------------------------------------
+
+# Merging 'from' ids
+pnr.links.new.df <- pnr.links.df %>% left_join(pnr.from.nodes, by = c("from_id" = "old_id")) %>% dplyr::select(-from_id) %>% rename("from_id" = "new_id") %>% 
+  dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes)
+
+# Merging 'to' ids
+pnr.links.new.df <- pnr.links.new.df %>% left_join(pnr.to.nodes, by = c("to_id" = "old_id")) %>% 
+  mutate(new.id.s = if_else(from_id != new_id, true = new_id, false = new_id2))  %>% dplyr::select(-to_id) %>% rename("to_id" = "new.id.s") %>% 
+  dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes)
+
+# Merging pnr nodes
+pnr.nodes.net1  <- net1.nodes.df %>% filter(id %in% pnr.links.new.df$to_id | id %in% pnr.links.new.df$from_id) 
+pnr.nodes.net2 <- net2.nodes.sf %>% st_drop_geometry() %>% filter(id %in% pnr.links.new.df$to_id | id %in% pnr.links.new.df$from_id) 
+
+# Merging pnr links and nodes
+pnr.links.final <- rbind(pnr.links.new.df) %>% distinct(id, .keep_all = T)
+pnr.nodes.final <- rbind(pnr.nodes.net1, pnr.nodes.net2) %>% distinct(id, .keep_all = T)
+exportXML(pnr.links.final, pnr.nodes.final, outputFileName = "pnrOnly_v7", addZ_coord = F)
+
+# Merging pnr and pt links
+net2.links.final <- rbind(pnr.links.final, pt.links.df) %>% distinct(id, .keep_all = T)
+net2.nodes.final <- rbind(st_drop_geometry(pt.nodes.df),pnr.nodes.final) %>% distinct(id, .keep_all = T)
+
+# Net1 final
+net1.links.final <- net1.links.df %>% mutate(oneway = "1") %>% 
+  dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes) 
+
+# Combining net1 with net2
+total.links <- rbind(net2.links.final, net1.links.final)
+total.nodes <- rbind(net2.nodes.final, net1.nodes.df) %>% distinct(id, .keep_all = T) 
+
+exportXML(total.links, total.nodes, outputFileName = "GMel_2D_IVABMPT_GMel_20m_v2_CarBicycle_pnrAdded_v7", addZ_coord = F)
