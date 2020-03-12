@@ -1,5 +1,5 @@
 # This function starts from gtfs, generates MATSim's tranist vehicles, transit schedule and returns pt network
-
+# TODO send nodes as argument
 gtfs2PtNetowrk <- function(gtfs_feed = "data/transit/gtfs_au_vic_ptv_20191004.zip", 
                            analysis_start = as.Date("2019-10-11","%Y-%m-%d"), 
                            analysis_end = as.Date("2019-10-17","%Y-%m-%d")){
@@ -9,7 +9,7 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/transit/gtfs_au_vic_ptv_20191004.zi
   library('sf')
   library('lwgeom')
   library('hms')
-  
+
   
   gtfs <- read_gtfs(gtfs_feed)
   
@@ -151,10 +151,12 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/transit/gtfs_au_vic_ptv_20191004.zi
   
   # data/transit/transitSchedule.xml: transitSchedule > transitStops
   transitStops <- ptNetwork %>%
-    dplyr::select(from_id,to_id,from_x,from_y,id) %>%
-    distinct() %>%
+    dplyr::select(from_id,to_id,from_x,from_y,stop_id) %>%
+    # the id column is the issue, as it doesn't exist
+    # unique()
+    dplyr::distinct() %>%
     mutate(linkRefId=as.factor(paste0(from_id,"_",to_id))) %>%
-    dplyr::select(id,linkRefId,from_id,to_id,x=from_x,y=from_y) 
+    dplyr::select(stop_id,linkRefId,from_id,to_id,x=from_x,y=from_y) 
   
   # data/transit/transitSchedule.xml: transitSchedule > transitRoute > routeProfile
   # data/transit/transitSchedule.xml: transitSchedule > transitRoute > route
@@ -163,7 +165,7 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/transit/gtfs_au_vic_ptv_20191004.zi
   routeProfile <- ptNetwork %>%
     dplyr::select(trip_id,arrivalOffset,departureOffset,from_id,to_id) %>%
     inner_join(transitStops,by=c("from_id","to_id")) %>%
-    dplyr::select(trip_id,arrivalOffset,departureOffset,refId=id,from_id,to_id) # NOTE: route.link.refId is not the same as the refId column
+    dplyr::select(trip_id,arrivalOffset,departureOffset,refId=stop_id,from_id,to_id) # NOTE: route.link.refId is not the same as the refId column
   
   # data/transit/transitSchedule.xml: transitSchedule > transitRoute > departures
   #vehicleRefId is just the trip_id. This means we can potentially have a different vehicle for each trip. I have also set the vehicle type here.
@@ -222,7 +224,7 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/transit/gtfs_au_vic_ptv_20191004.zi
   
   for (i in 1:nrow(transitStops)) {
     # for (i in 1:100) {
-    cat(paste0("    <stopFacility id=\"",transitStops[i,]$id,"\" isBlocking=\"false\" linkRefId=\"",
+    cat(paste0("    <stopFacility id=\"",transitStops[i,]$stop_id,"\" isBlocking=\"false\" linkRefId=\"",
                transitStops[i,]$linkRefId,"\" x=\"",transitStops[i,]$x,"\" y=\"",
                transitStops[i,]$y,"\"/>\n"),file="data/transit/transitSchedule.xml",append=TRUE)
   }
@@ -277,7 +279,14 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/transit/gtfs_au_vic_ptv_20191004.zi
   # routeProfile, stop
   # route, link
   # departures, departure
-  
-  return(ptNetworkFull)
+  ptNetworkMATSim <- ptNetworkFull %>% st_drop_geometry() %>% 
+    mutate(modes=service_type) %>% 
+    dplyr::select(from_id, to_id, modes) %>% 
+    distinct() %>% 
+    group_by(from_id, to_id) %>% 
+    summarise(modes=paste0(modes,sep=",",collapse = "")) %>% 
+    mutate(id=paste0(from_id,"_",to_id))
+    
+  return(ptNetworkMATSim)
 }
 

@@ -124,7 +124,7 @@ if(focus_area_flag){
 add.pt.flag <- F
 
 if(add.pt.flag){
-  pt.network <- gtfs2PtNetowrk() # IS NOT WORKING YET, Error: This tidyselect interface doesn't support predicates yet.
+  pt.network <- gtfs2PtNetowrk() # ToDo combining with the main network
 }
 
 
