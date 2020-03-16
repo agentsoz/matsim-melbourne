@@ -298,7 +298,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   binIndexOffset<-head(binCols,1)-1
   
   # generate the plans
-  outfile<-paste0(outdir, '/plan.',N,'.csv')
+  outfile<-paste0(outdir, '/plan.csv')
   echo(paste0("Generating ",N," VISTA-like daily travel plans into ", outfile, "\n"))
   plans<-data.frame(PlanId=integer(), Activity=factor(levels=getActivityGroups(bins)), StartBin=integer(), EndBin=integer())
   write.table(plans, file=outfile, append=FALSE, row.names=FALSE, sep = ',')

@@ -150,8 +150,8 @@ assignActivityAreasAndTravelModes <-function(censuscsv, vistacsv, matchcsv, outd
 
 # example usage
 runexample<- function() {
-  censuscsv<-'output/2.sample/sample.0.1.csv.gz'
-  vistacsv<-'output/3.plan/plan.5000.csv'
+  censuscsv<-'output/2.sample/sample.csv.gz'
+  vistacsv<-'output/3.plan/plan.csv'
   matchcsv<-'output/4.match/match.csv.gz'
   outdir<-'output/5.locate'
   dir.create(outdir, showWarnings = FALSE, recursive=TRUE)

@@ -16,7 +16,7 @@ match<-function(censuscsv, vistacsv, outcsv) {
   close(gz1)
   
   # TODO: to be replaced with demographics based matching
-  echo(paste0('Matching census-like persons toVISTA-like plans\n'))
+  echo(paste0('Matching census-like persons to VISTA-like plans\n'))
   size<-min(length(unique(persons$AgentId)), length(unique(plans$PlanId)))
   personIds<-unique(persons$AgentId)[1:size]
   planIds<-unique(plans$PlanId)[1:size]
@@ -29,8 +29,8 @@ match<-function(censuscsv, vistacsv, outcsv) {
 
 # example usage
 runexample<- function() {
-  censuscsv<-'output/2.sample/sample.0.1.csv.gz'
-  vistacsv<-'output/3.plan/plan.5000.csv'
+  censuscsv<-'output/2.sample/sample.csv.gz'
+  vistacsv<-'output/3.plan/plan.csv'
   outdir<-'output/4.match'
   dir.create(outdir, showWarnings = FALSE, recursive=TRUE)
   outcsv<-paste0(outdir,'/match.csv.gz')
