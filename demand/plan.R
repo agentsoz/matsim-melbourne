@@ -382,7 +382,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   inplansfile<-outfile
   outplansfile<-outfile
   numOfBins<-length(binCols)
-  echo(paste0("Padding generated plans with Home activity to make them MATSim-ready (can take a while))\n"))
+  echo(paste0("Padding generated plans with Home activity to make them MATSim-ready (can take a while)\n"))
   padWithHomeActivity(inplansfile, outplansfile, numOfBins)
   echo(paste0("Wrote ",outplansfile,"\n"))
 }
