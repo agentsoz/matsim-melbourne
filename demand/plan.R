@@ -57,7 +57,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     # get the difference from expected
     xastp<-(astp-xastp)
     xastp<-t(apply(xastp,1,function(x) {
-      (x-min(x))^2
+      (x-min(x))
     }))
     xastp[astp==0]<-0
     # normalise new-activity-start-time-probs (nastp) row-wise if non-zero
@@ -71,14 +71,19 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     
     plan<-data.frame(Activity=factor(levels=groups), StartBin=integer(), EndBin=integer())
     bin<-1
-    while(bin<=binsize) {
+    while(bin<binsize) {
+      prob<-sum(astp[,bin])/sum(astp) # proportion of activities that should start in this bin
+      xprob<-ifelse(sum(nastp)==0, 0, sum(nastp[,bin])/sum(nastp)) # proportion of activities that did start in this bin
+      # if we have more than our share of activities already start in this bin then progress to the next bin
+      if(xprob>=prob) { bin<-bin+1; next }
+      
       probs<-as.vector(xastp[,bin]) # pick the column probabilities
       filter<-probs==0 & astp[,bin]!=0 # find cols that are zero but shouldn't be and give them a small probability
       probs[filter]<- 0.001
       # if no activity can start in this bin then progress to the next bin
       if(sum(probs==0)==length(probs)) { bin<-bin+1; next }
       # if unlikely to start some activity in this bin then progress to the next bin
-      if(runif(1)<1-sum(probs)) { bin<-bin+1; next }
+      #if(runif(1)<1-sum(probs)) { bin<-bin+1; next }
       # normalise if non-zero
       if (sum(probs==0)!=length(probs)) probs<-probs/sum(probs) 
       # pick a new activity for this bin
@@ -91,7 +96,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
                        binSizeInMins, 
                        abs(round(rnorm(1,admm[act,bin],adms[act,bin]))) # WARNING: abs will change the distribution
       )
-      # pick an end bin for this activity (clipped to last bin)
+      # pick an end bin for this activity (clipped to final bin)
       ebin<-min(binsize, sbin + duration %/% binSizeInMins)
       # save it
       plan[nrow(plan)+1,]<-list(act, sbin, ebin)
@@ -102,17 +107,17 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     # Sew up Home Morning/Night activities properly
     
     # First activity should always be Home, and starting in Bin1 
-    if(plan[1,]$Activity != "Home") {
-      plan<-rbind(data.frame(Activity="Home", StartBin=c(1), EndBin=c(plan[1,]$StartBin)), plan)
-    }
+    #if(plan[1,]$Activity != "Home") {
+    #  plan<-rbind(data.frame(Activity="Home", StartBin=c(1), EndBin=c(plan[1,]$StartBin)), plan)
+    #}
     # If last activity is not Home, then make it so
-    if(plan[nrow(plan),]$Activity != "Home") {
-      plan[nrow(plan)+1,]<-list("Home", plan[nrow(plan),]$EndBin, binsize)
-    }
+    #if(plan[nrow(plan),]$Activity != "Home") {
+    #  plan[nrow(plan)+1,]<-list("Home", plan[nrow(plan),]$EndBin, binsize)
+    #}
     # If last activity is Home, then make sure it ends in the last bin
-    if(plan[nrow(plan),]$Activity == "Home" && plan[nrow(plan),]$EndBin != binsize) {
-      plan[nrow(plan),]$EndBin<-binsize
-    }
+    #if(plan[nrow(plan),]$Activity == "Home" && plan[nrow(plan),]$EndBin != binsize) {
+    #  plan[nrow(plan),]$EndBin<-binsize
+    #}
     # Collapse blocks of same activity into one
     # see https://stackoverflow.com/questions/32529854/group-data-in-r-for-consecutive-rows
     plan <- plan %>%
@@ -325,7 +330,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
 
 # example usage
 runexample<- function() {
-  N<-5000 # generate 10k VISTA 2012-18 like daily plans
+  N<-1000 # generate 10k VISTA 2012-18 like daily plans
   csv<-paste0('./output/1.setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
   binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each
   outdir<-'./output/3.plan'
