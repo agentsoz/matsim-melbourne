@@ -275,6 +275,58 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     
   }
   
+  padWithHomeActivity <- function (inplansfile, outplansfile, numOfBins) {
+    # Read in the plans
+    gz1<-gzfile(inplansfile, 'rt')
+    origplans<-read.csv(gz1, header=T, stringsAsFactors=F, strip.white=T)
+    close(gz1)
+    
+    plans<-origplans
+    
+    # Add missing Home activity at the start of plans
+    df<-origplans
+    df<-aggregate(df,by=list(df$PlanId),FUN=head,1) # get the first row of each plan
+    df<-df[df$Activity!="Home",] # get plans that do not start with a home activity
+    # create the set of missing start-at-home activities 
+    df$Activity<-"Home"
+    df$EndBin<-df$StartBin
+    df$StartBin<-1
+    # now slot them in
+    dd<-rbind(plans,df[,colnames(plans)]) # first append them to the end of original set of activities
+    id<- c(plans$PlanId,(df$PlanId-0.5)) #give them half-rank indices ie where they should be slotted
+    dy<-dd[order(id),] # now use order to pluck the set in the correct order
+
+    plans<-dy
+    
+    # Add missing Home activity at the end of plans
+    df<-plans
+    df<-aggregate(df,by=list(df$PlanId),FUN=tail,1) # get the last row of each plan
+    df<-df[df$Activity!="Home",] # get plans that do not start with a home activity
+    # create the set of missing start-at-home activities 
+    df$Activity<-"Home"
+    df$StartBin<-df$EndBin
+    df$EndBin<-numOfBins
+    # now slot them in
+    dd<-rbind(plans,df[,colnames(plans)]) # first append them to the end of original set of activities
+    id<- c(plans$PlanId,(df$PlanId+0.5)) #give them half-rank indices ie where they should be slotted
+    dy<-dd[order(id),] # now use order to pluck the set in the correct order
+    
+    plans<-dy
+    
+    # Finally stretch out any final Home activities that do not end in the last bin
+    df<-plans
+    df$rowId<-rownames(df)
+    df<-aggregate(df,by=list(df$PlanId),FUN=tail,1) # get the last row of each plan
+    filter<-df$EndBin!=numOfBins # get plans that do not end in the last bin  
+    pids<-df[filter,]$rowId # get ids of plans that do not end in the last bin
+    dy<-plans
+    dy[pids,]$EndBin<-numOfBins
+
+    rownames(dy)<-1:nrow(dy) # clean up the row names 
+    plans<-dy
+    write.table(plans, file=outplansfile, append=FALSE, row.names=FALSE, sep = ',')
+  }
+  
   options(scipen=999) # disable scientific notation for more readible filenames with small sample sizes
   
   # create the output directory if needed
@@ -326,11 +378,18 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   # write out the analyses PDFs
   echo(paste0("Generating analysis graphs\n"))
   analysePlans(bins, newbins, outdir)
+  # make all plans start/finish at home
+  inplansfile<-outfile
+  outplansfile<-outfile
+  numOfBins<-length(binCols)
+  echo(paste0("Padding generated plans with Home activity to make them MATSim-ready (can take a while))\n"))
+  padWithHomeActivity(inplansfile, outplansfile, numOfBins)
+  echo(paste0("Wrote ",outplansfile,"\n"))
 }
 
 # example usage
 runexample<- function() {
-  N<-1000 # generate 10k VISTA 2012-18 like daily plans
+  N<-5000 # generate 10k VISTA 2012-18 like daily plans
   csv<-paste0('./output/1.setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
   binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each
   outdir<-'./output/3.plan'
