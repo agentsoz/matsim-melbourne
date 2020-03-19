@@ -1,4 +1,4 @@
-generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
+generatePlans <- function(N, csv, endcsv, binCols, outdir, writeInterval) {
   # example inputs:
   # N<-10000 # generate 10k VISTA 2012-18 like daily plans
   # csv<-paste0('./setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
@@ -15,7 +15,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     return(groups)
   }
   
-  createNewPlan <- function(bins, newbins, binCols) {
+  createNewPlan <- function(bins, newbins, endbins, binCols) {
     
     getProbabilitiesMatrix <- function(bins, stat, binCols) {
       df<-bins
@@ -91,13 +91,22 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
       # this will be the start bin for this activity  
       sbin<-bin 
       # pick duration for activity starting in this bin
-      mean<-admm[act,bin]; sigma<-adms[act,bin]
-      duration<-ifelse(mean==0||sigma==0, 
-                       binSizeInMins, 
-                       abs(round(rnorm(1,admm[act,bin],adms[act,bin]))) # WARNING: abs will change the distribution
-      )
+      #mean<-admm[act,bin]; sigma<-adms[act,bin]
+      #duration<-ifelse(mean==0||sigma==0, 
+      #                 binSizeInMins, 
+      #                 abs(round(rnorm(1,admm[act,bin],adms[act,bin]))) # WARNING: abs will change the distribution
+      #)
       # pick an end bin for this activity (clipped to final bin)
-      ebin<-min(binsize, sbin + duration %/% binSizeInMins)
+      #ebin<-min(binsize, sbin + duration %/% binSizeInMins)
+      
+      ebins<-as.numeric(endbins[endbins$Act.Start.Bin==sbin & endbins$Activity.Group==act,binCols])
+      if (sum(ebins==0)==length(ebins)) {
+        # all probabilities are zero so make them equally non-zero for bins >= sbin 
+        # therefore we will select randomly from them 
+        ebins[sbin:length(ebins)]<-1
+      }
+      ebin<-selectIndexFromProbabilities(ebins)
+      
       # save it
       plan[nrow(plan)+1,]<-list(act, sbin, ebin)
       # pick the next time bin
@@ -338,6 +347,14 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
   bins<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
   bins[is.na(bins)]<-0 # convert NAs to 0s
   close(gz1)
+  
+  # Read in the end bin distributions per start bin
+  echo(paste0("Loading extracted VISTA 2012-18 activities end bin distributions per start bin from ", endcsv, "\n"))
+  gz1 <- gzfile(endcsv,'rt')
+  endbins<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  endbins[is.na(endbins)]<-0 # convert NAs to 0s
+  close(gz1)
+  
   # bins: data frame with the following columns:
   # Activity.Group, Activity.Stat, X1..XN where N is the enumber of time bins in the day; and
   #
@@ -363,7 +380,7 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
     # print progress
     printProgress(i,'.')
     # create a new plan and add it to the list
-    plan<-createNewPlan(bins, newbins, binCols)
+    plan<-createNewPlan(bins, newbins, endbins, binCols)
     plan<-cbind(PlanId=i, plan)
     # record progress
     newbins<-recordProgress(plan, newbins, binCols)
@@ -391,8 +408,9 @@ generatePlans <- function(N, csv, binCols, outdir, writeInterval) {
 runexample<- function() {
   N<-5000 # generate 10k VISTA 2012-18 like daily plans
   csv<-paste0('./output/1.setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
+  endcsv<-paste0('./output/1.setup/vista_2012_18_extracted_activities_weekday_end_dist_for_start_bins.csv.gz')
   binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each
   outdir<-'./output/3.plan'
   writeInterval <- 1000 # write to file every 1000 plans
-  generatePlans(N, csv, binCols, outdir, writeInterval)
+  generatePlans(N, csv, endcsv, binCols, outdir, writeInterval)
 }  
