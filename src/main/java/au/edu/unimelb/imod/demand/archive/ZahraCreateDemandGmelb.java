@@ -439,7 +439,7 @@ public class ZahraCreateDemandGmelb {
 			Plan eachPlan = eachPerson.getSelectedPlan();
 			Leg leg = (Leg) eachPlan.getPlanElements().get(1);
 			if (leg.getMode().equals("pt"))
-				this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "noCar");
+				this.scenarioPUS.getPopulation().getPersons().get(personId.toString()).getAttributes().putAttribute("subpopulation", "noCar");
 		}
 	}
 	
