@@ -9,7 +9,7 @@
 		<param name="inputNetworkFile" value="net.xml.gz" />
 	</module>
 	<!-- =================================================================== -->	<module name="plans" >
-		<param name="inputPlansFile" value="mel_0.1.xml.gz" />
+		<param name="inputPlansFile" value="plan.xml.gz" />
 	</module>
 	<!-- =================================================================== -->	<module name="qsim" >
 		<param name="flowCapacityFactor" value="0.01" />
@@ -66,6 +66,11 @@
 				<param name="scoringThisActivityAtAll" value="false" />
 			</parameterset>
 
+			<parameterset type="activityParams" >
+				<param name="activityType" value="Home" />
+				<param name="typicalDuration" value="36000" />
+				<param name="typicalDurationScoreComputation" value="relative" />
+			</parameterset>
 			<parameterset type="activityParams" >
 				<param name="activityType" value="Home Morning" />
 				<param name="typicalDuration" value="36000" />
