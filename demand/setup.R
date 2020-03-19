@@ -32,16 +32,20 @@ setup<-function(setupDir) {
   echo(paste0('Extracting VISTA weekday/end activities times into ',binsize,' bins (can take a while)\n'))
   out_weekday_activities_time_bins_csv_gz<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
   out_weekend_activities_time_bins_csv_gz<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekend_time_bins.csv.gz')
-  extract_and_write_activities_time_bins(
-    out_weekday_activities_csv_gz,
-    out_weekday_activities_time_bins_csv_gz,
-    binsize)
-  extract_and_write_activities_time_bins(
-    out_weekend_activities_csv_gz,
-    out_weekend_activities_time_bins_csv_gz,
-    binsize)
+  in_activities_csv_gz<-out_weekday_activities_csv_gz
+  out_csv_gz<-out_weekday_activities_time_bins_csv_gz
+  extract_and_write_activities_time_bins(in_activities_csv_gz, out_csv_gz, binsize)
+  in_activities_csv_gz<-out_weekend_activities_csv_gz
+  out_csv_gz<-out_weekend_activities_time_bins_csv_gz
+  extract_and_write_activities_time_bins(in_activities_csv_gz, out_csv_gz, binsize)
   echo(paste0('Wrote ', out_weekday_activities_time_bins_csv_gz, ' and ', out_weekend_activities_time_bins_csv_gz,'\n'))
   
+  # Write out the activity end time probabilities for each staret time bin
+  in_activities_csv_gz<-out_weekday_activities_csv_gz
+  out_csv <- paste0(setupDir,'/vista_2012_18_extracted_activities_weekday_end_dist_for_start_bins.csv.gz')
+  echo(paste0('Extracting VISTA weekday activities end times distributions for each start time bin into ',out_csv,'\n'))
+  extract_and_write_activities_end_time_dist_by_start_bins(in_activities_csv_gz, out_csv, binsize)
+    
   # Create markov chain model for trip chains
   #prefix<-paste0(setupDir,'/vista_2012_18_extracted_activities_weekday')
   #infile<-paste0(prefix,'.csv.gz')
@@ -63,5 +67,6 @@ setup<-function(setupDir) {
 
 # example usage
 runexample<- function() {
-  status<-setup('output/1.setup')
+  setupDir<-'output/1.setup'
+  status<-setup(setupDir)
 }

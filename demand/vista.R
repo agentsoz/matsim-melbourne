@@ -3,6 +3,50 @@ suppressMessages(library(ggplot2))
 suppressMessages(library(plyr))
 suppressMessages(library(dplyr))
 suppressMessages(library(scales))
+suppressMessages(library(stringr))
+
+extract_and_write_activities_end_time_dist_by_start_bins<-function(in_activities_csv_gz, out_csv, binsize) {
+  # example inputs:
+  # in_activities_csv_gz <- "output/1.setup/vista_2012_18_extracted_activities_weekday.csv.gz"
+  # out_csv <- "output/1.setup/vista_2012_18_extracted_activities_weekday_end_dist_for_start_bins.csv.gz"
+  # binsize <- 48
+  
+  # Read the activities data
+  gz1 <- gzfile(in_activities_csv_gz,'rt')
+  activities<-read.csv(gz1,header = T,sep=',',stringsAsFactors = F,strip.white = T)
+  close(gz1)
+  
+  binSizeInMins<-floor(60*24)/binsize # the size of each bin in minutes
+  groups<-unique(activities$Activity.Group) # unique activity names
+
+  df<-activities
+  df$Act.Start.Bin<-1 + df$Act.Start.Time%/%binSizeInMins
+  df$Act.End.Bin<-1 + df$Act.End.Time%/%binSizeInMins
+  df<-df[df$Act.Start.Bin>=1 & df$Act.Start.Bin<=binsize,] # remove records with start bins out of range
+  df<-df[df$Act.End.Bin>=1 & df$Act.End.Bin<=binsize,] # remove records with end bins out of range
+  
+  # create a new dataframe to store end time probabilities for activities for each start time bin
+  pp<-data.frame(matrix(0, nrow = binsize*length(groups), ncol = 2+binsize))
+  colnames(pp)<-c("Activity.Group", "Act.Start.Bin", seq(1,binsize))
+  
+  bin<-0
+  while(bin<binsize) {
+    bin<-bin+1
+    dd<-df[df$Act.Start.Bin==bin,] # get all the records for this time bin
+    
+    i<-0
+    while(i<length(groups)) {
+      i<-i+1
+      de<-dd[dd$Activity.Group==groups[i],]
+      x<-as.vector(table(cut(rep(de[,"Act.End.Bin"],de$Count),breaks=seq(1,binsize+1)-0.5, include.lowest = TRUE)))
+      if (sum(x)!= 0) x<-x/sum(x)
+      offset<-(bin-1)*length(groups)
+      pp[offset+i,]<-c(groups[i], bin, x)
+    }
+  }
+  # Write the table out
+  write.table(pp, file=out_csv, append=FALSE, row.names=FALSE, sep = ',')
+}  
 
 extract_and_write_activities_time_bins<-function(in_activities_csv_gz, out_csv_gz, binsize) {
   gz1 <- gzfile(in_activities_csv_gz,'rt')
