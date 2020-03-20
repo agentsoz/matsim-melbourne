@@ -121,22 +121,6 @@
 			<version>2.3.0</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sun.xml.bind</groupId>
-			<artifactId>jaxb-core</artifactId>
-			<version>2.3.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.xml.bind</groupId>
-			<artifactId>jaxb-impl</artifactId>
-			<version>2.3.0</version>
-		</dependency>
-<!--see https://stackoverflow.com/questions/46493613/what-is-the-replacement-for-javax-activation-package-in-java-9-->
-		<dependency>
-			<groupId>com.sun.activation</groupId>
-			<artifactId>javax.activation</artifactId>
-			<version>1.2.0</version>
-		</dependency>
-		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-main</artifactId>
 			<version>22.0</version>
