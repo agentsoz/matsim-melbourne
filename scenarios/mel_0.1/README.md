@@ -2,11 +2,28 @@
 
 This example contains a very small Melbourne population sample (0.1%), see [video](https://cloudstor.aarnet.edu.au/plus/s/KQfaxJPsTr5dfpE) and associated [legend for colours used](https://cloudstor.aarnet.edu.au/plus/s/qBpRrKQ2RpgQ3cT).
 
-To run the example, first download the required files manually or by doing:
+To run the example, do the following (in a Bash terminal window):
+
+1. Change to the root of this repository, i.e., the directory with the `pom.xml` in it.
+
+1. Build the MATSim-Melbourne JAR by doing:
 ```
-./prepare.sh
+mvn clean install
 ```
 
-Also download and unzip the the [latest MATSim GUI](https://www.matsim.org/downloads/#gui) into the current directory.
+1. Download the required scenario files by doing:
+```
+./scenarios/mel_0.1/prepare.sh
+```
 
-Then start the MATSim GUI by double-clicking in the extracted JAR file, select the Configuration file `./config.xml`, and press **Start MATSim** to run the simulation. The MATSim output will by default be saved to `./output`.
+1. Finally, run the scenario by doing:
+```
+mvn exec:exec \
+  -Dexec.executable=java \
+  -Dexec.classpathScope=test \
+  -Dexec.args=" \
+    -cp %classpath org.matsim.run.RunMatsim \
+    ./scenarios/mel_0.1/config.xml \
+    ./scenarios/mel_0.1/output \
+    "
+```

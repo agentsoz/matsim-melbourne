@@ -23,6 +23,7 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.scenario.ScenarioUtils;
 
 /**
@@ -33,12 +34,14 @@ public class RunMatsim{
 
     public static void main(String[] args) {
 
-        if(args.length != 1) {
-            System.out.println("\nusage: " + RunMatsim.class.getName() + " config.xml\n");
+        if(args.length != 2) {
+            System.out.println("\nusage: " + RunMatsim.class.getName() + " CONFIG_XML OUTDIR\n");
             System.exit(0);
         }
 
         Config config = ConfigUtils.loadConfig( args[0] ) ;
+        config.controler().setOutputDirectory( args[1] );
+        config.controler().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
 
         // possibly modify config here
 

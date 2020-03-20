@@ -20,14 +20,8 @@ function getfile() {
 printf "\n"
 
 files=(
-
-"mel_0.1.acts.csv.gz"
-"mel_0.1.legs.csv.gz"
-"mel_0.1.via.legend.png"
-"mel_0.1.via.mp4"
-"mel_0.1.xml.gz"
-"net.xml.gz"
-"output.tgz"
+"plan.xml.gz"
+"GMel_2D_IVABMPT_GMel_20m_MatsimCleanedCar_pnrAdded_v010.xml.gz"
 )
 
 for file in ${files[*]}; do
