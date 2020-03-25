@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 # TODO ids should change.
 #libraries
 library(sf)
@@ -34,9 +36,6 @@ printProgress<-function(row, total_row, char) {
 
 # Seting control variables and directories  -------------------------------
 
-# Change this based on your folder structure
-data_folder <- 'data/'
-
 # Filter to a small study area or not
 test_area_flag <- F #Crop or not (T/F) 
 if(test_area_flag){
@@ -60,7 +59,7 @@ shortLinkLength = 20
 add_z_flag <- F
 if(add_z_flag){
   # Reading elevation raster file
-  elevation <- raster(paste0(data_folder, 'DEMs/DEMx10EPSG28355.tif')) 
+  elevation <- raster('data/DEMx10EPSG28355.tif') 
   
   # NOTE be sure the crs is correct, otherwise change it with:
   #projectRaster(elevation, crs=CRS(paste("+init=epsg:", crs_final, sep = "")))
@@ -74,11 +73,10 @@ write_sqlite <- T
 # Reading inputs ----------------------------------------------------------
 
 # Reading the planar input (unproccessed)
-osm_metadata <- st_read(paste0(data_folder, 'melbourne.sqlite'),layer="roads")%>%st_drop_geometry() # geometries are not important in this, we will use osm ids
+osm_metadata <- st_read('data/melbourne.sqlite',layer="roads")%>%st_drop_geometry() # geometries are not important in this, we will use osm ids
 # Reading the nonplanar input (processed data by Alan)
-inputSQLite_np <- paste0(data_folder, 'network.sqlite') 
-lines_np <- st_read(inputSQLite_np , layer="edges") # lines
-nodes_np <- st_read(inputSQLite_np , layer="nodes") # nodes
+lines_np <- st_read('data/network.sqlite' , layer="edges") # lines
+nodes_np <- st_read('data/network.sqlite' , layer="nodes") # nodes
 
 # making the simplified network -------------------------------------------
 
@@ -149,12 +147,13 @@ lines_p<- df[[2]]
 
 ## writing outputs - sqlite
 if (write_sqlite) {
+  dir.create('./generatedNetworks/', showWarnings = FALSE)
   cat('\n')
   echo(paste0('Writing the sqlite output: ', nrow(lines_p), ' links and ', nrow(nodes_p),' nodes\n'))
   
-  st_write(lines_p,'GMel_2D_NoPT_GMel_20m_v010.sqlite', layer = 'lines', 
+  st_write(lines_p,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'lines', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-  st_write(nodes_p, 'GMel_2D_NoPT_GMel_20m_v010.sqlite', layer = 'nodes', 
+  st_write(nodes_p, './generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
   #exportSQlite(lines_p_attrib, nodes_p, outputFileName = "outputSQliteFocusedCoM")
   echo(paste0('Finished generating the sqlite output\n'))
@@ -165,6 +164,6 @@ if (write_xml) {
   #lines_p_attrib_ng <- lines_p_attrib_cleaned %>% st_set_geometry(NULL) # Geometry in XML will 
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(lines_p), ' links and ', nrow(nodes_p),' nodes\n'))
-  exportXML(lines_p, nodes_p, outputFileName = "GMel_2D_NoPT_GMel_20m_v010", add_z_flag) #File Nameing: TotalArea_Dimensions_FocusArea_simplificationTreshold.xml
+  exportXML(lines_p, nodes_p, outputFileName = "MATSimNetwork", add_z_flag)
   echo(paste0('Finished generating the xml output\n'))
 }

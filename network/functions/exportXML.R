@@ -38,6 +38,7 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
   echo('Starting to write the XML\n')
   # Set the output file
+  dir.create('./generatedNetworks/', showWarnings = FALSE)
   xml_file <- paste0('./generatedNetworks/',outputFileName,'.xml')
   
   # Adding the prefix

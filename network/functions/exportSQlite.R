@@ -14,9 +14,9 @@ exportSQlite <- function(l_df, n_df, outputFileName){
     st_set_geometry(linksGeometry) %>%
     st_set_crs(28355)
   # writing sqlite outputs
-  st_write(l_df, paste0('../outputs/outputNetworks/', outputFileName,'.sqlite'), layer = 'lines', 
+  st_write(l_df, paste0('./generatedNetworks/outputNetworks/', outputFileName,'.sqlite'), layer = 'lines', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-  st_write(n_df, paste0('../outputs/outputNetworks/', outputFileName,'.sqlite'), layer = 'nodes', 
+  st_write(n_df, paste0('./generatedNetworks/outputNetworks/', outputFileName,'.sqlite'), layer = 'nodes', 
            driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
   
 }
