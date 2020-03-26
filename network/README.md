@@ -1,8 +1,6 @@
 # MATSim network for Melbourne
 
-This page explains the steps for building MATSim network for Melbourne, including active transportation attributes. There are two main entry points to this process:
-1. From a raw OSM extract,
-2. From a set of nodes, edges and edge attributes (in OSM format)   
+This page explains the steps for building a MATSim network for Melbourne, including active transportation related infrastructure and attributes. To do so, you can start from a raw OSM extract (entry point 1) or from a set of nodes, edges and edge attributes in a format similar to OSM (entry point 2).    
 
 ## Setup
 
@@ -14,14 +12,13 @@ This page explains the steps for building MATSim network for Melbourne, includin
 
 ### Data
 
-To get started, you must first download the required input files for generating the network. The required input files depends on the point of entry and what functions are going to be used during network generation. See `./data/README.md` for more details about the input files. An script is also provided that can be used to download relevant input files. For example, if starting point is from raw OSM and GTFS2PT is also going to be use, the following script will download the required inputs:
+To get started, you must first download the required input files for generating the network. The required input files depend on the selected entry point and what functions are going to be used during network generation. See `./data/README.md` for more details about the input files. A script is also provided that can be used to download relevant input files. For example, if the starting point is from raw OSM (entry point 1) and GTFS2PT is also going to be used to generate PT network, the following script will download the required inputs:
 ```
 cd data && ./prepare.sh -osm19 -gtfs19
 ```
 
-
 ## Overview of the process
-This diagram proves an overview of the network generation process.
+This diagram provides an overview of the network generation process.
 ![diagram](networkGeneration.svg)
 
 ## Building the network
@@ -31,15 +28,16 @@ This diagram proves an overview of the network generation process.
 ```
 cd data && ./prepare.sh -osm19
 ```
-After downloading the all the required input files, run `./melbNetwork.sh` to process raw OSM data:
+After downloading all the required input files, run `./melbNetwork.sh` to process raw OSM data:
 ```
 ./melbNetwork.sh
 ```
-And then run `./MATSimNetworkGenerator.R` to generate the MATSim network:
+If running successfully, it generate these two outputs: `network.sqlite` and  `melbourne.sqlite`.
+Then run `./MATSimNetworkGenerator.R` to generate the MATSim network:
 ```
 Rscript ./MATSimNetworkGenerator.R
 ```
-You can configure the following options from within `MATSimNetworkGenerator.R` to produce your desired network:
+There a number of options that you can configure from within `MATSimNetworkGenerator.R` to produce your desired network, including:
 - Cropping the network to a specific study area,
 - Limiting the detailed network only for a focus area, major network for the rest
 - Simplifying the network: minimum link threshold (default=20m)
@@ -47,12 +45,15 @@ You can configure the following options from within `MATSimNetworkGenerator.R` t
 - Generating PT network from GTFS
 - MATSim network outputs format (xml and sqlite)
 
+Make sure they are properly adjusted before running the script.
+
 ### Starting from nodes, edges and edge attributes (Entry point 2)
-**Minimum** required inputs to start from here are `melbourne.sqlite` and `network.sqlite `:
+In this case, you will skip running `./melbNetwork.sh` and download the previously generated files instead.
+**Minimum** required inputs to start from here are `melbourne.sqlite` and `network.sqlite `. To download these use the following:
 ```
 cd data && ./prepare.sh -melb -net
 ```
-After downloading the all the required input files, skip running the `./melbNetwork.sh` and start directly from `./MATSimNetworkGenerator.R`:
+After downloading all the required input files, you can skip running the `./melbNetwork.sh` and start directly from `./MATSimNetworkGenerator.R`:
 ```
 Rscript ./MATSimNetworkGenerator.R
 ```
