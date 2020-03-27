@@ -1,6 +1,6 @@
 # Network generation data
 
-This directory contains inputs files required to generate a MATSim network for Melbourne. Depending on which stage of the process you want to start and what functions are going to be used during network generation, here you need to have relevant inputs.
+This directory contains inputs files required to generate a MATSim network for Melbourne. Depending on which step of the process you want to start and what functions are going to be used during network generation, here you need to have relevant inputs.
 
 ## How to populate
 
@@ -15,12 +15,12 @@ To populate this directory with the required data files, use the `./prepare.sh` 
 | -demx10  | DEMx10EPSG28355.tif          | Digital Elevation Model data (x10, EPSG28355) |
 | -A       | all of the above             | It Will download all the input files, (~1.2gb)|
 
-As an example, to start from the first entry point, no elevation and no public transport, you need to run the following to get the required input:
+As an example, to start from processing raw OSM (step 1), and generating a network without elevation and public transport, you need to run the following to get the required input:
 ```
 ./prepare.sh -osm19
 ```
 
-Alternatively, if you want to skip running the `../melbNetwork.sh` and start the second entry point, directly from `../MATSimNetworkGenerator.R`, and also you want to include elevation and generate the PT network from GTFS in this process, you need to run the following:
+Alternatively, if you want to skip processing raw OSM and start directly from `makeNetwork.sh`, and generate a network that has elevation and PT network from GTFS, you need to run the following to download required inputs:
 ```
 ./prepare.sh -melb -net -gtfs19 -demx10
 ```

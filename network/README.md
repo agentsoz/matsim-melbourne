@@ -1,59 +1,58 @@
 # MATSim network for Melbourne
 
-This page explains the steps for building a MATSim network for Melbourne, including active transportation related infrastructure and attributes. To do so, you can start from a raw OSM extract (entry point 1) or from a set of nodes, edges and edge attributes in a format similar to OSM (entry point 2).    
+This page explains the steps for building a MATSim network for Melbourne, including active transportation related infrastructure and attributes. To do so, you can start from a raw OSM extract (step 1) or from a set of nodes, edges and edge attributes in a format similar to OSM (step 2).    
 
-## Setup
+## Prerequisites
+* Postgres [Step 1]
+* GDAL/OGR [Step 1]
+* R [Step 2]
+* Required R packages [Step 2]
 
-### Prerequisites
-* R
-* Required R packages
-* Postgres [if starting from raw OSM]
-* GDAL/OGR [if starting from raw OSM]
+## Building the network
 
-### Data
+### Step 0: Download the required inputs
 
 To get started, you must first download the required input files for generating the network. The required input files depend on the selected entry point and what functions are going to be used during network generation. See `./data/README.md` for more details about the input files. A script is also provided that can be used to download relevant input files. For example, if the starting point is from raw OSM (entry point 1) and GTFS2PT is also going to be used to generate PT network, the following script will download the required inputs:
 ```
 cd data && ./prepare.sh -osm19 -gtfs19
 ```
 
-## Overview of the process
-This diagram provides an overview of the network generation process.
-![diagram](networkGeneration.svg)
+### Step 1: Raw OSM processing
 
-## Building the network
-### Starting from raw OSM (Entry point 1)
+This step processes the raw OSM data and generates two outcomes: `network.sqlite` and  `melbourne.sqlite`.
 
-**Minimum** required inputs to start from here is `melbourne.osm`.
+The only required inputs for this step is `melbourne.osm`.
 ```
 cd data && ./prepare.sh -osm19
 ```
-After downloading all the required input files, run `./melbNetwork.sh` to process raw OSM data:
+Once the required input is downloaded, run `./processOSM.sh` to process raw OSM data:
 ```
-./melbNetwork.sh
+./processOSM.sh
 ```
-If running successfully, it generate these two outputs: `network.sqlite` and  `melbourne.sqlite`.
-Then run `./MATSimNetworkGenerator.R` to generate the MATSim network:
-```
-Rscript ./MATSimNetworkGenerator.R
-```
-There a number of options that you can configure from within `MATSimNetworkGenerator.R` to produce your desired network, including:
-- Cropping the network to a specific study area,
-- Limiting the detailed network only for a focus area, major network for the rest
-- Simplifying the network: minimum link threshold (default=20m)
-- Including the road elevation
-- Generating PT network from GTFS
-- MATSim network outputs format (xml and sqlite)
-
-Make sure they are properly adjusted before running the script.
-
-### Starting from nodes, edges and edge attributes (Entry point 2)
-In this case, you will skip running `./melbNetwork.sh` and download the previously generated files instead.
-**Minimum** required inputs to start from here are `melbourne.sqlite` and `network.sqlite `. To download these use the following:
+**NOTE** To skip this step, you can download the previously generated outputs with the following script and go directly to step 2:
 ```
 cd data && ./prepare.sh -melb -net
 ```
-After downloading all the required input files, you can skip running the `./melbNetwork.sh` and start directly from `./MATSimNetworkGenerator.R`:
+
+### Step 2: Generating MATSim network
+This step does a series of processes to generate a MATSim readable network which includes the desired details and options.
+You can simply run `makeNetwork.sh` **with its predefined flags**
+to generate this network you want. A list of options for `makeNetwork.sh` and a brief description for each is presented in this table:
+
+| Argument | Description                                                                       |
+|----------|-----------------------------------------------------------------------------------|
+| -t       | Cropping to a small test area (Boundary can be adjusted by editing the code)      |
+| -f       | Limiting the minor links only for a focus area, and only major links for the rest |
+| -s       | simplifying the network, minimum link length=20m                                  |
+| -z       | Adding elevation (requires the elevation data)                                    |
+| -pt      | Adding pt from GTFS (requires the GTFS data)                                      |
+| -xml     | Writing the output network in MATSim readable XML format                          |
+| -sqlite  | Writing the output network in SQLite format                                       |
+
+**Note** Make sure to **at least specify one output format** for the `makeNetwork.sh`. For example, run the following to generate a MATSim readable XML output network, without public transportation, simplification, elevation, focus area and test area:
+
 ```
-Rscript ./MATSimNetworkGenerator.R
+./makeNetwork.sh -xml
 ```
+
+For further adjustments, such as changing the boundary areas for test area and focus area, edit `./MATSimNetworkGenerator.R`
