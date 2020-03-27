@@ -2,11 +2,10 @@
 # TODO send nodes as argument
 gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip", 
                            analysis_start = as.Date("2019-10-11","%Y-%m-%d"), 
-                           analysis_end = as.Date("2019-10-17","%Y-%m-%d")){
+                           analysis_end = as.Date("2019-10-17","%Y-%m-%d"),
+                           studyRegion=NA){
   library('tidytransit')
-  library('dplyr')
   library('hablar')
-  library('sf')
   library('lwgeom')
   library('hms')
 
@@ -65,6 +64,11 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip",
   #  st_snap_to_grid(1)
   
   # only want stops within the study region
+  if(!is.na(studyRegion)){
+    message("Cropping to study region")
+    #validStops <- validStops %>%
+     #  filter(lengths(st_intersects(., studyRegion)) > 0) 
+  }
   #validStops <- validStops %>%
   #  filter(lengths(st_intersects(., studyRegion)) > 0)
   st_write(validStops,"data/stops.sqlite",delete_layer=TRUE)
@@ -279,13 +283,22 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip",
   # routeProfile, stop
   # route, link
   # departures, departure
-  ptNetworkMATSim <- ptNetworkFull %>% st_drop_geometry() %>% 
-    mutate(modes=service_type) %>% 
-    dplyr::select(from_id, to_id, modes) %>% 
-    distinct() %>% 
-    group_by(from_id, to_id) %>% 
-    summarise(modes=paste0(modes,sep=",",collapse = "")) %>% 
-    mutate(id=paste0(from_id,"_",to_id))
+  ptNetworkMATSim <- ptNetworkFull %>% 
+    mutate(length=unclass(st_length(.)))%>% 
+    mutate(osm_id=9999999) %>% 
+    mutate(highway="pt") %>% 
+    mutate(freespeed=11.1) %>% 
+    mutate(permlanes=1) %>% 
+    mutate(capacity=600) %>% 
+    mutate(bikeway=NA) %>% 
+    mutate(isCycle=FALSE) %>% 
+    mutate(isWalk=FALSE) %>% 
+    mutate(isCar=FALSE) %>% 
+    mutate(modes="pt") %>%
+    mutate(id=paste0(from_id,"_",to_id)) %>% 
+    st_drop_geometry() %>% 
+    dplyr::select(osm_id, id, from_id, to_id, fromX=from_x, fromY=from_y, toX=to_x, toY=to_y, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
+    distinct()
     
   return(ptNetworkMATSim)
 }
