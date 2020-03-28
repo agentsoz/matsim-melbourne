@@ -1,6 +1,7 @@
 # This function starts from gtfs, generates MATSim's tranist vehicles, transit schedule and returns pt network
 # TODO send nodes as argument
-gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip", 
+gtfs2PtNetowrk <- function(n_df,
+                           gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip", 
                            analysis_start = as.Date("2019-10-11","%Y-%m-%d"), 
                            analysis_end = as.Date("2019-10-17","%Y-%m-%d"),
                            studyRegion=NA){
@@ -67,18 +68,20 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip",
   #  st_buffer(100) %>%
   #  st_snap_to_grid(1)
   
+  # TODO Cropping to study region is not removing the trips outside e.g. T0.3-86-mjp-1.2.H is outside GMElb area
   # only want stops within the study region
-  if(!is.na(studyRegion)){
-    message("Cropping to study region")
+  #if(!is.na(studyRegion)){
+  #  message("Cropping to study region")
     #validStops <- validStops %>%
-     #  filter(lengths(st_intersects(., studyRegion)) > 0) 
-  }
+       #filter(lengths(st_intersects(., studyRegion)) > 0) 
+  #}
   #validStops <- validStops %>%
   #  filter(lengths(st_intersects(., studyRegion)) > 0)
   st_write(validStops,"data/stops.sqlite",delete_layer=TRUE)
   
   # now need to snap the stops to intersections in the simplified network
-  networkIntersections <- st_read("data/networkSimplified.sqlite",layer="nodes") %>%
+  # networkIntersections <- st_read("data/networkSimplified.sqlite",layer="nodes") %>%
+  networkIntersections <- n_df %>%
     mutate(tmp_id=row_number())
   nearestIntersection <- st_nearest_feature(validStops,networkIntersections)
   
@@ -240,45 +243,49 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip",
   cat(paste0("  </transitStops>\n"),file="data/transitSchedule.xml",append=TRUE)
   cat(paste0("  <transitLine id=\"Melbourne\">\n"),file="data/transitSchedule.xml",append=TRUE)
   
+  # TODO Ask @Alan to check this part:
   # for (i in 1:nrow(vehicleTripMatching)) {
   for (i in 1:100) {
-    cat(paste0("    <transitRoute id=\"",vehicleTripMatching[i,]$trip_id,"\">\n"),file="data/transitSchedule.xml",append=TRUE)
-    cat(paste0("      <description>",vehicleTripMatching[i,]$service_id,"</description>\n"),file="data/transitSchedule.xml",append=TRUE)
-    cat(paste0("      <transportMode>",vehicleTripMatching[i,]$service_type,"</transportMode>\n"),file="data/transitSchedule.xml",append=TRUE)
-    cat(paste0("      <routeProfile>\n"),file="data/transitSchedule.xml",append=TRUE)
-    
-    routeProfileCurrent <- routeProfile%>%filter(trip_id==vehicleTripMatching[i,]$trip_id)
-    for (j in 1:nrow(routeProfileCurrent)) {
-      cat(paste0("        <stop arrivalOffset=\"",
-                 routeProfileCurrent[j,]$arrivalOffset,
-                 "\" awaitDeparture=\"true\" departureOffset=\"",
-                 routeProfileCurrent[j,]$departureOffset,
-                 "\" refId=\"",
-                 routeProfileCurrent[j,]$refId,
-                 "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+    routeProfileCurrent <- routeProfile%>%filter(trip_id==vehicleTripMatching[i,]$trip_id) 
+    if(nrow(routeProfileCurrent)>0){ # I added this to drop those empty route profiles
+      cat(paste0("    <transitRoute id=\"",vehicleTripMatching[i,]$trip_id,"\">\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <description>",vehicleTripMatching[i,]$service_id,"</description>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <transportMode>",vehicleTripMatching[i,]$service_type,"</transportMode>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <routeProfile>\n"),file="data/transitSchedule.xml",append=TRUE)
+      
+      for (j in 1:nrow(routeProfileCurrent)) {
+        cat(paste0("        <stop arrivalOffset=\"",
+                   routeProfileCurrent[j,]$arrivalOffset,
+                   "\" awaitDeparture=\"true\" departureOffset=\"",
+                   routeProfileCurrent[j,]$departureOffset,
+                   "\" refId=\"",
+                   routeProfileCurrent[j,]$refId,
+                   "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+      }
+      cat(paste0("      </routeProfile>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <route>\n"),file="data/transitSchedule.xml",append=TRUE)
+      for (j in 1:nrow(routeProfileCurrent)) {
+        cat(paste0("        <link refId=\"",
+                   paste0(routeProfileCurrent[j,]$from_id,"_",routeProfileCurrent[j,]$to_id),
+                   "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+      }
+      cat(paste0("      </route>\n"),file="data/transitSchedule.xml",append=TRUE)
+      
+      cat(paste0("      <departures>\n"),file="data/transitSchedule.xml",append=TRUE)
+      departuresCurrent <- departures%>%filter(vehicleRefId==vehicleTripMatching[j,]$trip_id)
+      for (k in 1:nrow(departuresCurrent)) {
+        cat(paste0("        <departure departureTime=\"",
+                   departuresCurrent[k,]$departureTime,
+                   "\" id=\"",
+                   departuresCurrent[k,]$id,
+                   "\" vehicleRefId=\"",
+                   departuresCurrent[k,]$vehicleRefId,
+                   "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+      }   
+      cat(paste0("      </departures>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("    </transitRoute>\n"),file="data/transitSchedule.xml",append=TRUE)
     }
-    cat(paste0("      </routeProfile>\n"),file="data/transitSchedule.xml",append=TRUE)
-    cat(paste0("      <route>\n"),file="data/transitSchedule.xml",append=TRUE)
-    for (j in 1:nrow(routeProfileCurrent)) {
-      cat(paste0("        <link refId=\"",
-                 paste0(routeProfileCurrent[j,]$from_id,"_",routeProfileCurrent[j,]$to_id),
-                 "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
-    }
-    cat(paste0("      </route>\n"),file="data/transitSchedule.xml",append=TRUE)
-    
-    cat(paste0("      <departures>\n"),file="data/transitSchedule.xml",append=TRUE)
-    departuresCurrent <- departures%>%filter(vehicleRefId==vehicleTripMatching[j,]$trip_id)
-    for (k in 1:nrow(departuresCurrent)) {
-      cat(paste0("        <departure departureTime=\"",
-                 departuresCurrent[k,]$departureTime,
-                 "\" id=\"",
-                 departuresCurrent[k,]$id,
-                 "\" vehicleRefId=\"",
-                 departuresCurrent[k,]$vehicleRefId,
-                 "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
-    }   
-    cat(paste0("      </departures>\n"),file="data/transitSchedule.xml",append=TRUE)
-    cat(paste0("    </transitRoute>\n"),file="data/transitSchedule.xml",append=TRUE)
+
   }
   cat(paste0("  </transitLine>\n"),file="data/transitSchedule.xml",append=TRUE)
   cat(paste0("</transitSchedule>\n"),file="data/transitSchedule.xml",append=TRUE)

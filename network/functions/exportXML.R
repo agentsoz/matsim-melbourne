@@ -2,7 +2,7 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
   addMATSimNode <- function(this_node){
     if (addZ_coord){
-      this_node <- this_node %>% mutate(z = if_else(is.na(z), true = 10, ))
+      this_node <- this_node %>% mutate(z = if_else(is.na(z), true = 10, z))
       xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y), z=as.character(this_node$z)))# assign attribute list to attributes tag
       
     }else {

@@ -3,7 +3,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   
   # test_area_flag=F
   # focus_area_flag=F
-  # shortLinkLength=2
+  # shortLinkLength=20
   # add_z_flag=T
   # add.pt.flag=T
   # write_xml=T
@@ -71,7 +71,9 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   # making the simplified network -------------------------------------------
   
   # node clusters based on those that are connected with link with less than 20 meters length
-  df <- simplifyNetwork(links, nodes, osm_metadata, shortLinkLength)
+  system.time(
+    df <- simplifyNetwork(links, nodes, osm_metadata, shortLinkLength)
+  )
   nodes <- df[[1]]
   links <- df[[2]]
 
@@ -91,7 +93,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   
   # Creating defaults dataframe
   defaults_df <- buildDefaultsDF()
-  # Processing the planar network and assining attributes based on defaults df and osm tags
+  # Assigning attributes based on defaults df and osm tags
   system.time(
     osm_attrib <- processOsmTags(osm_metadata, defaults_df) 
   )
@@ -123,8 +125,8 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     nodes <- nodes %>% dplyr::select(id, x = X, y = Y, GEOMETRY) %>% distinct(id, x, y, GEOMETRY) # id's should be unique
   }
   
-  st_write(links,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
-  st_write(nodes,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
+  #st_write(links,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
+  #st_write(nodes,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
   
   links <- links %>% 
     mutate(id=paste0(from_id,"_",to_id)) %>% 
@@ -135,7 +137,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   #add.pt.flag <- F
   
   if(add.pt.flag){
-    links_pt <- gtfs2PtNetowrk() # ToDo studyRegion = st_union(st_convex_hull(nodes))
+    links_pt <- gtfs2PtNetowrk(nodes) # ToDo studyRegion = st_union(st_convex_hull(nodes))
     links <- rbind(links, as.data.frame(links_pt)) %>% distinct()
   }
   
@@ -162,7 +164,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     #links_attrib_ng <- links_attrib_cleaned %>% st_set_geometry(NULL) # Geometry in XML will 
     cat('\n')
     echo(paste0('Writing the XML output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
-    exportXML(links, nodes, outputFileName = "MATSimNetwork", add_z_flag)
+    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork", add_z_flag)
     echo(paste0('Finished generating the xml output\n'))
   }
   
