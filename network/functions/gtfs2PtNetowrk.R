@@ -4,6 +4,10 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip",
                            analysis_start = as.Date("2019-10-11","%Y-%m-%d"), 
                            analysis_end = as.Date("2019-10-17","%Y-%m-%d"),
                            studyRegion=NA){
+  # gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip"
+  # analysis_start = as.Date("2019-10-11","%Y-%m-%d")
+  # analysis_end = as.Date("2019-10-17","%Y-%m-%d")
+  
   library('tidytransit')
   library('hablar')
   library('lwgeom')
@@ -105,9 +109,10 @@ gtfs2PtNetowrk <- function(gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip",
     mutate(to_id=lead(from_id),
            to_x=lead(from_x),
            to_y=lead(from_y)) %>%
-    mutate(to_id=ifelse(is.na(to_id),lag(from_id,n()-1),to_id),
-           to_x=ifelse(is.na(to_x),lag(from_x,n()-1),to_x),
-           to_y=ifelse(is.na(to_y),lag(from_y,n()-1),to_y)) %>%
+    #mutate(to_id=ifelse(is.na(to_id),lag(from_id,n()-1),to_id),
+    #       to_x=ifelse(is.na(to_x),lag(from_x,n()-1),to_x),
+    #       to_y=ifelse(is.na(to_y),lag(from_y,n()-1),to_y)) %>%
+    filter(!is.na(to_id)) %>% 
     ungroup() %>%
     mutate(arrivalOffset=as.character(as_hms(arrivalOffset)),
            departureOffset=as.character(as_hms(departureOffset)),
