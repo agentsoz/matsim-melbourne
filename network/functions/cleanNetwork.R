@@ -48,11 +48,11 @@ cleanNetwork <- function(lines_df, nodes_df, cleaning_modes = "car"){
     lines_df_filtered <- lines_df
   }
   
-  nodes_p_cleaned <- nodes_p %>% 
+  nodes_df_cleaned <- nodes_df %>% 
     mutate(id = paste0("p_",id)) %>% 
     filter(id %in% lines_df_filtered$from_id | id %in% lines_df_filtered$to_id)
   
   
-  return(list(nodes_p_cleaned,lines_df_filtered))
+  return(list(nodes_df_cleaned,lines_df_filtered))
   
 }

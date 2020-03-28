@@ -1,6 +1,14 @@
 makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0.1,
                             add_z_flag=F,add.pt.flag=F,write_xml=F,write_sqlite=F){
   
+  # test_area_flag=F
+  # focus_area_flag=F
+  # shortLinkLength=2
+  # add_z_flag=T
+  # add.pt.flag=T
+  # write_xml=T
+  # write_sqlite=T
+  
   message("========================================================")
   message("                **Network Generation Setting**")
   message("--------------------------------------------------------")
@@ -118,13 +126,12 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   st_write(links,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
   st_write(nodes,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
   
-  links <- lines_p %>% 
+  links <- links %>% 
     mutate(id=paste0(from_id,"_",to_id)) %>% 
     st_drop_geometry() %>% 
     dplyr::select(osm_id, id, from_id, to_id, fromX, fromY, toX, toY, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes)
   
-  links <- lines_p
-  links_pt <- ptNetworkMATSim
+
   #add.pt.flag <- F
   
   if(add.pt.flag){
