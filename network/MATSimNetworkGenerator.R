@@ -4,7 +4,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   # test_area_flag=F
   # focus_area_flag=F
   # shortLinkLength=20
-  # add_z_flag=T
+  # add_z_flag=F
   # add.pt.flag=T
   # write_xml=T
   # write_sqlite=T
@@ -39,19 +39,11 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   source('./functions/exportSQlite.R')
   source('./functions/exportXML.R')
   source('./functions/etc/getAreaBoundary.R')
+  source('./functions/etc/logging.R')
   source('./functions/cleanNetwork.R')
   source('./functions/gtfs2PtNetowrk.R')
   
-  echo<- function(msg) {
-    cat(paste0(as.character(Sys.time()), ' | ', msg))  
-  }
-  
-  printProgress<-function(row, total_row, char) {
-    if((row-50)%%2500==0) echo('')
-    cat('.')
-    if(row%%500==0) cat('|')
-    if(row%%2500==0) cat(paste0(char,' ', row, ' of ', total_row, '\n'))
-  }
+
   
   # Adjusting boundaries  -------------------------------
   

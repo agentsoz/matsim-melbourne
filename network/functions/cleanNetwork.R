@@ -25,10 +25,10 @@ cleanNetwork <- function(lines_df, nodes_df, cleaning_modes = "car"){
   
   lines_df  <- lines_df %>% 
     filter(from_id != to_id) %>% 
-    filter(capacity != "NA" & capacity != "0.0" & modes != "NA") %>% 
-    mutate(id = paste("p",from_id, to_id, row_number(), sep = "_"))%>%
-    mutate(from_id=paste0("p_",from_id)) %>% 
-    mutate(to_id=paste0("p_",to_id))  
+    filter(capacity != "NA" & capacity != "0.0" & modes != "NA") #%>% 
+    #mutate(id = paste("p",from_id, to_id, row_number(), sep = "_"))%>%
+    #mutate(from_id=paste0("p_",from_id)) %>% 
+    #mutate(to_id=paste0("p_",to_id))  
   
   # Removing repeatitive links and adding P to the begining of node IDs
   lines_df <- lines_df %>% distinct(id, .keep_all = TRUE)
@@ -49,7 +49,7 @@ cleanNetwork <- function(lines_df, nodes_df, cleaning_modes = "car"){
   }
   
   nodes_df_cleaned <- nodes_df %>% 
-    mutate(id = paste0("p_",id)) %>% 
+   # mutate(id = paste0("p_",id)) %>% 
     filter(id %in% lines_df_filtered$from_id | id %in% lines_df_filtered$to_id)
   
   

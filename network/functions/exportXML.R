@@ -1,5 +1,7 @@
 exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
+  source('./functions/etc/logging.R')
+  
   addMATSimNode <- function(this_node){
     if (addZ_coord){
       this_node <- this_node %>% mutate(z = if_else(is.na(z), true = 10, z))
