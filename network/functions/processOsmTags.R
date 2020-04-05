@@ -1,4 +1,7 @@
 processOsmTags <- function(osm_df,this_defaults_df){
+  # osm_df <- osm_metadata
+  # this_defaults_df <- defaults_df
+  
   getMetadataInfo <- function(osm_tags) {
     hghw_tag <- osm_tags[1]
     other_tags <- osm_tags[2]
@@ -21,10 +24,14 @@ processOsmTags <- function(osm_df,this_defaults_df){
       if(any(is.na(car_tags))) car_tags <- c()
       foot_tags <- tags[which(tags %like% "foot")+1]
       if(any(is.na(foot_tags))) foot_tags <- c()
-      
+      oneway_tags <-  as.character(tags[which(tags %like% "oneway")+1])
+      if(length(oneway_tags)==0) oneway_tags <- c()
+
       if("maxspeed" %in% tags) freespeed=as.integer(tags[which(tags=="maxspeed")+1])/3.6
       if("lanes" %in% tags) permlanes=as.integer(tags[which(tags=="lanes")+1])
       
+      
+      if(any(oneway_tags=="no")) oneway="2"
       if(hghw_tag=="cycleway") bikeway="bikepath"
       #if(any(bicycle_tags %in% c("yes","designated"))) bikeway="unmarked"
       if(any(cycleway_tags=="shared_lane")) bikeway="shared_lane"
@@ -40,7 +47,7 @@ processOsmTags <- function(osm_df,this_defaults_df){
       
       
     }
-    data.frame(freespeed=freespeed,permlanes=permlanes,bikeway=bikeway,isCycle=isCycle,isWalk=isWalk,isCar=isCar)
+    data.frame(freespeed=freespeed,permlanes=permlanes,oneway=oneway,bikeway=bikeway,isCycle=isCycle,isWalk=isWalk,isCar=isCar)
   }
   
   
@@ -48,16 +55,18 @@ processOsmTags <- function(osm_df,this_defaults_df){
 
   
   osmAttributedWithDefaults <- cbind(osm_df,osmAttributed) %>%
+    mutate_if(is.factor, as.character) %>% 
     dplyr::select(-other_tags) %>%
     left_join(this_defaults_df, by=c("highway"="highwayType")) %>%
     mutate(freespeed.x=ifelse(is.na(freespeed.x),freespeed.y,freespeed.x)) %>%
     mutate(permlanes.x=ifelse(is.na(permlanes.x),permlanes.y,permlanes.x)) %>%
+    mutate(oneway.x=ifelse(is.na(oneway.x), 1,oneway.x)) %>%
     mutate(isCycle.x=ifelse(is.na(isCycle.x),isCycle.y,isCycle.x)) %>%
     #mutate(bikeway=ifelse(is.na(bikeway)&isCycle.x==TRUE,"unmarked",bikeway)) %>%
     mutate(isWalk.x=ifelse(is.na(isWalk.x),isWalk.y,isWalk.x)) %>%
     mutate(isCar.x=ifelse(is.na(isCar.x),isCar.y,isCar.x)) %>%
     mutate(capacity.x = (capacity / permlanes.y) * permlanes.x ) %>% 
-    dplyr::select(osm_id,highway,freespeed=freespeed.x,permlanes=permlanes.x, capacity=capacity.x,
+    dplyr::select(osm_id,highway,freespeed=freespeed.x,permlanes=permlanes.x, capacity=capacity.x, oneway=oneway.x,
                   bikeway,isCycle=isCycle.x,isWalk=isWalk.x,isCar=isCar.x)
   
     

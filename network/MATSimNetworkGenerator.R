@@ -5,7 +5,8 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   # focus_area_flag=F
   # shortLinkLength=20
   # add_z_flag=F
-  # add.pt.flag=T
+  # add.pt.flag=F
+  # ivabm_pt_flag=T
   # write_xml=T
   # write_sqlite=T
   
@@ -39,6 +40,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   source('./functions/exportSQlite.R')
   source('./functions/exportXML.R')
   source('./functions/etc/getAreaBoundary.R')
+  source('./functions/etc/IVABMIntegrator.R')
   source('./functions/etc/logging.R')
   source('./functions/cleanNetwork.R')
   source('./functions/gtfs2PtNetowrk.R')
@@ -120,10 +122,19 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   #st_write(links,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
   #st_write(nodes,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
   
+  # Adding a reverse link for bi-directional links
+  bi_links <- links %>% filter(oneway==2) %>% 
+    rename(from_id=to_id, to_id=from_id, toX=fromX, toY=fromY, fromX=toX, fromY=toY) %>% 
+    #mutate(id=paste0("p_",from_id,"_",to_id,"_",row_number())) %>% 
+    st_drop_geometry()%>% 
+    dplyr::select(osm_id, from_id, to_id, fromX, fromY, toX, toY, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes)
+  
   links <- links %>% 
-    mutate(id=paste0(from_id,"_",to_id)) %>% 
+    #mutate(id=paste0("p_",from_id,"_",to_id,"_",row_number())) %>% 
     st_drop_geometry() %>% 
-    dplyr::select(osm_id, id, from_id, to_id, fromX, fromY, toX, toY, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes)
+    dplyr::select(osm_id, from_id, to_id, fromX, fromY, toX, toY, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
+    rbind(bi_links)
+  
   
 
   #add.pt.flag <- F
@@ -133,6 +144,8 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     links <- rbind(links, as.data.frame(links_pt)) %>% distinct()
   }
   
+
+  
   # Cleaning before writing
   system.time(
     df <- cleanNetwork(links, nodes, "")
@@ -140,6 +153,12 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   nodes<- df[[1]]
   links<- df[[2]]
 
+  if(ivabm_pt_flag){
+    df2 <-integrateIVABM(st_drop_geometry(nodes),links)
+    #nodes<- df[[1]]
+    #links<- df[[2]]
+  }
+  
   ## writing outputs - sqlite
   if (write_sqlite) {
     cat('\n')
@@ -147,7 +166,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     
     #st_write(,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'links',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
     #st_write(, './generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-    exportSQlite(links, nodes, outputFileName = "MATSimNetwork")
+    exportSQlite(links, nodes, outputFileName = "MATSimNetwork_V1.2")
     echo(paste0('Finished generating the sqlite output\n'))
   }
   
@@ -156,7 +175,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     #links_attrib_ng <- links_attrib_cleaned %>% st_set_geometry(NULL) # Geometry in XML will 
     cat('\n')
     echo(paste0('Writing the XML output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
-    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork", add_z_flag)
+    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork_V1.2", add_z_flag)
     echo(paste0('Finished generating the xml output\n'))
   }
   
