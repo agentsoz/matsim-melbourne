@@ -1,6 +1,6 @@
 integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
   
-  # net1.nodes.df <- nodes
+  # net1.nodes.df <- st_drop_geometry(nodes)
   # net1.links.df <- links
   # This code integrates RMIT generated network with PT and Park and Ride related network from IVABM
   # Required inputs from IVABM:
@@ -29,7 +29,7 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
   
   # Reading network 1 -------------------------------------------------------
   # NOTE start from a cleaned matsim network
-  if(is.null(nodes_df) | is.null(net1.links.df)){
+  if(is.null(net1.nodes.df) | is.null(net1.links.df)){
     xml.file.URL <- "./generatedNetworks/MATSimNetwork_V1.2.xml"
     
     root.xml <- xmlParse(xml.file.URL)
@@ -185,20 +185,20 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
   exportXML(pnr.links.final, pnr.nodes.final, outputFileName = "pnrOnly_v010", addZ_coord = F)
   
   # Merging pnr and pt links
-  net2.links.final <- rbind(pnr.links.final, pt.links.df) %>% distinct(id, .keep_all = T)
+  net2.links.final <- rbind(pnr.links.final, pt.links.df) %>% distinct(id, .keep_all = T) %>%mutate_if(is.factor, as.character)
   net2.nodes.final <- rbind(st_drop_geometry(pt.nodes.df),pnr.nodes.final) %>% distinct(id, .keep_all = T)
   
   # Net1 final
   net1.links.final <- net1.links.df %>% mutate(oneway = "1") %>% 
-    dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes) 
+    dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes) %>%
+    mutate_if(is.factor, as.character)
     
   # Combining net1 with net2
   total.links <- rbind(net2.links.final, net1.links.final)
   total.nodes <- rbind(net2.nodes.final, net1.nodes.df) %>% 
     distinct(id, .keep_all = T) 
   
-  exportXML(total.links, total.nodes, outputFileName = "GMel_2D_IVABMPT_GMel_20m_pnrAdded_v1.2", addZ_coord = F)
-  
+  exportXML(total.links, total.nodes, outputFileName = "GMel_2D_IVABMPT_GMel_20m_pnrAdded_v1.3", addZ_coord = F)
   
   return(list(total.nodes,total.links))
 

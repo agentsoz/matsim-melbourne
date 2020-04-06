@@ -166,7 +166,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     
     #st_write(,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'links',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
     #st_write(, './generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-    exportSQlite(links, nodes, outputFileName = "MATSimNetwork_V1.2")
+    exportSQlite(links, nodes, outputFileName = "MATSimNetwork_noPT_V1.3")
     echo(paste0('Finished generating the sqlite output\n'))
   }
   
@@ -175,7 +175,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     #links_attrib_ng <- links_attrib_cleaned %>% st_set_geometry(NULL) # Geometry in XML will 
     cat('\n')
     echo(paste0('Writing the XML output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
-    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork_V1.2", add_z_flag)
+    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork_noPT_V1.3", add_z_flag)
     echo(paste0('Finished generating the xml output\n'))
   }
   
