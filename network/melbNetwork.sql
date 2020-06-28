@@ -12,6 +12,7 @@ UPDATE roads
   SET bridge_or_tunnel =
        CASE WHEN other_tags LIKE '%bridge%' OR other_tags LIKE '%tunnel%' THEN TRUE
        ELSE FALSE END;
+CREATE INDEX roads_gix ON roads USING GIST (geom);
 
 -- find the bridge-bridge or road-road intersections
 DROP TABLE IF EXISTS line_intersections;
@@ -35,13 +36,13 @@ FROM
   FROM line_intersections AS b) AS c
 GROUP BY osm_id;
 
--- take the intersections, buffer them 0.1m, and use them to cut the lines they
+-- take the intersections, buffer them 0.01m, and use them to cut the lines they
 -- intersect. We then snap to the nearest metre, ensuring there are no gaps.
 -- Only intersections with the same osm_id need to be considered
 DROP TABLE IF EXISTS line_cut;
 CREATE TABLE line_cut AS
 SELECT a.osm_id,
-(ST_Dump(ST_SnapToGrid(ST_Difference(a.geom,ST_Buffer(b.geom,0.1)),1))).geom AS geom
+(ST_Dump(ST_SnapToGrid(ST_Difference(a.geom,ST_Buffer(b.geom,0.01)),1))).geom AS geom
 FROM roads AS a, line_intersections_grouped AS b
 WHERE a.osm_id = b.osm_id;
 
@@ -64,9 +65,8 @@ FROM roads AS a,
   SELECT osm_id
   FROM unique_ids) AS b
 WHERE a.osm_id = b.osm_id;
-ALTER TABLE line_cut ADD COLUMN length INTEGER;
-UPDATE line_cut SET length = ST_Length(geom);
 CREATE INDEX line_cut_gix ON line_cut USING GIST (geom);
+ALTER TABLE line_cut ADD COLUMN lid SERIAL PRIMARY KEY;
 
 -- find all of the road segment endpoints, including the new ones we've added
 -- from the intersections
@@ -89,19 +89,58 @@ FROM
 ALTER TABLE endpoints_clustered ADD COLUMN id SERIAL PRIMARY KEY;
 CREATE INDEX endpoints_clustered_gix ON endpoints_clustered USING GIST (geom);
 
+-- most lines will only have 2 endpoints near them, but some will have extra
+DROP TABLE IF EXISTS endpoints_near_lines;
+CREATE TABLE endpoints_near_lines AS
+SELECT c.lid, c.num_endpoints, c.geom
+FROM
+ (SELECT a.lid, COUNT(b.id) AS num_endpoints,
+         st_unaryunion(st_collect(b.geom)) AS geom
+  FROM
+    line_cut AS a,
+    endpoints_clustered AS b
+  WHERE
+    st_intersects(st_buffer(a.geom,0.1),b.geom)
+  GROUP BY
+    a.lid
+  ) AS c
+WHERE
+  c.num_endpoints > 2;
+
+-- cut the lines where there are extra nearby endpoints
+DROP TABLE IF EXISTS line_cut2;
+CREATE TABLE line_cut2 AS
+SELECT a.lid, a.osm_id,
+(ST_Dump(ST_SnapToGrid(ST_Difference(a.geom,ST_Buffer(b.geom,0.01)),1))).geom AS geom
+FROM line_cut AS a, endpoints_near_lines AS b
+WHERE a.lid = b.lid;
+
+-- add the newly cut lines to the unaltered cut lines
+DROP TABLE IF EXISTS line_cut3;
+CREATE TABLE line_cut3 AS
+	SELECT osm_id, geom
+	FROM line_cut
+	WHERE lid NOT IN (SELECT lid FROM line_cut2)
+UNION
+	SELECT osm_id, geom
+	FROM line_cut2;
+
+	-- add length
+ALTER TABLE line_cut3 ADD COLUMN length INTEGER;
+UPDATE line_cut3 SET length = ST_Length(geom);
+
 -- add from and to id columns
-ALTER TABLE line_cut ADD COLUMN from_id INTEGER;
-ALTER TABLE line_cut ADD COLUMN to_id INTEGER;
+ALTER TABLE line_cut3 ADD COLUMN from_id INTEGER;
+ALTER TABLE line_cut3 ADD COLUMN to_id INTEGER;
 
 -- assign the from and to ids to the road segments
-UPDATE line_cut AS a
+UPDATE line_cut3 AS a
   SET from_id = b.id
 FROM
   endpoints_clustered as b
 WHERE
   ST_Intersects(ST_StartPoint(a.geom),b.geom);
-
-UPDATE line_cut AS a
+UPDATE line_cut3 AS a
   SET to_id = b.id
 FROM
   endpoints_clustered as b
@@ -110,20 +149,20 @@ WHERE
 
 
 -- This doesn't seem to be necessary, but will keep this in in case we do need
--- it for other networks. It finds all the unique ids used by the line_cut table
--- and builds an index on it.
+-- it for other networks. It finds all the unique ids used by the line_cut3
+-- table and builds an index on it.
 DROP TABLE IF EXISTS unique_node_ids;
 CREATE TABLE unique_node_ids AS
 SELECT DISTINCT c.id
 FROM
  (SELECT DISTINCT a.from_id AS id
-  FROM line_cut AS a
+  FROM line_cut3 AS a
   UNION
   SELECT DISTINCT b.to_id AS id
-  FROM line_cut AS b) as c;
+  FROM line_cut3 AS b) as c;
 CREATE UNIQUE INDEX unique_node_ids_idx ON unique_node_ids (id);
 
--- filters endpoints_clustered to only have the nodes used in line_cut
+-- filters endpoints_clustered to only have the nodes used in line_cut3
 DROP TABLE IF EXISTS endpoints_filtered;
 CREATE TABLE endpoints_filtered AS
 SELECT a.id, a.geom

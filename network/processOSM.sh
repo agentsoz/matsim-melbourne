@@ -10,7 +10,6 @@ ogr2ogr -update -overwrite -nln roads -f "SQLite" -dsco SPATIALITE=YES \
     WHERE (highway IS NOT NULL AND \
       highway NOT LIKE '%construction%' AND \
       highway NOT LIKE '%proposed%' AND \
-      highway NOT LIKE '%service%' AND \
       highway NOT LIKE '%disused%' AND \
       highway NOT LIKE '%abandoned%') AND \
       (other_tags IS NULL OR
@@ -19,6 +18,9 @@ ogr2ogr -update -overwrite -nln roads -f "SQLite" -dsco SPATIALITE=YES \
         other_tags NOT LIKE '%parking%' AND \
         other_tags NOT LIKE '%\"access\"=>\"private\"%')) " \
   ./data/melbourne.sqlite ./data/melbourne.osm
+#      highway NOT LIKE '%service%' AND \
+# Removed since some service roads are used as footpaths (e.g., Royal Exhibition
+# building
 
 # extract the traffic signals, put in melbourne.sqlite
 ogr2ogr -update -overwrite -nln roads_points -f "SQLite" -dsco SPATIALITE=YES \
@@ -63,5 +65,5 @@ ogr2ogr -overwrite -lco GEOMETRY_NAME=geom -lco SCHEMA=public -f "PostgreSQL" \
 psql -U postgres -d ${DB_NAME} -a -f melbNetwork.sql
 
 # extract the nodes and edges to the network file
-ogr2ogr -update -overwrite -f SQLite -dsco SPATIALITE=yes ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.line_cut -nln edges
+ogr2ogr -update -overwrite -f SQLite -dsco SPATIALITE=yes ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.line_cut3 -nln edges
 ogr2ogr -update -overwrite -f SQLite -update ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.endpoints_filtered -nln nodes

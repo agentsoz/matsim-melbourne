@@ -1,14 +1,14 @@
 makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0.1,
                             add_z_flag=F,add.pt.flag=F,write_xml=F,write_sqlite=F){
   
-  # test_area_flag=F
-  # focus_area_flag=F
-  # shortLinkLength=20
-  # add_z_flag=F
-  # add.pt.flag=F
-  # ivabm_pt_flag=T
-  # write_xml=T
-  # write_sqlite=T
+  test_area_flag=F
+  focus_area_flag=F
+  shortLinkLength=20
+  add_z_flag=F
+  add.pt.flag=F
+  ivabm_pt_flag=F # Alan - The code won't run from makeNetwork.sh without me uncommenting this, maybe add this in the function call?
+  write_xml=F
+  write_sqlite=T
   
   message("========================================================")
   message("                **Network Generation Setting**")
@@ -56,7 +56,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   
   # Reading inputs ----------------------------------------------------------
   
-  # Reading the planar input (unproccessed)
+  # Reading the planar input (unprocessed)
   osm_metadata <- st_read('data/melbourne.sqlite',layer="roads")%>%st_drop_geometry() # geometries are not important in this, we will use osm ids
   # Reading the nonplanar input (processed data by Alan)
   links <- st_read('data/network.sqlite' , layer="edges") # links
@@ -72,7 +72,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   links <- df[[2]]
 
   
-  # Croping to the test_area_boundary  --------------------------------------------
+  # Cropping to the test_area_boundary  --------------------------------------------
   
   if(test_area_flag){
     nodes <- nodes %>%
@@ -81,7 +81,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
       filter(from_id%in%nodes$id & to_id%in%nodes$id)
   }
   
-  # OSM tags processing and attributes assingment ---------------------------
+  # OSM tags processing and attributes assignment ---------------------------
   
   osm_metadata <- osm_metadata %>% filter(osm_id%in%links$osm_id)
   
@@ -163,6 +163,23 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   if (write_sqlite) {
     cat('\n')
     echo(paste0('Writing the sqlite output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
+    
+    # looks like the previous steps remove the geometry, this should add it back.
+    # exporting the links to sqlite seems to take ~ 5 minutes, and can crash R.
+    # linksGeom <- links %>%
+    #   mutate(GEOMETRY=paste0("LINESTRING(",fromX," ",fromY,",",toX," ",toY,")")) %>%
+    #   st_as_sf(wkt = "GEOMETRY", crs = 28355) %>%
+    #   as.data.frame() %>%
+    #   st_sf()
+    # nodesGeom <- nodes %>%
+    #   mutate(GEOMETRY=paste0("POINT(",X," ",Y,")")) %>%
+    #   pull(GEOMETRY) %>%
+    #   st_as_sfc(crs = 28355)
+    # nodesGeom <- nodes %>%
+    #   st_set_geometry(nodesGeom)
+    # dir.create('./generatedNetworks')
+    # st_write(linksGeom,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'links', delete_layer = T)
+    # st_write(nodesGeom,'generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes', delete_layer = T)
     
     #st_write(,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'links',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
     #st_write(, './generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
