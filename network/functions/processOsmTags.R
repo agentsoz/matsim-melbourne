@@ -2,20 +2,21 @@ processOsmTags <- function(osm_df,this_defaults_df){
   # osm_df <- osm_metadata
   # this_defaults_df <- defaults_df
   
-  getMetadataInfo <- function(osm_tags) {
-    hghw_tag <- osm_tags[1]
-    other_tags <- osm_tags[2]
-
-    freespeed=NA
-    permlanes=NA
-    oneway=NA
-    modes=NA
-    bikeway=NA
-    isCycle=NA
-    isWalk=NA
-    isCar=NA
-    if (!is.na(other_tags)) {
-      tags <- str_extract_all(other_tags, boundary("word")) %>% unlist()
+  osmWithDefaults <- inner_join(osm_df,this_defaults_df,by="highway")
+  # pre splitting the tags to save time
+  tagList <- strsplit(gsub('=>',',', gsub('"', '', osmWithDefaults$other_tags)),',')
+  
+  osmWithDefaults <- osmWithDefaults %>%
+    mutate(oneway=1, # Assuming 1 means two ways and 2 means two ways
+           bikeway=ifelse(highway=="cycleway","bikepath",NA)) %>%
+    dplyr::select(osm_id,highway,freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar)
+  
+  getMetadataInfo <- function(i) {
+    df <- osmWithDefaults[i,]
+    tags=tagList[[i]]
+    
+    if (length(tags)>1) {
+      
       cycleway_tags <- tags[which(tags %like% "cycleway")+1]
       if(any(is.na(cycleway_tags))) cycleway_tags <- c()
       bicycle_tags <- tags[which(tags=="bicycle")+1]
@@ -24,65 +25,57 @@ processOsmTags <- function(osm_df,this_defaults_df){
       if(any(is.na(car_tags))) car_tags <- c()
       foot_tags <- tags[which(tags %like% "foot")+1]
       if(any(is.na(foot_tags))) foot_tags <- c()
-      oneway_tags <-  as.character(tags[which(tags %like% "oneway")+1])
+      oneway_tags <-  as.character(tags[which(tags=="oneway")+1])
       if(length(oneway_tags)==0) oneway_tags <- c()
-
-      if("maxspeed" %in% tags) freespeed=as.integer(tags[which(tags=="maxspeed")+1])/3.6
-      if("lanes" %in% tags) permlanes=as.integer(tags[which(tags=="lanes")+1])
       
+      if("maxspeed" %in% tags) {
+        freeSpeed=as.integer(tags[which(tags=="maxspeed")+1])/3.6
+        # added is.na since one of the maxspeed has a value of "50; 40"
+        if(!is.na(freeSpeed)) {
+          df$freespeed[1]=freeSpeed
+        }
+      }
+      if("lanes" %in% tags) {
+        newLanes=as.integer(tags[which(tags=="lanes")+1])
+        # some osm tags set the number of lanes to zero
+        # added is.na since one of the lanes has a value of "2; 3"
+        if(!is.na(newLanes) & newLanes > 0) {
+          # recalibrating the capacity
+          df$capacity[1]= df$capacity[1] * (newLanes/df$permlanes[1])
+          df$permlanes[1]=newLanes
+        }
+      }
       
-      if(any(oneway_tags=="no")) oneway="2"
-      if(hghw_tag=="cycleway") bikeway="bikepath"
-      #if(any(bicycle_tags %in% c("yes","designated"))) bikeway="unmarked"
-      if(any(cycleway_tags=="shared_lane")) bikeway="shared_lane"
-      if(any(cycleway_tags=="lane") & hghw_tag!="cycleway") bikeway="lane"
-      if(any(cycleway_tags=="track")& hghw_tag!="cycleway") bikeway="seperated_lane"
-      if(any(car_tags=="no")) isCar=FALSE
-      if(any(foot_tags=="no")) isWalk=FALSE
-      if(any(foot_tags %in% c("yes","designated"))) isWalk=TRUE
-      if(!is.na(bikeway) | any(bicycle_tags %in% c("yes","designated"))) isCycle=TRUE
-      if(any(bicycle_tags %in% "no")) isCycle = FALSE
-         
-      
-      
-      
+      if(any(oneway_tags=="yes")) df$oneway[1]=2
+      #if(any(bicycle_tags %in% c("yes","designated"))) df$bikeway[1]="unmarked"
+      if(any(cycleway_tags=="shared_lane")) df$bikeway[1]="shared_lane"
+      if(any(cycleway_tags=="lane") & df$highway[1]!="cycleway") df$bikeway[1]="lane"
+      if(any(cycleway_tags=="track")& df$highway[1]!="cycleway") df$bikeway[1]="seperated_lane"
+      if(any(car_tags=="no")) df$isCar[1]=FALSE
+      if(any(foot_tags=="no")) df$isWalk[1]=FALSE
+      if(any(foot_tags %in% c("yes","designated"))) df$isWalk[1]=TRUE
+      if(!is.na(df$bikeway[1]) | any(bicycle_tags %in% c("yes","designated"))) df$isCycle[1]=TRUE
+      if(any(bicycle_tags %in% "no")) df$isCycle[1] = FALSE
     }
-    data.frame(freespeed=freespeed,permlanes=permlanes,oneway=oneway,bikeway=bikeway,isCycle=isCycle,isWalk=isWalk,isCar=isCar)
+    return(df)
   }
   
+  osmAttributed <- lapply(1:nrow(osmWithDefaults),getMetadataInfo)%>%bind_rows()
   
-  osmAttributed <- apply(osm_df[,c("highway","other_tags")],MARGIN = 1, getMetadataInfo)%>%bind_rows()
-
+  osmAttributedWithModes <- osmAttributed %>% 
+    mutate(modes = if_else(condition = isCar, true = "car", false = NULL)) %>% 
+    mutate(modes = if_else(condition = isCycle, 
+                           true = if_else(condition = is.na(modes), true = "bicycle", false = paste(modes, "bicycle", sep=",")), 
+                           false = modes)) %>% 
+    mutate(modes = if_else(condition = isWalk, 
+                           true = if_else(condition = is.na(modes), true = "walk", false = paste(modes, "walk", sep=",")), 
+                           false = modes))
   
-  osmAttributedWithDefaults <- cbind(osm_df,osmAttributed) %>%
-    mutate_if(is.factor, as.character) %>% 
-    dplyr::select(-other_tags) %>%
-    left_join(this_defaults_df, by=c("highway"="highwayType")) %>%
-    mutate(freespeed.x=ifelse(is.na(freespeed.x),freespeed.y,freespeed.x)) %>%
-    mutate(permlanes.x=ifelse(is.na(permlanes.x),permlanes.y,permlanes.x)) %>%
-    mutate(oneway.x=ifelse(is.na(oneway.x), 1,oneway.x)) %>%
-    mutate(isCycle.x=ifelse(is.na(isCycle.x),isCycle.y,isCycle.x)) %>%
-    #mutate(bikeway=ifelse(is.na(bikeway)&isCycle.x==TRUE,"unmarked",bikeway)) %>%
-    mutate(isWalk.x=ifelse(is.na(isWalk.x),isWalk.y,isWalk.x)) %>%
-    mutate(isCar.x=ifelse(is.na(isCar.x),isCar.y,isCar.x)) %>%
-    mutate(capacity.x = (capacity / permlanes.y) * permlanes.x ) %>% 
-    dplyr::select(osm_id,highway,freespeed=freespeed.x,permlanes=permlanes.x, capacity=capacity.x, oneway=oneway.x,
-                  bikeway,isCycle=isCycle.x,isWalk=isWalk.x,isCar=isCar.x)
+  # this code probably isn't needed anymore as it's been implemented in the getMetadataInfo function
+  # osmAttributedCleaned  <- osmAttributedWithModes %>%
+  #   filter(!is.na(modes) & !is.na(freespeed) & !is.na(permlanes) & !is.na(capacity)) %>%
+  #   mutate(permlanes = replace(permlanes, permlanes == 0.0, 1.0)) %>% 
+  #   mutate(capacity = replace(capacity, capacity == 0.0, 100.0))
   
-    
-    osmAttributedWithModes <- osmAttributedWithDefaults %>% 
-      mutate(modes = if_else(condition = isCar, true = "car", false = NULL)) %>% 
-      mutate(modes = if_else(condition = isCycle, 
-                             true = if_else(condition = is.na(modes), true = "bicycle", false = paste(modes, "bicycle", sep=",")), 
-                             false = modes)) %>% 
-      mutate(modes = if_else(condition = isWalk, 
-                             true = if_else(condition = is.na(modes), true = "walk", false = paste(modes, "walk", sep=",")), 
-                             false = modes))
-    
-    osmAttributedCleaned  <- osmAttributedWithModes %>%
-      filter(!is.na(modes) & !is.na(freespeed) & !is.na(permlanes) & !is.na(capacity)) %>%
-      mutate(permlanes = replace(permlanes, permlanes == 0.0, 1.0)) %>% 
-      mutate(capacity = replace(capacity, capacity == 0.0, 100.0))
-                    
-  return(osmAttributedCleaned)
+  return(osmAttributedWithModes)
 }

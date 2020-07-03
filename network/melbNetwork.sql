@@ -107,7 +107,6 @@ FROM
 WHERE
   c.num_endpoints > 2;
 
--- cut the lines where there are extra nearby endpoints
 DROP TABLE IF EXISTS line_cut2;
 CREATE TABLE line_cut2 AS
 SELECT a.lid, a.osm_id,
@@ -115,7 +114,11 @@ SELECT a.lid, a.osm_id,
 FROM line_cut AS a, endpoints_near_lines AS b
 WHERE a.lid = b.lid;
 
--- add the newly cut lines to the unaltered cut lines
+DELETE FROM line_cut 
+WHERE lid IN 
+  (SELECT lid FROM line_cut2);
+
+
 DROP TABLE IF EXISTS line_cut3;
 CREATE TABLE line_cut3 AS
 	SELECT osm_id, geom
@@ -124,7 +127,6 @@ CREATE TABLE line_cut3 AS
 UNION
 	SELECT osm_id, geom
 	FROM line_cut2;
-
 	-- add length
 ALTER TABLE line_cut3 ADD COLUMN length INTEGER;
 UPDATE line_cut3 SET length = ST_Length(geom);
@@ -140,12 +142,16 @@ FROM
   endpoints_clustered as b
 WHERE
   ST_Intersects(ST_StartPoint(a.geom),b.geom);
+
 UPDATE line_cut3 AS a
   SET to_id = b.id
 FROM
   endpoints_clustered as b
 WHERE
   ST_Intersects(ST_EndPoint(a.geom),b.geom);
+
+DELETE FROM line_cut3
+WHERE ST_isEmpty(geom);
 
 
 -- This doesn't seem to be necessary, but will keep this in in case we do need
@@ -171,3 +177,11 @@ FROM endpoints_clustered AS a,
 WHERE
   a.id = b.id;
 CREATE INDEX endpoints_filtered_gix ON endpoints_filtered USING GIST (geom);
+
+-- the non-spatial data for the osm_id entries present in the network
+DROP TABLE IF EXISTS osm_metadata;
+CREATE TABLE osm_metadata AS
+SELECT osm_id, highway, other_tags
+FROM roads
+WHERE osm_id IN
+ (SELECT DISTINCT osm_id FROM line_cut3);

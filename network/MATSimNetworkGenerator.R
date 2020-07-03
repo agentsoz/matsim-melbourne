@@ -57,7 +57,9 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   # Reading inputs ----------------------------------------------------------
   
   # Reading the planar input (unprocessed)
-  osm_metadata <- st_read('data/melbourne.sqlite',layer="roads")%>%st_drop_geometry() # geometries are not important in this, we will use osm ids
+  # osm_metadata <- st_read('data/melbourne.sqlite',layer="roads")%>%st_drop_geometry() # geometries are not important in this, we will use osm ids
+  # this osm_metadata is already filtered to just the edges in network.sqlite
+  osm_metadata <- st_read("data/network.sqlite",layer="osm_metadata")
   # Reading the nonplanar input (processed data by Alan)
   links <- st_read('data/network.sqlite' , layer="edges") # links
   nodes <- st_read('data/network.sqlite' , layer="nodes") # nodes
@@ -100,7 +102,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     focus_area_boundary <- getAreaBoundary(focus_area_shire, 28355)
     # Filtering links
     links <- links %>%
-      filter((lengths(st_intersects(., focus_area_boundary)) > 0) |  highway %in% defaults_df$highwayType[1:8])
+      filter((lengths(st_intersects(., focus_area_boundary)) > 0) |  highway %in% defaults_df$highway[1:8])
     # Filtering nodes
     nodes<- nodes %>%
       filter(id%in%links$from_id | id%in%links$to_id)
@@ -178,7 +180,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
     # nodesGeom <- nodes %>%
     #   st_set_geometry(nodesGeom)
     # dir.create('./generatedNetworks')
-    # st_write(linksGeom,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'links', delete_layer = T)
+    # st_write(linksGeom,'generatedNetworks/MATSimNetwork.sqlite', layer = 'links', delete_layer = T)
     # st_write(nodesGeom,'generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes', delete_layer = T)
     
     #st_write(,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'links',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)

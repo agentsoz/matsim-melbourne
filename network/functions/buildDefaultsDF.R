@@ -1,7 +1,7 @@
 buildDefaultsDF <- function(){
   
   defaults_df <- tribble(
-    ~highwayType      , ~permlanes, ~freespeed, ~oneway, ~capacity, ~isCycle, ~isWalk, ~isCar,
+    ~highway          , ~permlanes, ~freespeed, ~oneway, ~capacity, ~isCycle, ~isWalk, ~isCar,
      "motorway"       ,  4        ,  (80/3.6) ,  1     ,  3600    ,  FALSE  ,  FALSE ,  TRUE ,
      "motorway_link"  ,  2        ,  (80/3.6) ,  1     ,  2500    ,  FALSE  ,  FALSE ,  TRUE ,
      "trunk"          ,  3        ,  (70/3.6) ,  1     ,  3000    ,  FALSE  ,  FALSE ,  TRUE ,
@@ -15,6 +15,7 @@ buildDefaultsDF <- function(){
      "tertiary"       ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
      "tertiary_link"  ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
      "residential"    ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
+     "road"           ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
      "unclassified"   ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
     
      "living_street"  ,  1        ,  (20/3.6) ,  1     ,   300    ,  TRUE   ,  TRUE  ,  TRUE ,

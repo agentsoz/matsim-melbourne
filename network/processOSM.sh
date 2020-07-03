@@ -8,6 +8,13 @@ ogr2ogr -update -overwrite -nln roads -f "SQLite" -dsco SPATIALITE=YES \
   "SELECT CAST(osm_id AS DOUBLE PRECISION) AS osm_id, highway, other_tags, \
     GEOMETRY FROM lines \
     WHERE (highway IS NOT NULL AND \
+      NOT highway = 'bridleway' AND \
+      NOT highway = 'bus_stop' AND \
+      NOT highway = 'co' AND \
+      NOT highway = 'platform' AND \
+      NOT highway = 'raceway' AND \
+      NOT highway = 'services' AND \
+      NOT highway = 'traffic_island' AND \
       highway NOT LIKE '%construction%' AND \
       highway NOT LIKE '%proposed%' AND \
       highway NOT LIKE '%disused%' AND \
@@ -64,6 +71,13 @@ ogr2ogr -overwrite -lco GEOMETRY_NAME=geom -lco SCHEMA=public -f "PostgreSQL" \
 # run the sql statements
 psql -U postgres -d ${DB_NAME} -a -f melbNetwork.sql
 
-# extract the nodes and edges to the network file
+# extract the nodes, edges, and osm metadata to the network file
 ogr2ogr -update -overwrite -f SQLite -dsco SPATIALITE=yes ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.line_cut3 -nln edges
 ogr2ogr -update -overwrite -f SQLite -update ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.endpoints_filtered -nln nodes
+ogr2ogr -update -overwrite -f SQLite -update ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.osm_metadata -nln osm_metadata
+
+# add in the traffic lights
+ogr2ogr -update -overwrite -nln traffic_lights -f "SQLite" -dsco SPATIALITE=YES \
+  -dialect SQLite -sql \
+  "SELECT * FROM roads_points " \
+  ./data/network.sqlite ./data/melbourne.sqlite
