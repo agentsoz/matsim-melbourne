@@ -2,32 +2,32 @@ buildDefaultsDF <- function(){
   
   defaults_df <- tribble(
     ~highway          , ~permlanes, ~freespeed, ~oneway, ~capacity, ~isCycle, ~isWalk, ~isCar,
-     "motorway"       ,  4        ,  (80/3.6) ,  1     ,  3600    ,  FALSE  ,  FALSE ,  TRUE ,
-     "motorway_link"  ,  2        ,  (80/3.6) ,  1     ,  2500    ,  FALSE  ,  FALSE ,  TRUE ,
-     "trunk"          ,  3        ,  (70/3.6) ,  1     ,  3000    ,  FALSE  ,  FALSE ,  TRUE ,
-     "trunk_link"     ,  2        ,  (70/3.6) ,  1     ,  2500    ,  FALSE  ,  FALSE ,  TRUE ,
+     "motorway"       ,  4        ,  (80/3.6) ,  1     ,  3600    ,  0      ,  0     ,  1    ,
+     "motorway_link"  ,  2        ,  (80/3.6) ,  1     ,  2500    ,  0      ,  0     ,  1    ,
+     "trunk"          ,  3        ,  (70/3.6) ,  1     ,  3000    ,  0      ,  0     ,  1    ,
+     "trunk_link"     ,  2        ,  (70/3.6) ,  1     ,  2500    ,  0      ,  0     ,  1    ,
     
-     "primary"        ,  2        ,  (60/3.6) ,  1     ,  2500    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "primary_link"   ,  1        ,  (60/3.6) ,  1     ,   800    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "secondary"      ,  1        ,  (60/3.6) ,  1     ,   800    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "secondary_link" ,  1        ,  (60/3.6) ,  1     ,   800    ,  TRUE   ,  TRUE  ,  TRUE ,
+     "primary"        ,  2        ,  (60/3.6) ,  1     ,  2500    ,  1      ,  1     ,  1    ,
+     "primary_link"   ,  1        ,  (60/3.6) ,  1     ,   800    ,  1      ,  1     ,  1    ,
+     "secondary"      ,  1        ,  (60/3.6) ,  1     ,   800    ,  1      ,  1     ,  1    ,
+     "secondary_link" ,  1        ,  (60/3.6) ,  1     ,   800    ,  1      ,  1     ,  1    ,
     
-     "tertiary"       ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "tertiary_link"  ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "residential"    ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "road"           ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "unclassified"   ,  1        ,  (50/3.6) ,  1     ,   600    ,  TRUE   ,  TRUE  ,  TRUE ,
+     "tertiary"       ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
+     "tertiary_link"  ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
+     "residential"    ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
+     "road"           ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
+     "unclassified"   ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
     
-     "living_street"  ,  1        ,  (20/3.6) ,  1     ,   300    ,  TRUE   ,  TRUE  ,  TRUE ,
-     "cycleway"       ,  1        ,  (30/3.6) ,  1     ,   300    ,  TRUE   ,  FALSE ,  FALSE,
-     "track"          ,  1        ,  (30/3.6) ,  1     ,   300    ,  TRUE   ,  FALSE ,  FALSE,
-     "service"        ,  1        ,  (40/3.6) ,  1     ,   200    ,  TRUE   ,  TRUE  ,  TRUE ,
-    
-     "pedestrian"     ,  1        ,  (30/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
-     "footway"        ,  1        ,  (15/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
-     "path"           ,  1        ,  (15/3.6) ,  1     ,   120    ,  FALSE  ,  TRUE  ,  FALSE,
-     "corridor"       ,  1        ,  (15/3.6) ,  1     ,    50    ,  FALSE  ,  TRUE  ,  FALSE,
-     "steps"          ,  1        ,  (15/3.6) ,  1     ,    10    ,  FALSE  ,  TRUE  ,  FALSE
+     "living_street"  ,  1        ,  (20/3.6) ,  1     ,   300    ,  1      ,  1     ,  1    ,
+     "cycleway"       ,  1        ,  (30/3.6) ,  1     ,   300    ,  1      ,  0     ,  0    ,
+     "track"          ,  1        ,  (30/3.6) ,  1     ,   300    ,  1      ,  0     ,  0    ,
+     "service"        ,  1        ,  (40/3.6) ,  1     ,   200    ,  1      ,  1     ,  1    ,
+
+     "pedestrian"     ,  1        ,  (30/3.6) ,  1     ,   120    ,  0      ,  1     ,  0    ,
+     "footway"        ,  1        ,  (15/3.6) ,  1     ,   120    ,  0      ,  1     ,  0    ,
+     "path"           ,  1        ,  (15/3.6) ,  1     ,   120    ,  0      ,  1     ,  0    ,
+     "corridor"       ,  1        ,  (15/3.6) ,  1     ,    50    ,  0      ,  1     ,  0    ,
+     "steps"          ,  1        ,  (15/3.6) ,  1     ,    10    ,  0      ,  1     ,  0    
   )
 
   return(defaults_df)

@@ -45,7 +45,67 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   source('./functions/cleanNetwork.R')
   source('./functions/gtfs2PtNetowrk.R')
   
-
+  source('functions/simplifyLines.R')
+  source('functions/removeDangles.R')
+  source('functions/removeRedundantUndirectedEdges.R')
+  
+  
+  
+  
+  
+  
+  # New method for simplifiying network ----------------------------------------------------------
+  
+  # Note: writing logical fields to sqlite is a bad idea, so switching to integers
+  nodes <- st_read("data/network.sqlite",layer="nodes")
+  edges <- st_read("data/network.sqlite",layer="edges")
+  osm_metadata <- st_read("data/network.sqlite",layer="osm_metadata")
+  
+  defaults_df <- buildDefaultsDF()
+  system.time( osmAttributes <- processOsmTags(osm_metadata,defaults_df))
+  
+  osmAttributeGroups <- osmAttributes %>%
+    dplyr::select(osm_id,freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar,modes) %>%
+    group_by(freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar) %>%
+    mutate(road_type=group_indices()) %>%
+    ungroup()
+  road_types <- osmAttributeGroups %>%
+    dplyr::select(road_type,freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar,modes) %>%
+    distinct()
+  osmAttributeGroups2 <- osmAttributeGroups %>%
+    dplyr::select(osm_id,road_type)
+  edgesWithType <- edges %>%
+    left_join(osmAttributeGroups2,by="osm_id") %>%
+    dplyr::select(road_type,length,from_id,to_id) %>%
+    st_sf()
+  
+  system.time(noDangles <- removeDangles(nodes,edgesWithType,500))
+  system.time(linesSimplified <- simplifyLines(noDangles[[1]],noDangles[[2]]))
+  system.time(NoDangles2 <- removeDangles(linesSimplified[[1]],
+                                          linesSimplified[[2]],500))
+  system.time(networkSimplified <- simplifyNetwork(NoDangles2[[1]],
+                                                   NoDangles2[[2]],
+                                                   osm_metadata,20))
+  system.time(noRedundancies <- removeRedundantUndirectedEdges(networkSimplified[[1]],
+                                                               networkSimplified[[2]],
+                                                               road_types))
+  system.time(linesSimplified2 <- simplifyLines(noRedundancies[[1]],
+                                                noRedundancies[[2]]))
+  system.time(noRedundancies2 <- removeRedundantUndirectedEdges(linesSimplified2[[1]],
+                                                                linesSimplified2[[2]],
+                                                                road_types))
+  system.time(networkAttributed <- addRoadAttributes(noRedundancies2[[1]],
+                                                     noRedundancies2[[2]],
+                                                     road_types))
+  
+  st_write(networkAttributed[[2]],'data/networkAttributed.sqlite', layer='links', delete_layer=T)
+  st_write(networkAttributed[[1]],'data/networkAttributed.sqlite', layer='nodes', delete_layer=T)
+  
+  
+  
+  
+  
+  
   
   # Adjusting boundaries  -------------------------------
   

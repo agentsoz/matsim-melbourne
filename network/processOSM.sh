@@ -27,7 +27,10 @@ ogr2ogr -update -overwrite -nln roads -f "SQLite" -dsco SPATIALITE=YES \
   ./data/melbourne.sqlite ./data/melbourne.osm
 #      highway NOT LIKE '%service%' AND \
 # Removed since some service roads are used as footpaths (e.g., Royal Exhibition
-# building
+# building)
+
+# bridleway can be used for walking and cycling (provided you give way to horses
+# they are more common in the UK.
 
 # extract the traffic signals, put in melbourne.sqlite
 ogr2ogr -update -overwrite -nln roads_points -f "SQLite" -dsco SPATIALITE=YES \
@@ -38,7 +41,7 @@ ogr2ogr -update -overwrite -nln roads_points -f "SQLite" -dsco SPATIALITE=YES \
   ./data/melbourne.sqlite ./data/melbourne.osm
 
 # extract the train and tram lines and add to melbourne.sqlite
-# apparently there are minature railways
+# apparently there are miniature railways
 ogr2ogr -update -overwrite -nln pt -f "SQLite" -dialect SQLite -sql \
   "SELECT CAST(osm_id AS DOUBLE PRECISION) AS osm_id, highway, other_tags, \
     GEOMETRY FROM lines \
@@ -67,17 +70,15 @@ psql -c 'create extension postgis' ${DB_NAME} postgres
 ogr2ogr -overwrite -lco GEOMETRY_NAME=geom -lco SCHEMA=public -f "PostgreSQL" \
   PG:"host=localhost port=5432 user=postgres dbname=${DB_NAME}" \
   -a_srs "EPSG:4326" ./data/melbourne.sqlite roads
-
+ogr2ogr -overwrite -lco GEOMETRY_NAME=geom -lco SCHEMA=public -f "PostgreSQL" \
+  PG:"host=localhost port=5432 user=postgres dbname=${DB_NAME}" \
+  -a_srs "EPSG:4326" ./data/melbourne.sqlite roads_points
+  
 # run the sql statements
 psql -U postgres -d ${DB_NAME} -a -f melbNetwork.sql
 
 # extract the nodes, edges, and osm metadata to the network file
 ogr2ogr -update -overwrite -f SQLite -dsco SPATIALITE=yes ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.line_cut3 -nln edges
-ogr2ogr -update -overwrite -f SQLite -update ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.endpoints_filtered -nln nodes
+ogr2ogr -update -overwrite -f SQLite -update ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.nodes_attributed -nln nodes
 ogr2ogr -update -overwrite -f SQLite -update ./data/network.sqlite PG:"dbname=${DB_NAME} user=postgres" public.osm_metadata -nln osm_metadata
 
-# add in the traffic lights
-ogr2ogr -update -overwrite -nln traffic_lights -f "SQLite" -dsco SPATIALITE=YES \
-  -dialect SQLite -sql \
-  "SELECT * FROM roads_points " \
-  ./data/network.sqlite ./data/melbourne.sqlite

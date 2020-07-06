@@ -5,6 +5,10 @@
 ALTER TABLE roads
  ALTER COLUMN geom TYPE geometry(LineString,28355)
   USING ST_SnapToGrid(ST_Transform(geom,28355),1);
+ALTER TABLE roads_points
+ ALTER COLUMN geom TYPE geometry(Point,28355)
+  USING ST_SnapToGrid(ST_Transform(geom,28355),1);
+CREATE INDEX roads_points_gix ON roads USING GIST (geom);
 
 -- determine if the road segment is a bridge or tunnel
 ALTER TABLE roads ADD COLUMN bridge_or_tunnel BOOLEAN;
@@ -185,3 +189,59 @@ SELECT osm_id, highway, other_tags
 FROM roads
 WHERE osm_id IN
  (SELECT DISTINCT osm_id FROM line_cut3);
+
+-- from and to ids of edges that are roundabouts
+DROP TABLE IF EXISTS edges_roundabout;
+CREATE TABLE edges_roundabout AS
+SELECT a.from_id,
+  a.to_id,
+  CASE WHEN b.other_tags LIKE '%roundabout%' THEN TRUE
+                                             ELSE FALSE
+       END AS is_roundabout
+FROM
+  line_cut3 AS a,
+  osm_metadata AS b
+WHERE
+  a.osm_id = b.osm_id;
+
+-- node ids that connect to roundabouts
+DROP TABLE IF EXISTS nodes_roundabout;
+CREATE TABLE nodes_roundabout AS
+SELECT DISTINCT c.id
+FROM
+ (SELECT DISTINCT a.from_id AS id
+		FROM edges_roundabout AS a
+		WHERE is_roundabout = TRUE
+	UNION
+		SELECT DISTINCT b.to_id AS id
+		FROM edges_roundabout AS b
+		WHERE is_roundabout = TRUE) AS c;
+
+-- nodes attributed with if they are at roundabouts or traffic signals 
+DROP TABLE IF EXISTS nodes_attributed;
+CREATE TABLE nodes_attributed AS
+SELECT c.id,
+       CASE WHEN c.id IN (SELECT id FROM nodes_roundabout) THEN 1
+                                                           ELSE 0
+       END AS is_roundabout,
+       CASE WHEN c.length <= 20 THEN 1
+                                ELSE 0
+       END AS is_signal,
+       c.geom
+FROM
+ (SELECT
+		a.id,
+		a.geom,
+		ST_Distance(a.geom,b.geom) AS length
+	FROM
+		endpoints_filtered AS a
+	CROSS JOIN LATERAL
+		(SELECT geom
+		 FROM roads_points
+		 ORDER BY
+		   a.geom <-> geom
+		 LIMIT 1) AS b
+	) AS c;
+
+CREATE INDEX nodes_attributed_gix ON nodes_attributed USING GIST (geom);
+
