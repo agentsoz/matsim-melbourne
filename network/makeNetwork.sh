@@ -33,7 +33,7 @@ done
 
 read -r -d '' SCRIPT << EOM
 source("MATSimNetworkGenerator.R");
-makeMatsimNetwork(${FLAGS[0]}, ${FLAGS[1]}, ${FLAGS[2]}, ${FLAGS[3]}, ${FLAGS[4]}, ${FLAGS[5]}, ${FLAGS[6]})
+makeMatsimNetwork(${FLAGS[0]}, ${FLAGS[1]}, ${FLAGS[2]}, ${FLAGS[3]}, ${FLAGS[4]}, F, ${FLAGS[5]}, ${FLAGS[6]})
 EOM
 
 CMD="Rscript --vanilla --verbose -e '$SCRIPT'"

@@ -1,14 +1,14 @@
 makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0.1,
-                            add_z_flag=F,add.pt.flag=F,write_xml=F,write_sqlite=F){
+                            add_z_flag=F,add.pt.flag=F,ivabm_pt_flag=F,write_xml=F,write_sqlite=F){
   
-  test_area_flag=F
-  focus_area_flag=F
-  shortLinkLength=20
-  add_z_flag=F
-  add.pt.flag=F
-  ivabm_pt_flag=F # Alan - The code won't run from makeNetwork.sh without me uncommenting this, maybe add this in the function call?
-  write_xml=F
-  write_sqlite=T
+  # test_area_flag=F
+  # focus_area_flag=F
+  # shortLinkLength=20
+  # add_z_flag=F
+  # add.pt.flag=F
+  # ivabm_pt_flag=F
+  # write_xml=F
+  # write_sqlite=T
   
   message("========================================================")
   message("                **Network Generation Setting**")
@@ -48,7 +48,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   source('functions/simplifyLines.R')
   source('functions/removeDangles.R')
   source('functions/removeRedundantUndirectedEdges.R')
-  
+  source('./functions/addRoadAttributes.R')
   
   
   
