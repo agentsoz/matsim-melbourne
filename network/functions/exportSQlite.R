@@ -4,7 +4,9 @@ exportSQlite <- function(l_df, n_df, outputFileName){
 
     l_df <- l_df %>% 
     mutate(GEOMETRY=paste0("LINESTRING(",fromX," ",fromY,",",toX," ",toY,")")) %>%
-    st_as_sf(wkt = "GEOMETRY", crs = 28355)
+    st_as_sf(wkt = "GEOMETRY", crs = 28355) %>% 
+    as.data.frame() %>%
+    st_sf()
   
   # writing sqlite outputs
   st_write(l_df, paste0('./generatedNetworks/', outputFileName,'.sqlite'), layer = 'links', 

@@ -1,6 +1,11 @@
 makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0.1,
                             add_z_flag=F,add.pt.flag=F,ivabm_pt_flag=F,write_xml=F,write_sqlite=F){
   
+  # to Check with Alan
+  # - Removed the cropings and flag areas as they seemed redundant now that we have small network
+  # - removed bi-directional link processing as it is now done in the postgres code
+  # - Removed the simplifications as they are now done elsewhere
+  
   # test_area_flag=F
   # focus_area_flag=F
   # shortLinkLength=20
@@ -48,10 +53,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   source('functions/simplifyLines.R')
   source('functions/removeDangles.R')
   source('functions/removeRedundantUndirectedEdges.R')
-  source('./functions/addRoadAttributes.R')
-  
-  
-  
+  source('functions/addRoadAttributes.R')
   
   
   # New method for simplifiying network ----------------------------------------------------------
@@ -98,115 +100,51 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
                                                      noRedundancies2[[2]],
                                                      road_types))
   
-  st_write(networkAttributed[[2]],'data/networkAttributed.sqlite', layer='links', delete_layer=T)
-  st_write(networkAttributed[[1]],'data/networkAttributed.sqlite', layer='nodes', delete_layer=T)
+  #st_write(networkAttributed[[2]],'data/networkAttributed.sqlite', layer='links', delete_layer=T)
+  #st_write(networkAttributed[[1]],'data/networkAttributed.sqlite', layer='nodes', delete_layer=T)
   
-  
-  
-  
-  
-  
-  
-  # Adjusting boundaries  -------------------------------
-  
-  test_area_boundary <- st_as_sfc("SRID=28355;POLYGON((318877.2 5814208.5, 321433.7 5814021.4, 321547.1 5812332.6 ,318836.3 5812083.8,  318877.2 5814208.5))")
-  
-  # https://github.com/JamesChevalier/cities/tree/master/australia/victoria
-  focus_area_shire <- "australia/victoria/city-of-melbourne_victoria.poly"  
-  
-  # Reading inputs ----------------------------------------------------------
-  
-  # Reading the planar input (unprocessed)
-  # osm_metadata <- st_read('data/melbourne.sqlite',layer="roads")%>%st_drop_geometry() # geometries are not important in this, we will use osm ids
-  # this osm_metadata is already filtered to just the edges in network.sqlite
-  osm_metadata <- st_read("data/network.sqlite",layer="osm_metadata")
-  # Reading the nonplanar input (processed data by Alan)
-  links <- st_read('data/network.sqlite' , layer="edges") # links
-  nodes <- st_read('data/network.sqlite' , layer="nodes") # nodes
-  
-  # making the simplified network -------------------------------------------
-  
-  # node clusters based on those that are connected with link with less than 20 meters length
-  system.time(
-    df <- simplifyNetwork(links, nodes, osm_metadata, shortLinkLength)
-  )
-  nodes <- df[[1]]
-  links <- df[[2]]
+  # For simplicity for now I divide them into nodes and links, we can switch to keeping NetworkAttributed in next versions
+  nodes <- networkAttributed[[1]]
+  nodes <- nodes %>% # Changing to MATSim expected format
+    mutate(x = sf::st_coordinates(.)[,1],
+           y = sf::st_coordinates(.)[,2]) %>% 
+    mutate(type=if_else(as.logical(is_roundabout), 
+                        true = if_else(as.logical(is_signal), 
+                                       true = "signalised_roundabout",
+                                       false = "simple_roundabout"), 
+                        false = if_else(as.logical(is_signal), 
+                                        true = "signalised_intersection",
+                                        false = "simple_intersection"))) %>% 
+    dplyr::select(id, x, y, type, geom)
 
-  
-  # Cropping to the test_area_boundary  --------------------------------------------
-  
-  if(test_area_flag){
-    nodes <- nodes %>%
-      filter(lengths(st_intersects(., test_area_boundary)) > 0)
-    links <- links %>%
-      filter(from_id%in%nodes$id & to_id%in%nodes$id)
-  }
-  
-  # OSM tags processing and attributes assignment ---------------------------
-  
-  osm_metadata <- osm_metadata %>% filter(osm_id%in%links$osm_id)
-  
-  # Creating defaults dataframe
-  defaults_df <- buildDefaultsDF()
-  # Assigning attributes based on defaults df and osm tags
-  system.time(
-    osm_attrib <- processOsmTags(osm_metadata, defaults_df) 
-  )
-  links <- links %>%
-    left_join(osm_attrib, by="osm_id")
-  
-  
-  if(focus_area_flag){
-    # Getting the boundary area
-    focus_area_boundary <- getAreaBoundary(focus_area_shire, 28355)
-    # Filtering links
-    links <- links %>%
-      filter((lengths(st_intersects(., focus_area_boundary)) > 0) |  highway %in% defaults_df$highway[1:8])
-    # Filtering nodes
-    nodes<- nodes %>%
-      filter(id%in%links$from_id | id%in%links$to_id)
-  }
-  
-  #TODO: Fix the DEM so it covers the entire area.
+  links <- networkAttributed[[2]] # What happended to the OSM ID? and also highway tag - AJ 14 July 2020
+    
+  links <- links %>%  # For the next steps it is probably faster and easier if links are not spatial objects - AJ 14 July 2020
+    sf::st_coordinates() %>%
+    as.data.frame() %>%
+    cbind(name=c("from","to")) %>%
+    tidyr::pivot_wider(names_from = name, values_from = c(X,Y)) %>% 
+    cbind(st_drop_geometry(links)) %>% 
+    dplyr::select(from_id, to_id, fromX=X_from, fromY=Y_from, toX=X_to, toY=Y_to, length, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes)
+    
   ## Adding elevation
+  #TODO: Fix the DEM so it covers the entire area.
   if(add_z_flag){
     elevation <- raster('data/DEMx10EPSG28355.tif') 
-    
-    # Assiging z coordinations to nodes
     nodes$z <- round(raster::extract(elevation ,as(nodes, "Spatial"),method='bilinear'))/10 # TODO Not working properly
-    nodes <- nodes %>% dplyr::select(id, x = X, y = Y, z, GEOMETRY) %>% distinct(id, x, y, z, GEOMETRY) # id's should be unique
-    
+    nodes <- nodes %>% distinct(id,.keep_all = T) # id's should be unique
   }else{
-    nodes <- nodes %>% dplyr::select(id, x = X, y = Y, GEOMETRY) %>% distinct(id, x, y, GEOMETRY) # id's should be unique
+    nodes <- nodes %>% 
+      distinct(id,.keep_all = T) # id's should be unique
   }
-  
-  #st_write(links,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="edges")
-  #st_write(nodes,"data/networkSimplified.sqlite",delete_layer=TRUE,layer="nodes")
-  
-  # Adding a reverse link for bi-directional links
-  bi_links <- links %>% filter(oneway==2) %>% 
-    rename(from_id=to_id, to_id=from_id, toX=fromX, toY=fromY, fromX=toX, fromY=toY) %>% 
-    #mutate(id=paste0("p_",from_id,"_",to_id,"_",row_number())) %>% 
-    st_drop_geometry()%>% 
-    dplyr::select(osm_id, from_id, to_id, fromX, fromY, toX, toY, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes)
-  
-  links <- links %>% 
-    #mutate(id=paste0("p_",from_id,"_",to_id,"_",row_number())) %>% 
-    st_drop_geometry() %>% 
-    dplyr::select(osm_id, from_id, to_id, fromX, fromY, toX, toY, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
-    rbind(bi_links)
-  
-  
 
-  #add.pt.flag <- F
-  
   if(add.pt.flag){
-    links_pt <- gtfs2PtNetowrk(nodes) # ToDo studyRegion = st_union(st_convex_hull(nodes))
+    links_pt <- gtfs2PtNetowrk(nodes) # ToDo studyRegion = st_union(st_convex_hull(nodes)) 
+    links_pt <- links_pt %>% 
+      mutate(oneway=1) %>% 
+      dplyr::select(names(links)) # highway and id are missing at the moment, not sure if necessary  - AJ 14 July 2020
     links <- rbind(links, as.data.frame(links_pt)) %>% distinct()
   }
-  
-
   
   # Cleaning before writing
   system.time(
@@ -215,47 +153,27 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   nodes<- df[[1]]
   links<- df[[2]]
 
-  if(ivabm_pt_flag){
-    df2 <-integrateIVABM(st_drop_geometry(nodes),links)
+  # We are not likely to use this again, will remove soon - AJ 14 July 2020
+  #if(ivabm_pt_flag){
+  #  df2 <-integrateIVABM(st_drop_geometry(nodes),links)
     #nodes<- df[[1]]
     #links<- df[[2]]
-  }
+  #}
   
   ## writing outputs - sqlite
   if (write_sqlite) {
     cat('\n')
     echo(paste0('Writing the sqlite output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
-    
-    # looks like the previous steps remove the geometry, this should add it back.
-    # exporting the links to sqlite seems to take ~ 5 minutes, and can crash R.
-    # linksGeom <- links %>%
-    #   mutate(GEOMETRY=paste0("LINESTRING(",fromX," ",fromY,",",toX," ",toY,")")) %>%
-    #   st_as_sf(wkt = "GEOMETRY", crs = 28355) %>%
-    #   as.data.frame() %>%
-    #   st_sf()
-    # nodesGeom <- nodes %>%
-    #   mutate(GEOMETRY=paste0("POINT(",X," ",Y,")")) %>%
-    #   pull(GEOMETRY) %>%
-    #   st_as_sfc(crs = 28355)
-    # nodesGeom <- nodes %>%
-    #   st_set_geometry(nodesGeom)
-    # dir.create('./generatedNetworks')
-    # st_write(linksGeom,'generatedNetworks/MATSimNetwork.sqlite', layer = 'links', delete_layer = T)
-    # st_write(nodesGeom,'generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes', delete_layer = T)
-    
-    #st_write(,'./generatedNetworks/MATSimNetwork.sqlite', layer = 'links',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-    #st_write(, './generatedNetworks/MATSimNetwork.sqlite', layer = 'nodes',driver = 'SQLite', layer_options = 'GEOMETRY=AS_XY', delete_layer = T)
-    exportSQlite(links, nodes, outputFileName = "MATSimNetwork_noPT_V1.3")
+    exportSQlite(links, nodes, outputFileName = "MATSimNetwork_test_14July")
     echo(paste0('Finished generating the sqlite output\n'))
   }
   
-  ## writing outputs - MATSim XML - TODO make the xml writer dynamic based on the optional network attributes
+  ## writing outputs - MATSim XML
+  # TODO make the xml writer dynamic based on the optional network attributes
   if (write_xml) {
-    #links_attrib_ng <- links_attrib_cleaned %>% st_set_geometry(NULL) # Geometry in XML will 
     cat('\n')
     echo(paste0('Writing the XML output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
-    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork_noPT_V1.3", add_z_flag)
+    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork_test_14July", add_z_flag)
     echo(paste0('Finished generating the xml output\n'))
   }
-  
 }

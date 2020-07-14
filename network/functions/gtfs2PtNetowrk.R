@@ -297,7 +297,7 @@ gtfs2PtNetowrk <- function(n_df,
   # departures, departure
   ptNetworkMATSim <- ptNetworkFull %>% 
     mutate(length=unclass(st_length(.)))%>% 
-    mutate(osm_id=9999999) %>% 
+    #mutate(osm_id=9999999) %>% 
     mutate(highway="pt") %>% 
     mutate(freespeed=11.1) %>% 
     mutate(permlanes=1) %>% 
@@ -309,7 +309,8 @@ gtfs2PtNetowrk <- function(n_df,
     mutate(modes="pt") %>%
     mutate(id=paste0(from_id,"_",to_id)) %>% 
     st_drop_geometry() %>% 
-    dplyr::select(osm_id, id, from_id, to_id, fromX=from_x, fromY=from_y, toX=to_x, toY=to_y, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
+    #dplyr::select(osm_id, id, from_id, to_id, fromX=from_x, fromY=from_y, toX=to_x, toY=to_y, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
+    dplyr::select(id, from_id, to_id, fromX=from_x, fromY=from_y, toX=to_x, toY=to_y, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
     distinct()
     
   return(ptNetworkMATSim)

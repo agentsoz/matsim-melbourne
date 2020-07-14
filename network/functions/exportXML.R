@@ -5,10 +5,10 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   addMATSimNode <- function(this_node){
     if (addZ_coord){
       this_node <- this_node %>% mutate(z = if_else(is.na(z), true = 10, z))
-      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y), z=as.character(this_node$z)))# assign attribute list to attributes tag
+      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y), z=as.character(this_node$z), type=as.character(this_node$type)))# assign attribute list to attributes tag
       
     }else {
-      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y)))# assign attribute list to attributes tag
+      xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y),type=as.character(this_node$type)))# assign attribute list to attributes tag
     }
      return(xnn)
   }
@@ -69,9 +69,10 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
     add <-cname[!cname%in%names(data)]
     if(length(add)!=0) data[add] <- NA
     data
-  }
-  l_df <-  fncols(l_df, c("osm_id", "highway", "bikeway", "bicycleInfrastructureSpeedFactor")) 
+  } 
+  l_df <-  fncols(l_df, c("id","osm_id", "highway", "bikeway", "bicycleInfrastructureSpeedFactor")) 
   l_df <- l_df %>%
+    mutate(id = replace(id, is.na(id), row_number())) %>% 
     mutate(osm_id = replace(osm_id, is.na(osm_id), 9999999999)) %>% 
     mutate(type = replace(highway, is.na(highway), "NotSpecified")) %>% 
     mutate(bikeway = replace(bikeway, is.na(bikeway),"No")) %>% 
