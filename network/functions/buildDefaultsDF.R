@@ -2,15 +2,15 @@ buildDefaultsDF <- function(){
   
   defaults_df <- tribble(
     ~highway          , ~permlanes, ~freespeed, ~oneway, ~capacity, ~isCycle, ~isWalk, ~isCar,
-     "motorway"       ,  4        ,  (80/3.6) ,  1     ,  3600    ,  0      ,  0     ,  1    ,
-     "motorway_link"  ,  2        ,  (80/3.6) ,  1     ,  2500    ,  0      ,  0     ,  1    ,
-     "trunk"          ,  3        ,  (70/3.6) ,  1     ,  3000    ,  0      ,  0     ,  1    ,
-     "trunk_link"     ,  2        ,  (70/3.6) ,  1     ,  2500    ,  0      ,  0     ,  1    ,
+     "motorway"       ,  4        ,  (110/3.6),  1     ,  2000    ,  0      ,  0     ,  1    ,
+     "motorway_link"  ,  2        ,  (80/3.6) ,  1     ,  1500    ,  0      ,  0     ,  1    ,
+     "trunk"          ,  3        ,  (100/3.6),  1     ,  2000    ,  0      ,  0     ,  1    ,
+     "trunk_link"     ,  2        ,  (80/3.6) ,  1     ,  1500    ,  0      ,  0     ,  1    ,
     
-     "primary"        ,  2        ,  (60/3.6) ,  1     ,  2500    ,  1      ,  1     ,  1    ,
-     "primary_link"   ,  1        ,  (60/3.6) ,  1     ,   800    ,  1      ,  1     ,  1    ,
-     "secondary"      ,  1        ,  (60/3.6) ,  1     ,   800    ,  1      ,  1     ,  1    ,
-     "secondary_link" ,  1        ,  (60/3.6) ,  1     ,   800    ,  1      ,  1     ,  1    ,
+     "primary"        ,  2        ,  (80/3.6) ,  1     ,  1500    ,  1      ,  1     ,  1    ,
+     "primary_link"   ,  1        ,  (60/3.6) ,  1     ,  1500    ,  1      ,  1     ,  1    ,
+     "secondary"      ,  1        ,  (60/3.6) ,  1     ,  1000    ,  1      ,  1     ,  1    ,
+     "secondary_link" ,  1        ,  (60/3.6) ,  1     ,  1000    ,  1      ,  1     ,  1    ,
     
      "tertiary"       ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
      "tertiary_link"  ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
@@ -18,7 +18,7 @@ buildDefaultsDF <- function(){
      "road"           ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
      "unclassified"   ,  1        ,  (50/3.6) ,  1     ,   600    ,  1      ,  1     ,  1    ,
     
-     "living_street"  ,  1        ,  (20/3.6) ,  1     ,   300    ,  1      ,  1     ,  1    ,
+     "living_street"  ,  1        ,  (40/3.6) ,  1     ,   300    ,  1      ,  1     ,  1    ,
      "cycleway"       ,  1        ,  (30/3.6) ,  1     ,   300    ,  1      ,  0     ,  0    ,
      "track"          ,  1        ,  (30/3.6) ,  1     ,   300    ,  1      ,  0     ,  0    ,
      "service"        ,  1        ,  (40/3.6) ,  1     ,   200    ,  1      ,  1     ,  1    ,
