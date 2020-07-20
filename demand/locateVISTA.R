@@ -1,9 +1,10 @@
 suppressPackageStartupMessages(library(haven)) # for spss reading
 suppressPackageStartupMessages(library(sf)) # for spatial things
 suppressPackageStartupMessages(library(dplyr)) # for manipulating data
+suppressPackageStartupMessages(library(ggplot2)) # for plotting data
 
 # Just need the non-spatial data from the Meshblocks
-MB_2016_AUST <- st_read("data/absRegions.sqlite",layer="MB_2016_AUST") %>%
+MB_2016_AUST <- st_read("data/absRegionsReprojected.sqlite",layer="MB_2016_AUST") %>%
   st_drop_geometry() %>%
   mutate(mb_code_2016 = as.numeric(as.character(mb_code_2016)),
          sa1_maincode_2016 = as.numeric(as.character(sa1_maincode_2016)),

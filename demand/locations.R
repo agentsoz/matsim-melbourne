@@ -11,25 +11,31 @@ distanceMatrix <- readRDS(file="data/distanceMatrix.rds")
 # network so we need to use an index.
 distanceMatrixIndex <- read.csv("data/distanceMatrixIndex.csv")
 distanceMatrixIndex_dt<-data.table(distanceMatrixIndex)
-setkey(distanceMatrixIndex_dt, sa1_main16)
+setkey(distanceMatrixIndex_dt, sa1_maincode_2016)
 
 # Reading in the attributed SA1 regions. I'm removing the geometry since it
 # won't be used here. Joining with the distance matrix index so the regions are
 # in the correct order.
 SA1_attributed <- inner_join(distanceMatrixIndex,
-                             st_read("data/sa1_attributed.sqlite", quiet=TRUE),
-                             by=c("sa1_main16"="sa1_mainco")) %>%
-  dplyr::select(-GEOMETRY)
+                             st_read("data/SA1attributed.sqlite", quiet=TRUE) %>%
+                               st_drop_geometry(),
+                             by="sa1_maincode_2016")
 SA1_attributed_dt<-data.table(SA1_attributed)
-setkey(SA1_attributed_dt,sa1_main16)
+setkey(SA1_attributed_dt,sa1_maincode_2016)
 
 # Reading in the addresses. I'm removing the geometry and converting it to X,Y.
-# These coordinates are in EPSG:7845, which is a projected coordinate system.
-addresses <- st_read("data/valid_addresses.sqlite", quiet=TRUE)
+# These coordinates are in EPSG:28355, which is a projected coordinate system.
+addresses <- st_read("data/addresses.sqlite", quiet=TRUE)
 addresses <- cbind(st_drop_geometry(addresses),
                    st_coordinates(addresses))
 addresses_dt<-data.table(addresses)
-setkey(addresses_dt, sa1_main16)
+setkey(addresses_dt, sa1_maincode_2016)
+
+# Need the x and y locations of the centroids
+sa1_centroids <- st_read("data/SA1centroids.sqlite", quiet=TRUE) %>%
+  st_drop_geometry()
+
+
 
 # This returns a dataframe with possible SA1_ids and their probabilities.
 # There are three probabilites returned:
@@ -50,7 +56,7 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
   #  filter(sa1_main16 == SA1_id) %>%
   index <- distanceMatrixIndex_dt[.(as.numeric(SA1_id))] %>%
     pull(index)
-  distances <-data.frame(index=1:10244,
+  distances <-data.frame(index=1:nrow(distanceMatrix),
                          distance=distanceMatrix[index,]) %>%
     inner_join(distanceMatrixIndex, by=c("index"="index")) %>%
     pull(distance)
@@ -59,22 +65,24 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
   modeSD <- NULL
   filteredset<-SA1_attributed_dt[.(as.numeric(SA1_id))]
   if(mode=="walk"){
-    modeMean <- filteredset$walking_mean
-    modeSD <- filteredset$walking_sd
+    modeMean <- filteredset$walk_mean
+    modeSD <- filteredset$walk_sd
   } else if(mode=="car"){
-    modeMean <- filteredset$driving_mean
-    modeSD <- filteredset$driving_sd
+    modeMean <- filteredset$car_mean
+    modeSD <- filteredset$car_sd
   } else if(mode=="pt"){
     modeMean <- filteredset$pt_mean
     modeSD <- filteredset$pt_sd
   } else if(mode=="bike"){
-    modeMean <- filteredset$bicycle_mean
-    modeSD <- filteredset$bicycle_sd
+    modeMean <- filteredset$bike_mean
+    modeSD <- filteredset$bike_sd
   }
   
-  attractionProbDensity <- SA1_attributed[,match(destination_category,colnames(SA1_attributed))] %>%
-    rescale(to=c(0,1))
-  attractionProbability <- attractionProbDensity/sum(attractionProbDensity, na.rm=TRUE) #normalising here so the sum of the probabilities equals 1
+  attractionProbability <- SA1_attributed[,match(destination_category,colnames(SA1_attributed))]
+  # unneeded now since probabilities are already rescaled
+  # attractionProbDensity <- SA1_attributed[,match(destination_category,colnames(SA1_attributed))] %>%
+  #   rescale(to=c(0,1))
+  # attractionProbability <- attractionProbDensity/sum(attractionProbDensity, na.rm=TRUE) #normalising here so the sum of the probabilities equals 1
 
   #distProbDensity <- dnorm(distances,mean=modeMean,sd=modeSD)
   #distProbDensity[is.na(attractionProbDensity)] <- NA # We aren't considering regions with no valid destination types
@@ -84,9 +92,9 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
   # within 2 standard deviations of the mode mean - Dhi, 21/Feb/20
   dd<-distances 
   dd[dd<(modeMean-(2*modeSD)) | (dd>modeMean+(2*modeSD))]<- NA # discard anything >2SDs either side
-  dd[is.na(attractionProbDensity)] <- NA # discard regions with no valid destination types
+  dd[is.na(attractionProbability)] <- NA # discard regions with no valid destination types
   if (sum(!is.na(dd)) == 0) return(NULL) # return NULL if nothing is left
-  if(sum(!is.na(dd)) == 1) {
+  if(sum(!is.na(dd)) == 1) { # if only one possible destination
     dd[!is.na(dd)]<-1
   } else {
     #  changed this to a z-score based method - Alan, 22/Jun/20
@@ -113,7 +121,7 @@ calculateProbabilities <- function(SA1_id,destination_category,mode) {
   multiplier=1 #  changed this from 4 to 1 - Dhi, 21/Feb/20
   combinedDensity <- multiplier*distProbability+attractionProbability
   combinedProbability <- combinedDensity/sum(combinedDensity, na.rm=TRUE) # normalising here so the sum of the probabilities equals 1
-  probabilityDF <- data.frame(sa1_main16=SA1_attributed$sa1_main16,
+  probabilityDF <- data.frame(sa1_maincode_2016=SA1_attributed$sa1_maincode_2016,
                               distProb=distProbability,
                               attractProb=attractionProbability,
                               combinedProb=combinedProbability) %>%
@@ -130,10 +138,10 @@ chooseMode <- function(SA1_id,destination_category) {
 
   # a list of the four mode probabilities for this SA1
   modeProbability <- SA1_attributed_dt[.(as.numeric(SA1_id))] %>%
-    dplyr::select(bicycle_proportion:walking_proportion) %>%
+    dplyr::select(walk_proportion:car_proportion) %>%
     unlist()
   
-  modeProbabilityDF <- data.frame(mode=c("bike","car","pt","walk"),
+  modeProbabilityDF <- data.frame(mode=c("walk","bike","pt","car"),
                                   modeProbability,
                                   stringsAsFactors=FALSE)
   mode<-sample(modeProbabilityDF$mode, size=1,
@@ -148,10 +156,10 @@ findLocationKnownMode <- function(SA1_id,destination_category,mode) {
   probabilityDF <- calculateProbabilities(SA1_id,destination_category,mode)
   #cat(str(probabilityDF))
   if(is.null(probabilityDF)) return(NULL)
-  if(length(probabilityDF$sa1_main16)==1) {
-    destinationSA1<-probabilityDF$sa1_main16
+  if(length(probabilityDF$sa1_maincode_2016)==1) {
+    destinationSA1<-probabilityDF$sa1_maincode_2016
   } else {
-    destinationSA1 <- sample(probabilityDF$sa1_main16, size=1,
+    destinationSA1 <- sample(probabilityDF$sa1_maincode_2016, size=1,
                            prob=probabilityDF$combinedProb)
   }
   return(c(mode,destinationSA1))
@@ -165,14 +173,14 @@ findLocation <- function(SA1_id,destination_category) {
 
 
 # Determine the chances of returning home for a given destination and transport mode
-# getReturnProbability(20604112202,20604112210,"commercial")
+# getReturnProbability(20604112202,20604112210,"car")
 getReturnProbability <- function(source_SA1,destination_SA1,mode) {
   # source_SA1=20607113903
   # destination_SA1=20803119308
   # mode="car"
   probabilityDF <- calculateProbabilities(destination_SA1,"home",mode)
   sourceProb <- probabilityDF %>%
-    filter(sa1_main16==source_SA1) %>%
+    filter(sa1_maincode_2016==source_SA1) %>%
     pull(distProb) # Note that we only use the distance probability here, not
                    # the combined probability.
   # sourceProb only returns regions within 2sd of the mean, so if the 
@@ -187,6 +195,7 @@ getReturnProbability <- function(source_SA1,destination_SA1,mode) {
 }
 
 # Assign coordinates to a location within a specified SA1 with a specified category 
+# getAddressCoordinates(20604112202,"commercial")
 getAddressCoordinates <- function(SA1_id,destination_category) {
   # SA1_id=20604112202
   # destination_category="commercial"
@@ -222,22 +231,39 @@ calcDistance <- function(from_sa1,to_sa1) {
 # planToSpatial(read.csv("output/5.locate/plan.csv"),'output/5.locate/plan.sqlite')
 planToSpatial <- function(pp,fileLocation) {
   
-  # Need the x and y locations of the centroids
-  sa1_centroids <- st_read("data/sa1_centroids.sqlite",
-                           query="SELECT sa1_main16,x,y FROM sa1_centroids")
   ppp <- pp %>%
     mutate(SA1_MAINCODE_2016=as.numeric(SA1_MAINCODE_2016)) %>%
     # Need the previous SA1 region
     mutate(prev_sa1=lag(SA1_MAINCODE_2016)) %>%
     # Ignore the first entries for a person as they won't have a valid prev SA1
     filter(!is.na(ArrivingMode)) %>%
-    inner_join(sa1_centroids, by=c("prev_sa1"="sa1_main16")) %>%
-    inner_join(sa1_centroids, by=c("SA1_MAINCODE_2016"="sa1_main16")) %>%
+    inner_join(sa1_centroids, by=c("prev_sa1"="sa1_maincode_2016")) %>%
+    inner_join(sa1_centroids, by=c("SA1_MAINCODE_2016"="sa1_maincode_2016")) %>%
     # turn the two SA1 centroids into line geometry
     mutate(GEOMETRY=paste0("LINESTRING(",x.x," ",y.x,",",x.y," ",y.y,")")) %>%
     st_as_sf(wkt = "GEOMETRY", crs = 28355) %>%
     dplyr::select(PlanId,Activity,StartBin,EndBin,AgentId,SA1_MAINCODE_2016,
                   LocationType,ArrivingMode,Distance)
+  # Write the spatial dataframe to file
+  st_write(ppp,fileLocation,delete_dsn=TRUE)
+}
+
+# Takes a plan with places and turns them into a series of
+# lines where the non-spatial data is for the destination.
+# Need to supply a plan and an output file location. I recommend using the 
+# .sqlite extension instead of shapefiles.
+# placeToSpatial(read.csv("output/6.place/plan.csv"),'output/6.place/plan.sqlite')
+placeToSpatial <- function(pp,fileLocation) {
+  # pp=read.csv("output/6.place/plan.csv")
+  # fileLocation='output/6.place/plan.sqlite'
+  ppp <- pp %>%
+    # Ignore the first entries for a person as they won't have a valid previous location
+    # turn the two SA1 centroids into line geometry
+    mutate(GEOMETRY=paste0("LINESTRING(",lag(x)," ",lag(y),",",x," ",y,")")) %>%
+    filter(!is.na(ArrivingMode)) %>%
+    st_as_sf(wkt = "GEOMETRY", crs = 28355) # %>%
+    # some legs end up at the same address, this would remove them
+    # filter(st_is_valid(.))
   # Write the spatial dataframe to file
   st_write(ppp,fileLocation,delete_dsn=TRUE)
 }
