@@ -1,7 +1,16 @@
+crop2Poly <- function(networkInput,selectPolygon){
+  # https://github.com/JamesChevalier/cities/tree/master/australia/victoria
+  focus_area_boundary <- getAreaBoundary(paste0("australia/victoria/",selectPolygon,".poly"), 28355)
+  networkInput[[1]] <- networkInput[[1]] %>%
+    filter(lengths(st_intersects(., focus_area_boundary)) > 0)
+  networkInput[[2]] <- networkInput[[2]] %>%
+    filter(from_id%in%networkInput[[1]]$id & to_id%in%networkInput[[1]]$id)
+  return(networkInput)
+}
+
 getAreaBoundary <- function(shire, new_crs){
   selected_shire_URL <- paste0("https://raw.githubusercontent.com/JamesChevalier/cities/master/", shire)
   download.file(selected_shire_URL, "file.poly" )
-  
   my_data <- read.delim("file.poly", header = F, blank.lines.skip = TRUE) %>%
     filter(!is.na(V2)) %>%
     dplyr::select("V2", "V3") %>%

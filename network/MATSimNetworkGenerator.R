@@ -1,12 +1,12 @@
 makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F, 
                             addGtfs=F, addIvabmPt=F, writeXml=F, writeSqlite=T){
 
-    # crop2TestArea=F
+    # crop2TestArea=T
     # shortLinkLength=20
-    # addElevation=F
+    # addElevation=T
     # addGtfs=F
     # addIvabmPt=F
-    # writeXml=F
+    # writeXml=T
     # writeSqlite=T
     
     message("========================================================")
@@ -38,12 +38,12 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   source('./functions/simplifyNetwork.R')
   source('./functions/exportSQlite.R')
   source('./functions/exportXML.R')
-  source('./functions/etc/getAreaBoundary.R')
+  source('./functions/crop2TestArea.R')
   source('./functions/etc/IVABMIntegrator.R')
   source('./functions/cleanNetwork.R')
   source('./functions/gtfs2PtNetowrk.R')
   source('./functions/restructureData.R')
-  source('./functions/addElevation.R')
+  source('./functions/addElevation2Nodes.R')
   
   source('functions/simplifyLines.R')
   source('functions/removeDangles.R')
@@ -55,10 +55,13 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   message("--------------------------------------------------------")
   
   # Note: writing logical fields to sqlite is a bad idea, so switching to integers
-  nodes <- st_read("data/network.sqlite",layer="nodes")
-  edges <- st_read("data/network.sqlite",layer="edges")
-  osm_metadata <- st_read("data/network.sqlite",layer="osm_metadata")
+  networkInput <- list(st_read("data/network.sqlite",layer="nodes"),
+                       st_read("data/network.sqlite",layer="edges"))
+  # select from https://github.com/JamesChevalier/cities/tree/master/australia/victoria
+  if(crop2TestArea)system.time(networkInput <- crop2Poly(networkInput,
+                                                                "city-of-melbourne_victoria"))  
   
+  osm_metadata <- st_read("data/network.sqlite",layer="osm_metadata")
   defaults_df <- buildDefaultsDF()
   system.time( osmAttributes <- processOsmTags(osm_metadata,defaults_df))
   
@@ -72,18 +75,18 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
     distinct()
   osmAttributeGroups2 <- osmAttributeGroups %>%
     dplyr::select(osm_id,road_type)
-  edgesWithType <- edges %>%
+  edgesWithType <- networkInput[[2]] %>%
     left_join(osmAttributeGroups2,by="osm_id") %>%
     dplyr::select(road_type,length,from_id,to_id) %>%
     st_sf()
   
-  system.time(noDangles <- removeDangles(nodes,edgesWithType,500))
+  system.time(noDangles <- removeDangles(networkInput[[1]],edgesWithType,500))
   system.time(linesSimplified <- simplifyLines(noDangles[[1]],noDangles[[2]]))
   system.time(NoDangles2 <- removeDangles(linesSimplified[[1]],
                                           linesSimplified[[2]],500))
   system.time(networkSimplified <- simplifyNetwork(NoDangles2[[1]],
                                                    NoDangles2[[2]],
-                                                   osm_metadata,shortLinkLength20))
+                                                   osm_metadata,shortLinkLength))
   system.time(noRedundancies <- removeRedundantUndirectedEdges(networkSimplified[[1]],
                                                                networkSimplified[[2]],
                                                                road_types))
@@ -97,19 +100,22 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
                                                      road_types))
   
   networkRestructured <- restructureData(networkAttributed)
+  if(addElevation) system.time(networkRestructured[[1]] <- addElevation2Nodes(networkRestructured[[1]], 
+                                                                        'data/DEMx10EPSG28355.tif')) 
+  if(addGtfs) system.time(networkRestructured[[2]] <- addGtfsLinks(networkRestructured[[1]], 
+                                                                   networkRestructured[[2]])) 
+  if(addIvabmPt) system.time(networkRestructured <- integrateIVABM(st_drop_geometry(networkRestructured[[1]]), 
+                                                                   networkRestructured[[2]]))
   
-  if(addElevation) system.time(networkRestructured[[1]] <- addElevation(networkRestructured[[1]], 'data/DEMx10EPSG28355.tif')) # adding elevation - comment if not needed
-  if(addGtfs) system.time(networkRestructured[[2]] <- addGtfsLinks(networkRestructured[[1]], networkRestructured[[2]])) # adding psedu-network from GFTS - comment if not needed
-  if(addIvabmPt) system.time(networkRestructured <- integrateIVABM(st_drop_geometry(networkRestructured[[1]]), networkRestructured[[2]])) # adding pt from IVABM - comment if not needed
-  
-  system.time(networkFinal <- cleanNetwork(networkRestructured, network_modes="")) # leave the network_modes empty if not needed
+  system.time(networkFinal <- cleanNetwork(networkRestructured, 
+                                           network_modes="")) # leave the network_modes empty if not needed
   
   # writing outputs ---------------------------------------------------------
   message("========================================================")
   message("|               **Launching Output Writing**           |")
   message("--------------------------------------------------------")
   
-  if(writeSqlite) system.time(exportSQlite(networkFinal, outputFileName = "MATSimNetwork_test_15July"))
-  if(writeXml) system.time(exportXML(networkFinal, outputFileName = "MATSimNetwork_test_15July")) # uncomment if you want xml output
+  if(writeSqlite) system.time(exportSQlite(networkFinal, outputFileName = "MATSimNetwork_test_22July_croped"))
+  if(writeXml) system.time(exportXML(networkFinal, outputFileName = "MATSimNetwork_test_22July_croped")) # uncomment if you want xml output
 }
 
