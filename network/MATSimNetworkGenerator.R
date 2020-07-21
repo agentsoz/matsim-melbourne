@@ -30,6 +30,7 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   library(raster)
   library(XML)
   library(rgdal)
+  library(purrr)
   
   #functions
   source('./functions/etc/logging.R')
