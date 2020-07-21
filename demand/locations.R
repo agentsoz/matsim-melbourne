@@ -34,6 +34,8 @@ setkey(addresses_dt, sa1_maincode_2016)
 # Need the x and y locations of the centroids
 sa1_centroids <- st_read("data/SA1centroids.sqlite", quiet=TRUE) %>%
   st_drop_geometry()
+sa1_centroids_dt<-data.table(sa1_centroids)
+setkey(sa1_centroids_dt, sa1_maincode_2016)
 
 
 
@@ -196,16 +198,22 @@ getReturnProbability <- function(source_SA1,destination_SA1,mode) {
 
 # Assign coordinates to a location within a specified SA1 with a specified category 
 # getAddressCoordinates(20604112202,"commercial")
+# getAddressCoordinates(21005144422,"home")
+
 getAddressCoordinates <- function(SA1_id,destination_category) {
-  # SA1_id=20604112202
-  # destination_category="commercial"
+  # SA1_id=21005144422
+  # destination_category="home"
   #potentialAddresses <- addresses %>%
   #  filter(sa1_main16==SA1_id & category==destination_category) %>%
   #  dplyr::mutate(id=row_number())
   potentialAddresses <- addresses_dt[.(SA1_id),]
   potentialAddresses <- potentialAddresses[potentialAddresses$category==destination_category,] %>%
     dplyr::mutate(id=row_number())
-  if(nrow(potentialAddresses)==0) return(NULL);
+  if(nrow(potentialAddresses)==0) {
+    # if no suitable destinations are found, default to the centroid of the SA1 region
+    return(sa1_centroids_dt[.(SA1_id), .(x,y)]%>%unlist())
+  }
+  # return(NULL);
   address_id <- sample(potentialAddresses$id, size=1,
                     prob=potentialAddresses$count)
   address_coordinates <- potentialAddresses %>%
@@ -265,7 +273,15 @@ placeToSpatial <- function(pp,fileLocation) {
     # some legs end up at the same address, this would remove them
     # filter(st_is_valid(.))
   # Write the spatial dataframe to file
-  st_write(ppp,fileLocation,delete_dsn=TRUE)
+  st_write(ppp,fileLocation,delete_layer=TRUE,layer="lines")
+  
+  ppp2 <- pp %>%
+    # Ignore the first entries for a person as they won't have a valid previous location
+    # turn the two SA1 centroids into line geometry
+    mutate(GEOMETRY=paste0("POINT(",x," ",y,")")) %>%
+    filter(!is.na(ArrivingMode)) %>%
+    st_as_sf(wkt = "GEOMETRY", crs = 28355)
+  st_write(ppp2,fileLocation,delete_layer=TRUE,layer="points")
 }
 
 # EXAMPLES
