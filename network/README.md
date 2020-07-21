@@ -42,10 +42,10 @@ to generate this network you want. A list of options for `makeNetwork.sh` and a 
 | Argument | Description                                                                       |
 |----------|-----------------------------------------------------------------------------------|
 | -t       | Cropping to a small test area (Boundary can be adjusted by editing the code)      |
-| -f       | Limiting the minor links only for a focus area, and only major links for the rest |
 | -s       | simplifying the network, minimum link length=20m                                  |
 | -z       | Adding elevation (requires the elevation data)                                    |
 | -pt      | Adding pt from GTFS (requires the GTFS data)                                      |
+| -ivabm   | Adding pt from IVABM (requires the IVABM network)                                 |
 | -xml     | Writing the output network in MATSim readable XML format                          |
 | -sqlite  | Writing the output network in SQLite format                                       |
 

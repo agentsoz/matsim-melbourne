@@ -1,20 +1,38 @@
-# This function starts from gtfs, generates MATSim's tranist vehicles, transit schedule and returns pt network
-# TODO send nodes as argument
-gtfs2PtNetowrk <- function(n_df,
-                           gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip", 
-                           analysis_start = as.Date("2019-10-11","%Y-%m-%d"), 
-                           analysis_end = as.Date("2019-10-17","%Y-%m-%d"),
-                           studyRegion=NA){
+
+addGtfsLinks <- function(nodes, 
+                         links,
+                         gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip", 
+                         analysis_start = as.Date("2019-10-11","%Y-%m-%d"), 
+                         analysis_end = as.Date("2019-10-17","%Y-%m-%d"),
+                         studyRegion=NA){
   # gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip"
   # analysis_start = as.Date("2019-10-11","%Y-%m-%d")
   # analysis_end = as.Date("2019-10-17","%Y-%m-%d")
+  # studyRegion=NA
+
+    links_pt <- processGtfs(nodes, gtfs_feed, analysis_start, analysis_end, studyRegion) # ToDo studyRegion = st_union(st_convex_hull(nodes)) 
+  links_pt <- links_pt %>% 
+    mutate(oneway=1) %>% 
+    dplyr::select(names(links)) 
+  links <- rbind(links, as.data.frame(links_pt)) %>% distinct()
   
+  return(links)
+}
+
+processGtfs <- function(n_df,
+                        gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip", 
+                        analysis_start = as.Date("2019-10-11","%Y-%m-%d"), 
+                        analysis_end = as.Date("2019-10-17","%Y-%m-%d"),
+                        studyRegion=NA){
+  # gtfs_feed = "data/gtfs_au_vic_ptv_20191004.zip"
+  # analysis_start = as.Date("2019-10-11","%Y-%m-%d")
+  # analysis_end = as.Date("2019-10-17","%Y-%m-%d")
+  # studyRegion=NA   # TODO studyRegion = st_union(st_convex_hull(nodes)) won't work
   library('tidytransit')
   library('hablar')
   library('lwgeom')
   library('hms')
 
-  
   gtfs <- read_gtfs(gtfs_feed)
   
   validCalendar <- gtfs$calendar %>%
@@ -149,7 +167,7 @@ gtfs2PtNetowrk <- function(n_df,
   
   # making tables for XML
   
-  # data/transitVehicles.xml: vehicle
+  # ./data/transitVehicles.xml: vehicle
   #id is just the trip_id. This means we can potentially have a different vehicle for each trip. I have also set the vehicle type here.
   vehicles <- validTrips %>%
     filter(trip_id%in%validStopTimesSnapped$trip_id) %>%
@@ -161,7 +179,7 @@ gtfs2PtNetowrk <- function(n_df,
     dplyr::select(id=trip_id,type) %>%
     arrange(id,type)
   
-  # data/transitSchedule.xml: transitSchedule > transitStops
+  # ./data/transitSchedule.xml: transitSchedule > transitStops
   transitStops <- ptNetwork %>%
     dplyr::select(from_id,to_id,from_x,from_y,stop_id) %>%
     # the id column is the issue, as it doesn't exist
@@ -170,8 +188,8 @@ gtfs2PtNetowrk <- function(n_df,
     mutate(linkRefId=as.factor(paste0(from_id,"_",to_id))) %>%
     dplyr::select(stop_id,linkRefId,from_id,to_id,x=from_x,y=from_y) 
   
-  # data/transitSchedule.xml: transitSchedule > transitRoute > routeProfile
-  # data/transitSchedule.xml: transitSchedule > transitRoute > route
+  # ./data/transitSchedule.xml: transitSchedule > transitRoute > routeProfile
+  # ./data/transitSchedule.xml: transitSchedule > transitRoute > route
   # trip_id is the transitRoute (i.e., each trip is its own route, with a single trip. This allows for longer offsets during peak traffic.)
   # route is the same as the refID column since we use a direct line between each stop.
   routeProfile <- ptNetwork %>%
@@ -179,7 +197,7 @@ gtfs2PtNetowrk <- function(n_df,
     inner_join(transitStops,by=c("from_id","to_id")) %>%
     dplyr::select(trip_id,arrivalOffset,departureOffset,refId=stop_id,from_id,to_id) # NOTE: route.link.refId is not the same as the refId column
   
-  # data/transitSchedule.xml: transitSchedule > transitRoute > departures
+  # ./data/transitSchedule.xml: transitSchedule > transitRoute > departures
   #vehicleRefId is just the trip_id. This means we can potentially have a different vehicle for each trip. I have also set the vehicle type here.
   departures <- ptNetwork %>%
     # filter(row_number()<200) %>%
@@ -204,24 +222,24 @@ gtfs2PtNetowrk <- function(n_df,
   cat(
     "<?xml version=\"1.0\" ?>
 <vehicleDefinitions xmlns=\"http://www.matsim.org/files/dtd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.matsim.org/files/dtd http://www.matsim.org/files/dtd/vehicleDefinitions_v1.0.xsd\">\n",
-    file="data/transitVehicles.xml",append=FALSE)
+    file="./data/transitVehicles.xml",append=FALSE)
   for (i in 1:nrow(vehicleTypes)) {
-    cat(paste0("  <vehicleType id=\"",vehicleTypes[i,]$id,"\">\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("    <description>",vehicleTypes[i,]$description,"</description>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("    <capacity>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("      <seats persons=\"",vehicleTypes[i,]$seats,"\"/>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("      <standingRoom persons=\"",vehicleTypes[i,]$standingRoom,"\"/>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("    </capacity>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("    <length meter=\"",vehicleTypes[i,]$length,"\"/>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("    <accessTime secondsPerPerson=\"",vehicleTypes[i,]$accessTime,"\"/>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("    <egressTime secondsPerPerson=\"",vehicleTypes[i,]$egressTime,"\"/>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("    <passengerCarEquivalents pce=\"",vehicleTypes[i,]$passengerCarEquivalents,"\"/>\n"),file="data/transitVehicles.xml",append=TRUE)
-    cat(paste0("  </vehicleType>\n"),file="data/transitVehicles.xml",append=TRUE)
+    cat(paste0("  <vehicleType id=\"",vehicleTypes[i,]$id,"\">\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("    <description>",vehicleTypes[i,]$description,"</description>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("    <capacity>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("      <seats persons=\"",vehicleTypes[i,]$seats,"\"/>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("      <standingRoom persons=\"",vehicleTypes[i,]$standingRoom,"\"/>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("    </capacity>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("    <length meter=\"",vehicleTypes[i,]$length,"\"/>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("    <accessTime secondsPerPerson=\"",vehicleTypes[i,]$accessTime,"\"/>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("    <egressTime secondsPerPerson=\"",vehicleTypes[i,]$egressTime,"\"/>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("    <passengerCarEquivalents pce=\"",vehicleTypes[i,]$passengerCarEquivalents,"\"/>\n"),file="./data/transitVehicles.xml",append=TRUE)
+    cat(paste0("  </vehicleType>\n"),file="./data/transitVehicles.xml",append=TRUE)
   }
   for (i in 1:nrow(vehicles)) {
-    cat(paste0("  <vehicle id=\"",vehicles[i,]$id,"\" type=\"",vehicles[i,]$type,"\"/>\n"),file="data/transitVehicles.xml",append=TRUE)
+    cat(paste0("  <vehicle id=\"",vehicles[i,]$id,"\" type=\"",vehicles[i,]$type,"\"/>\n"),file="./data/transitVehicles.xml",append=TRUE)
   }
-  cat(paste0("</vehicleDefinitions>\n"),file="data/transitVehicles.xml",append=TRUE)
+  cat(paste0("</vehicleDefinitions>\n"),file="./data/transitVehicles.xml",append=TRUE)
   
   
   
@@ -232,26 +250,26 @@ gtfs2PtNetowrk <- function(n_df,
 <!DOCTYPE transitSchedule SYSTEM \"http://www.matsim.org/files/dtd/transitSchedule_v1.dtd\">
 <transitSchedule>
   <transitStops>\n",
-    file="data/transitSchedule.xml",append=FALSE)
+    file="./data/transitSchedule.xml",append=FALSE)
   
   for (i in 1:nrow(transitStops)) {
     # for (i in 1:100) {
     cat(paste0("    <stopFacility id=\"",transitStops[i,]$stop_id,"\" isBlocking=\"false\" linkRefId=\"",
                transitStops[i,]$linkRefId,"\" x=\"",transitStops[i,]$x,"\" y=\"",
-               transitStops[i,]$y,"\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+               transitStops[i,]$y,"\"/>\n"),file="./data/transitSchedule.xml",append=TRUE)
   }
-  cat(paste0("  </transitStops>\n"),file="data/transitSchedule.xml",append=TRUE)
-  cat(paste0("  <transitLine id=\"Melbourne\">\n"),file="data/transitSchedule.xml",append=TRUE)
+  cat(paste0("  </transitStops>\n"),file="./data/transitSchedule.xml",append=TRUE)
+  cat(paste0("  <transitLine id=\"Melbourne\">\n"),file="./data/transitSchedule.xml",append=TRUE)
   
   # TODO Ask @Alan to check this part:
   # for (i in 1:nrow(vehicleTripMatching)) {
   for (i in 1:100) {
     routeProfileCurrent <- routeProfile%>%filter(trip_id==vehicleTripMatching[i,]$trip_id) 
     if(nrow(routeProfileCurrent)>0){ # I added this to drop those empty route profiles
-      cat(paste0("    <transitRoute id=\"",vehicleTripMatching[i,]$trip_id,"\">\n"),file="data/transitSchedule.xml",append=TRUE)
-      cat(paste0("      <description>",vehicleTripMatching[i,]$service_id,"</description>\n"),file="data/transitSchedule.xml",append=TRUE)
-      cat(paste0("      <transportMode>",vehicleTripMatching[i,]$service_type,"</transportMode>\n"),file="data/transitSchedule.xml",append=TRUE)
-      cat(paste0("      <routeProfile>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("    <transitRoute id=\"",vehicleTripMatching[i,]$trip_id,"\">\n"),file="./data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <description>",vehicleTripMatching[i,]$service_id,"</description>\n"),file="./data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <transportMode>",vehicleTripMatching[i,]$service_type,"</transportMode>\n"),file="./data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <routeProfile>\n"),file="./data/transitSchedule.xml",append=TRUE)
       
       for (j in 1:nrow(routeProfileCurrent)) {
         cat(paste0("        <stop arrivalOffset=\"",
@@ -260,18 +278,18 @@ gtfs2PtNetowrk <- function(n_df,
                    routeProfileCurrent[j,]$departureOffset,
                    "\" refId=\"",
                    routeProfileCurrent[j,]$refId,
-                   "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+                   "\"/>\n"),file="./data/transitSchedule.xml",append=TRUE)
       }
-      cat(paste0("      </routeProfile>\n"),file="data/transitSchedule.xml",append=TRUE)
-      cat(paste0("      <route>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      </routeProfile>\n"),file="./data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <route>\n"),file="./data/transitSchedule.xml",append=TRUE)
       for (j in 1:nrow(routeProfileCurrent)) {
         cat(paste0("        <link refId=\"",
                    paste0(routeProfileCurrent[j,]$from_id,"_",routeProfileCurrent[j,]$to_id),
-                   "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+                   "\"/>\n"),file="./data/transitSchedule.xml",append=TRUE)
       }
-      cat(paste0("      </route>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      </route>\n"),file="./data/transitSchedule.xml",append=TRUE)
       
-      cat(paste0("      <departures>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      <departures>\n"),file="./data/transitSchedule.xml",append=TRUE)
       departuresCurrent <- departures%>%filter(vehicleRefId==vehicleTripMatching[j,]$trip_id)
       for (k in 1:nrow(departuresCurrent)) {
         cat(paste0("        <departure departureTime=\"",
@@ -280,15 +298,15 @@ gtfs2PtNetowrk <- function(n_df,
                    departuresCurrent[k,]$id,
                    "\" vehicleRefId=\"",
                    departuresCurrent[k,]$vehicleRefId,
-                   "\"/>\n"),file="data/transitSchedule.xml",append=TRUE)
+                   "\"/>\n"),file="./data/transitSchedule.xml",append=TRUE)
       }   
-      cat(paste0("      </departures>\n"),file="data/transitSchedule.xml",append=TRUE)
-      cat(paste0("    </transitRoute>\n"),file="data/transitSchedule.xml",append=TRUE)
+      cat(paste0("      </departures>\n"),file="./data/transitSchedule.xml",append=TRUE)
+      cat(paste0("    </transitRoute>\n"),file="./data/transitSchedule.xml",append=TRUE)
     }
 
   }
-  cat(paste0("  </transitLine>\n"),file="data/transitSchedule.xml",append=TRUE)
-  cat(paste0("</transitSchedule>\n"),file="data/transitSchedule.xml",append=TRUE)
+  cat(paste0("  </transitLine>\n"),file="./data/transitSchedule.xml",append=TRUE)
+  cat(paste0("</transitSchedule>\n"),file="./data/transitSchedule.xml",append=TRUE)
   
   
   

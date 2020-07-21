@@ -1,32 +1,25 @@
-makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0.1,
-                            add_z_flag=F,add.pt.flag=F,ivabm_pt_flag=F,write_xml=F,write_sqlite=F){
-  
-  # to Check with Alan
-  # - Removed the cropings and flag areas as they seemed redundant now that we have small network
-  # - removed bi-directional link processing as it is now done in the postgres code
-  # - Removed the simplifications as they are now done elsewhere
-  
-  # test_area_flag=F
-  # focus_area_flag=F
-  # shortLinkLength=20
-  # add_z_flag=F
-  # add.pt.flag=F
-  # ivabm_pt_flag=F
-  # write_xml=F
-  # write_sqlite=T
-  
-  message("========================================================")
-  message("                **Network Generation Setting**")
-  message("--------------------------------------------------------")
-  message(paste0("- Cropping to a test area:                        ",test_area_flag))
-  message(paste0("- Detailed network only in the focus area:        ", focus_area_flag))
-  message(paste0("- Shortest link lenght in network simplification: ", shortLinkLength))
-  message(paste0("- Adding elevation:                               ", add_z_flag))
-  message(paste0("- Adding PT from GTFS:                            ", add.pt.flag))
-  message(paste0("- Writing outputs in MATSim XML format:           ", write_xml))
-  message(paste0("- Writing outputs in SQLite format:               ", write_sqlite))
-  message("========================================================")
-  # 
+makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F, 
+                            addGtfs=F, addIvabmPt=F, writeXml=F, writeSqlite=T){
+
+    # crop2TestArea=F
+    # shortLinkLength=20
+    # addElevation=F
+    # addGtfs=F
+    # addIvabmPt=F
+    # writeXml=F
+    # writeSqlite=T
+    
+    message("========================================================")
+    message("                **Network Generation Setting**")
+    message("--------------------------------------------------------")
+    message(paste0("- Cropping to a test area:                        ",test_area_flag))
+    message(paste0("- Detailed network only in the focus area:        ", focus_area_flag))
+    message(paste0("- Shortest link lenght in network simplification: ", shortLinkLength))
+    message(paste0("- Adding elevation:                               ", add_z_flag))
+    message(paste0("- Adding PT from GTFS:                            ", add.pt.flag))
+    message(paste0("- Writing outputs in MATSim XML format:           ", write_xml))
+    message(paste0("- Writing outputs in SQLite format:               ", write_sqlite))
+    message("========================================================")
   #libraries
   library(sf)
   library(lwgeom)
@@ -39,6 +32,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   library(rgdal)
   
   #functions
+  source('./functions/etc/logging.R')
   source('./functions/buildDefaultsDF.R')
   source('./functions/processOsmTags.R')
   source('./functions/simplifyNetwork.R')
@@ -46,17 +40,19 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
   source('./functions/exportXML.R')
   source('./functions/etc/getAreaBoundary.R')
   source('./functions/etc/IVABMIntegrator.R')
-  source('./functions/etc/logging.R')
   source('./functions/cleanNetwork.R')
   source('./functions/gtfs2PtNetowrk.R')
+  source('./functions/restructureData.R')
+  source('./functions/addElevation.R')
   
   source('functions/simplifyLines.R')
   source('functions/removeDangles.R')
   source('functions/removeRedundantUndirectedEdges.R')
   source('functions/addRoadAttributes.R')
   
-  
-  # New method for simplifiying network ----------------------------------------------------------
+  message("========================================================")
+  message("                **Launching Network Generation**")
+  message("--------------------------------------------------------")
   
   # Note: writing logical fields to sqlite is a bad idea, so switching to integers
   nodes <- st_read("data/network.sqlite",layer="nodes")
@@ -87,7 +83,7 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
                                           linesSimplified[[2]],500))
   system.time(networkSimplified <- simplifyNetwork(NoDangles2[[1]],
                                                    NoDangles2[[2]],
-                                                   osm_metadata,20))
+                                                   osm_metadata,shortLinkLength20))
   system.time(noRedundancies <- removeRedundantUndirectedEdges(networkSimplified[[1]],
                                                                networkSimplified[[2]],
                                                                road_types))
@@ -100,80 +96,20 @@ makeMatsimNetwork<-function(test_area_flag=F,focus_area_flag=F,shortLinkLength=0
                                                      noRedundancies2[[2]],
                                                      road_types))
   
-  #st_write(networkAttributed[[2]],'data/networkAttributed.sqlite', layer='links', delete_layer=T)
-  #st_write(networkAttributed[[1]],'data/networkAttributed.sqlite', layer='nodes', delete_layer=T)
+  networkRestructured <- restructureData(networkAttributed)
   
-  # For simplicity for now I divide them into nodes and links, we can switch to keeping NetworkAttributed in next versions
-  nodes <- networkAttributed[[1]]
-  nodes <- nodes %>% # Changing to MATSim expected format
-    mutate(x = sf::st_coordinates(.)[,1],
-           y = sf::st_coordinates(.)[,2]) %>% 
-    mutate(type=if_else(as.logical(is_roundabout), 
-                        true = if_else(as.logical(is_signal), 
-                                       true = "signalised_roundabout",
-                                       false = "simple_roundabout"), 
-                        false = if_else(as.logical(is_signal), 
-                                        true = "signalised_intersection",
-                                        false = "simple_intersection"))) %>% 
-    dplyr::select(id, x, y, type, geom)
-
-  links <- networkAttributed[[2]] # What happended to the OSM ID? and also highway tag - AJ 14 July 2020
-    
-  links <- links %>%  # For the next steps it is probably faster and easier if links are not spatial objects - AJ 14 July 2020
-    sf::st_coordinates() %>%
-    as.data.frame() %>%
-    cbind(name=c("from","to")) %>%
-    tidyr::pivot_wider(names_from = name, values_from = c(X,Y)) %>% 
-    cbind(st_drop_geometry(links)) %>% 
-    dplyr::select(from_id, to_id, fromX=X_from, fromY=Y_from, toX=X_to, toY=Y_to, length, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes)
-    
-  ## Adding elevation
-  #TODO: Fix the DEM so it covers the entire area.
-  if(add_z_flag){
-    elevation <- raster('data/DEMx10EPSG28355.tif') 
-    nodes$z <- round(raster::extract(elevation ,as(nodes, "Spatial"),method='bilinear'))/10 # TODO Not working properly
-    nodes <- nodes %>% distinct(id,.keep_all = T) # id's should be unique
-  }else{
-    nodes <- nodes %>% 
-      distinct(id,.keep_all = T) # id's should be unique
-  }
-
-  if(add.pt.flag){
-    links_pt <- gtfs2PtNetowrk(nodes) # ToDo studyRegion = st_union(st_convex_hull(nodes)) 
-    links_pt <- links_pt %>% 
-      mutate(oneway=1) %>% 
-      dplyr::select(names(links)) # highway and id are missing at the moment, not sure if necessary  - AJ 14 July 2020
-    links <- rbind(links, as.data.frame(links_pt)) %>% distinct()
-  }
+  if(addElevation) system.time(networkRestructured[[1]] <- addElevation(networkRestructured[[1]], 'data/DEMx10EPSG28355.tif')) # adding elevation - comment if not needed
+  if(addGtfs) system.time(networkRestructured[[2]] <- addGtfsLinks(networkRestructured[[1]], networkRestructured[[2]])) # adding psedu-network from GFTS - comment if not needed
+  if(addIvabmPt) system.time(networkRestructured <- integrateIVABM(st_drop_geometry(networkRestructured[[1]]), networkRestructured[[2]])) # adding pt from IVABM - comment if not needed
   
-  # Cleaning before writing
-  system.time(
-    df <- cleanNetwork(links, nodes, "")
-  ) 
-  nodes<- df[[1]]
-  links<- df[[2]]
-
-  # We are not likely to use this again, will remove soon - AJ 14 July 2020
-  #if(ivabm_pt_flag){
-  #  df2 <-integrateIVABM(st_drop_geometry(nodes),links)
-    #nodes<- df[[1]]
-    #links<- df[[2]]
-  #}
+  system.time(networkFinal <- cleanNetwork(networkRestructured, network_modes="")) # leave the network_modes empty if not needed
   
-  ## writing outputs - sqlite
-  if (write_sqlite) {
-    cat('\n')
-    echo(paste0('Writing the sqlite output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
-    exportSQlite(links, nodes, outputFileName = "MATSimNetwork_test_14July")
-    echo(paste0('Finished generating the sqlite output\n'))
-  }
+  # writing outputs ---------------------------------------------------------
+  message("========================================================")
+  message("|               **Launching Output Writing**           |")
+  message("--------------------------------------------------------")
   
-  ## writing outputs - MATSim XML
-  # TODO make the xml writer dynamic based on the optional network attributes
-  if (write_xml) {
-    cat('\n')
-    echo(paste0('Writing the XML output: ', nrow(links), ' links and ', nrow(nodes),' nodes\n'))
-    exportXML(links, st_drop_geometry(nodes), outputFileName = "MATSimNetwork_test_14July", add_z_flag)
-    echo(paste0('Finished generating the xml output\n'))
-  }
+  if(writeSqlite) system.time(exportSQlite(networkFinal, outputFileName = "MATSimNetwork_test_15July"))
+  if(writeXml) system.time(exportXML(networkFinal, outputFileName = "MATSimNetwork_test_15July")) # uncomment if you want xml output
 }
+

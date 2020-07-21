@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 declare -a FLAGS
 
-FLAGS=(F F 0.01 F F F F)
+FLAGS=(F 0.01 F F F F F)
 
 while test $# -gt 0
 do
     case "$1" in
         -t) FLAGS[0]=T
             ;;
-        -f) FLAGS[1]=T
+        -s) FLAGS[1]=20
             ;;
-        -s) FLAGS[2]=20
+        -z) FLAGS[2]=T
             ;;
-        -z) FLAGS[3]=T
+        -pt) FLAGS[3]=T
             ;;
-        -pt) FLAGS[4]=T
-                        ;;
+        -ivbm) FLAGS[4]=T
+            ;;                
         -xml) FLAGS[5]=T
-                        ;;
+            ;;
         -sqlite) FLAGS[6]=T
-                        ;;
-        -A) FLAGS=(T T 20 T T T T)
-                        ;;
+            ;;
+        -A) FLAGS=(F 20 T T F T T)
+            ;;
         --*) echo "bad option $1"
             ;;
         *) echo "Unkown option $1"

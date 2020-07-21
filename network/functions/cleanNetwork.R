@@ -1,6 +1,6 @@
-cleanNetwork <- function(lines_df, nodes_df, cleaning_modes = "car"){
-  # lines_df <- links
-  # nodes_df <- nodes
+cleanNetwork <- function(networkRestructured, network_modes = "car"){
+  nodes_df <- networkRestructured[[1]]
+  lines_df <- networkRestructured[[2]]
   get_biggest_component <- function(l_df,m){
     # Filtering links based on the mode
     l_df_mode <- l_df %>% filter(modes %like% m)
@@ -39,14 +39,14 @@ cleanNetwork <- function(lines_df, nodes_df, cleaning_modes = "car"){
   lines_df <- lines_df %>% 
     distinct(id, .keep_all = TRUE)
   
-  if(cleaning_modes!=""){
+  if(network_modes!=""){
     lines_df_filtered <- lines_df[0,]
-    for (mode in cleaning_modes){
+    for (mode in network_modes){
       warning(paste('Cleaning network for ', mode))
       temp_df <- get_biggest_component(lines_df,mode)
       lines_df_filtered<- rbind(lines_df_filtered, temp_df)
     }
-  }else if(cleaning_modes==""){
+  }else if(network_modes==""){
     warning('Empty list of network modes, skip cleaning')
     lines_df_filtered <- lines_df
   }else{

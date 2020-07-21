@@ -1,4 +1,4 @@
-simplifyNetwork <- function(n_df,l_df,osm_metadata, shortLinkLength = 10){
+simplifyNetwork <- function(n_df,l_df,osm_metadata, shortLinkLength = 20){
   # l_df=lines_np
   # n_df=nodes_np
   # shortLinkLength = 20

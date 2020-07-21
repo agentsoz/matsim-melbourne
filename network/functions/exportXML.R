@@ -1,9 +1,13 @@
-exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
-  
+exportXML <- function(network4xml, outputFileName = "outputXML"){
   source('./functions/etc/logging.R')
   
+  n_df <- st_drop_geometry(network4xml[[1]])
+  l_df <- network4xml[[2]]
+  cat('\n')
+  echo(paste0('Writing the XML output: ', nrow(l_df), ' links and ', nrow(n_df),' nodes\n'))
+  
   addMATSimNode <- function(this_node){
-    if (addZ_coord){
+    if ("z" %in% colnames(this_node)){
       this_node <- this_node %>% mutate(z = if_else(is.na(z), true = 10, z))
       xnn<-newXMLNode("node", attrs=c(id=as.character(this_node$id), x=as.character(this_node$x), y=as.character(this_node$y), z=as.character(this_node$z), type=as.character(this_node$type)))# assign attribute list to attributes tag
       
@@ -42,7 +46,6 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   # Set the output file
   dir.create('./generatedNetworks/', showWarnings = FALSE)
   xml_file <- paste0('./generatedNetworks/',outputFileName,'.xml')
-  
   # Adding the prefix
   cat("<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE network SYSTEM \"http://www.matsim.org/files/dtd/network_v2.dtd\">\n
@@ -88,4 +91,7 @@ exportXML <- function(l_df, n_df, outputFileName = "outputXML", addZ_coord){
   
   cat("</links>\n",file=xml_file,append=TRUE)
   cat("</network>\n",file=xml_file,append=TRUE)
+  
+  echo(paste0('Finished generating the xml output\n'))
+  
 }
