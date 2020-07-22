@@ -1,7 +1,7 @@
 integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
   
-  # net1.nodes.df <- st_drop_geometry(nodes)
-  # net1.links.df <- links
+  # net1.nodes.df <- st_drop_geometry(networkRestructured[[1]])
+  # net1.links.df <- networkRestructured[[2]]
   # This code integrates RMIT generated network with PT and Park and Ride related network from IVABM
   # Required inputs from IVABM:
   #   - network file (.xml)
@@ -176,29 +176,57 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
   # Merging pnr nodes
   pnr.nodes.net1  <- net1.nodes.df %>%  
     filter(id %in% pnr.links.new.df$to_id | id %in% pnr.links.new.df$from_id) 
-  pnr.nodes.net2 <- net2.nodes.sf %>% st_drop_geometry() %>% 
+  pnr.nodes.net2 <- net2.nodes.sf %>% 
     filter(id %in% pnr.links.new.df$to_id | id %in% pnr.links.new.df$from_id) 
   
+  fncols <- function(data, cname) {
+    add <-cname[!cname%in%names(data)]
+    if(length(add)!=0) data[add] <- NA
+    data
+  }
+  
+  if(class(pnr.nodes.net2)[1]=="sf"){
+    pnr.nodes.net2 <- st_drop_geometry(pnr.nodes.net2)
+  }
   # Merging pnr links and nodes
+  pnr.nodes.net2 <-  fncols(pnr.nodes.net2, colnames(pnr.nodes.net1)) %>% 
+    dplyr::select(colnames(pnr.nodes.net1))
+  
   pnr.links.final <- rbind(pnr.links.new.df) %>% distinct(id, .keep_all = T)
   pnr.nodes.final <- rbind(pnr.nodes.net1, pnr.nodes.net2) %>% distinct(id, .keep_all = T)
-  exportXML(pnr.links.final, pnr.nodes.final, outputFileName = "pnrOnly_v010", addZ_coord = F)
+  # exportXML(list(pnr.links.final, pnr.nodes.final), outputFileName = "pnrOnly_v010")
   
   # Merging pnr and pt links
-  net2.links.final <- rbind(pnr.links.final, pt.links.df) %>% distinct(id, .keep_all = T) %>%mutate_if(is.factor, as.character)
-  net2.nodes.final <- rbind(st_drop_geometry(pt.nodes.df),pnr.nodes.final) %>% distinct(id, .keep_all = T)
+  pt.nodes.df <-  fncols(st_drop_geometry(pt.nodes.df), colnames(pnr.nodes.net1)) %>% 
+    dplyr::select(colnames(pnr.nodes.net1))
+  net2.links.final <- rbind(pnr.links.final, pt.links.df) %>% distinct(id, .keep_all = T) %>% mutate_if(is.factor, as.character)
+  net2.nodes.final <- rbind(pt.nodes.df,pnr.nodes.final) %>% distinct(id, .keep_all = T)
   
   # Net1 final
-  net1.links.final <- net1.links.df %>% mutate(oneway = "1") %>% 
-    dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes) %>%
+  net1.links.final <- net1.links.df %>% 
+    #mutate(oneway = "1") %>% 
+    #dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes) %>%
     mutate_if(is.factor, as.character)
+  
+  net2.links.final <-  net2.links.final %>% 
+    left_join(net2.nodes.final,by =c("from_id"="id")) %>% 
+    rename(fromX=x,fromY=y) %>% 
+    left_join(net2.nodes.final,by =c("to_id"="id")) %>% 
+    rename(toX=x,toY=y) %>% 
+    mutate(isCar=ifelse(stringr::str_detect(modes,"car"), yes = 1, no = 0)) %>% 
+    mutate(isCycle=ifelse(stringr::str_detect(modes,"bicycle"), yes = 1, no = 0)) %>% 
+    mutate(isWalk=ifelse(stringr::str_detect(modes,"walk"), yes = 1, no = 0)) %>% 
+    fncols(colnames(net1.links.final)) %>% 
+    dplyr::select(colnames(net1.links.final))
     
+    fncols(pnr.nodes.net2, colnames(pnr.nodes.net1)) %>% 
+    dplyr::select(colnames(pnr.nodes.net1))
   # Combining net1 with net2
   total.links <- rbind(net2.links.final, net1.links.final)
   total.nodes <- rbind(net2.nodes.final, net1.nodes.df) %>% 
     distinct(id, .keep_all = T) 
   
-  exportXML(total.links, total.nodes, outputFileName = "GMel_2D_IVABMPT_GMel_20m_pnrAdded_v1.3", addZ_coord = F)
+  #exportXML(list(total.links, total.nodes), outputFileName = "GMel_2D_IVABMPT_GMel_20m_pnrAdded_v1.3")
   
   return(list(total.nodes,total.links))
 

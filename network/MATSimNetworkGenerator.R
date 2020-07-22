@@ -45,6 +45,7 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   source('./functions/gtfs2PtNetowrk.R')
   source('./functions/restructureData.R')
   source('./functions/addElevation2Nodes.R')
+  source('./functions/adjustingBikeLinks.R')
   
   source('functions/simplifyLines.R')
   source('functions/removeDangles.R')
@@ -108,7 +109,7 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
                                                                    networkRestructured[[2]])) 
   if(addIvabmPt) system.time(networkRestructured <- integrateIVABM(st_drop_geometry(networkRestructured[[1]]), 
                                                                    networkRestructured[[2]]))
-  # 
+  
   system.time(networkFinal <- cleanNetwork(networkRestructured, 
                                            network_modes="")) # leave the network_modes empty if not needed
   
@@ -116,8 +117,8 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   message("========================================================")
   message("|               **Launching Output Writing**           |")
   message("--------------------------------------------------------")
-  
-  if(writeSqlite) system.time(exportSQlite(networkFinal, outputFileName = "MATSimNetwork_test_22July_croped"))
-  if(writeXml) system.time(exportXML(networkFinal, outputFileName = "MATSimNetwork_test_22July_croped")) # uncomment if you want xml output
+
+  if(writeSqlite) system.time(exportSQlite(networkFinal, outputFileName = "MATSimMelbNetwork"))
+  if(writeXml) system.time(exportXML(networkFinal, outputFileName = "MATSimMelbNetwork")) # uncomment if you want xml output
 }
 

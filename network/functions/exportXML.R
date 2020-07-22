@@ -1,8 +1,18 @@
 exportXML <- function(network4xml, outputFileName = "outputXML"){
   source('./functions/etc/logging.R')
   
-  n_df <- st_drop_geometry(network4xml[[1]])
-  l_df <- network4xml[[2]]
+  if(class(network4xml[[1]])[1]=="sf"){
+    n_df <- st_drop_geometry(network4xml[[1]])
+  }else{
+    n_df <- network4xml[[1]]
+  }
+  
+  if(class(network4xml[[1]])[1]=="sf"){
+    l_df <- st_drop_geometry(network4xml[[2]])
+  }else{
+    l_df <- network4xml[[2]]
+  }
+  
   cat('\n')
   echo(paste0('Writing the XML output: ', nrow(l_df), ' links and ', nrow(n_df),' nodes\n'))
   
