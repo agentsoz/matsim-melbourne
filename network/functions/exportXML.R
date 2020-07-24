@@ -7,7 +7,7 @@ exportXML <- function(network4xml, outputFileName = "outputXML"){
     n_df <- network4xml[[1]]
   }
   
-  if(class(network4xml[[1]])[1]=="sf"){
+  if(class(network4xml[[2]])[1]=="sf"){
     l_df <- st_drop_geometry(network4xml[[2]])
   }else{
     l_df <- network4xml[[2]]
@@ -31,7 +31,7 @@ exportXML <- function(network4xml, outputFileName = "outputXML"){
                                       y=as.character(this_node$y), 
                                       type=as.character(this_node$type)))
     }
-    if(x %%50 == 0) printProgress(x, nrow(this_node), 'node')
+    if(x %%50 == 0) printProgress(x, nrow(n_df), 'node')
     cat(saveXML(xnn),# assign attribute list to attributes tag
         file=xml_file,append=TRUE)
     cat("\n",file=xml_file,append=TRUE)

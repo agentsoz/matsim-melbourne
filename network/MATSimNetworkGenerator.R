@@ -102,6 +102,7 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
                                                      road_types))
   
   networkRestructured <- restructureData(networkAttributed)
+  bikePaths <- networkRestructured[[2]] %>% filter(bikeway=="bikepath") 
   system.time(networkRestructured[[2]] <- adjustingBikeLinks(networkRestructured[[2]]))
   if(addElevation) system.time(networkRestructured[[1]] <- addElevation2Nodes(networkRestructured[[1]], 
                                                                         'data/DEMx10EPSG28355.tif')) 

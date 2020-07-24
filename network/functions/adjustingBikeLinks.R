@@ -5,8 +5,8 @@ adjustingBikeLinks <- function(links){
   # if there only one direction is included.
   
   #links <- networkRestructured[[2]]
-  bikePaths <- links %>% 
-    filter(bikeway=="bikepath") 
+  #bikePaths <- links %>% 
+  #  filter(bikeway=="bikepath") 
   #test2 <- sapply(1:nrow(bikePaths),checkReverseLink) 
   links <- purrr::map_dfr(1:nrow(bikePaths),checkReverseLink) %>% 
     rbind(links)
