@@ -67,25 +67,29 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
   root.xml <- xmlParse(xml.file.URL)
   net.nodes.xml <- xmlRoot(root.xml)[2]
   net.links.xml <- xmlRoot(root.xml)[4]
+
+  net2.nodes.df <- xmlToList(net.nodes.xml[[1]]) %>% 
+    unlist() %>% 
+    matrix(nrow = xmlSize(net.nodes.xml[[1]]), ncol = 4, byrow = T) %>% 
+    as.data.frame() %>%
+    dplyr::select(-1) %>% 
+    rename(id = V2, x = V3, y = V4) %>% 
+    mutate(id=paste0("ivabm_",id))
+    
+  net2.nodes.sf <- net2.nodes.df %>% 
+    mutate_if(is.factor, as.character) %>% 
+    dplyr::select(id, x, y) %>% 
+    st_as_sf(coords = c("x", "y"), crs = 28355, remove = F) 
   
   net2.links.df <- xmlToList(net.links.xml[[1]]) %>% 
     unlist() %>%
     matrix(nrow = xmlSize(net.links.xml[[1]]), ncol = 10, byrow = T) %>% 
     as.data.frame() %>% 
     dplyr::select(id = V2, from_id = V3, to_id = V4, length = V5, freespeed = V6, 
-                  capacity = V7, permlanes = V8, oneway = V9, modes = V10)
+                  capacity = V7, permlanes = V8, oneway = V9, modes = V10) %>% 
+    mutate(from_id=paste0("ivabm_",from_id)) %>% 
+    mutate(to_id=paste0("ivabm_",to_id)) 
   
-  net2.nodes.df <- xmlToList(net.nodes.xml[[1]]) %>% 
-    unlist() %>% 
-    matrix(nrow = xmlSize(net.nodes.xml[[1]]), ncol = 4, byrow = T) %>% 
-    as.data.frame() %>%
-    dplyr::select(-1) %>% 
-    rename(id = V2, x = V3, y = V4) 
-    
-  net2.nodes.sf <- net2.nodes.df %>% 
-    mutate_if(is.factor, as.character) %>% 
-    dplyr::select(id, x, y) %>% 
-    st_as_sf(coords = c("x", "y"), crs = 28355, remove = F) 
   
   # Getting transit network -------------------------------------------------
   # Get Transit Lines from schedule - to check everything is covered
@@ -189,19 +193,26 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
     pnr.nodes.net2 <- st_drop_geometry(pnr.nodes.net2)
   }
   # Merging pnr links and nodes
-  pnr.nodes.net2 <-  fncols(pnr.nodes.net2, colnames(pnr.nodes.net1)) %>% 
-    dplyr::select(colnames(pnr.nodes.net1))
+  pnr.links.final <- pnr.links.new.df %>% distinct(id, .keep_all = T)
   
-  pnr.links.final <- rbind(pnr.links.new.df) %>% distinct(id, .keep_all = T)
-  pnr.nodes.final <- rbind(pnr.nodes.net1, pnr.nodes.net2) %>% distinct(id, .keep_all = T)
+  if(nrow(pnr.nodes.net2)>0){
+    pnr.nodes.net2 <-  fncols(pnr.nodes.net2, colnames(pnr.nodes.net1)) %>% 
+      dplyr::select(colnames(pnr.nodes.net1))
+    pnr.nodes.final <- rbind(pnr.nodes.net1, pnr.nodes.net2) %>% distinct(id, .keep_all = T)
+  }else{
+    pnr.nodes.final <- pnr.nodes.net1
+  }
+  
+  
   # exportXML(list(pnr.links.final, pnr.nodes.final), outputFileName = "pnrOnly_v010")
-  
   # Merging pnr and pt links
-  pt.nodes.df <-  fncols(st_drop_geometry(pt.nodes.df), colnames(pnr.nodes.net1)) %>% 
+  if(class(pt.nodes.df)[1]=="sf"){
+    pt.nodes.df <- st_drop_geometry(pt.nodes.df)
+  }
+  pt.nodes.df <-  fncols(pt.nodes.df, colnames(pnr.nodes.net1)) %>% 
     dplyr::select(colnames(pnr.nodes.net1))
   net2.links.final <- rbind(pnr.links.final, pt.links.df) %>% distinct(id, .keep_all = T) %>% mutate_if(is.factor, as.character)
-  net2.nodes.final <- rbind(pt.nodes.df,pnr.nodes.final) %>% distinct(id, .keep_all = T) %>% 
-    mutate(id = paste0("ivabm_",id))
+  net2.nodes.final <- rbind(pt.nodes.df,pnr.nodes.final) %>% distinct(id, .keep_all = T) 
   
   # Net1 final
   net1.links.final <- net1.links.df %>% 
@@ -209,9 +220,7 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
     #dplyr::select(id, from_id, to_id, length, freespeed, capacity, permlanes, oneway, modes) %>%
     mutate_if(is.factor, as.character)
   
-  net2.links.final <-  net2.links.final  %>% 
-    mutate(from_id=paste0("ivabm_",from_id),
-           to_id=paste0("ivabm_",to_id)) %>% 
+  net2.links.final <-  net2.links.final %>% 
     left_join(net2.nodes.final,by =c("from_id"="id")) %>% 
     rename(fromX=x,fromY=y) %>% 
     left_join(net2.nodes.final,by =c("to_id"="id")) %>% 
@@ -222,8 +231,6 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
     fncols(colnames(net1.links.final)) %>% 
     dplyr::select(colnames(net1.links.final)) 
     
-    fncols(pnr.nodes.net2, colnames(pnr.nodes.net1)) %>% 
-    dplyr::select(colnames(pnr.nodes.net1))
   # Combining net1 with net2
   total.links <- rbind(net2.links.final, net1.links.final)
   total.nodes <- rbind(net2.nodes.final, net1.nodes.df) %>% 

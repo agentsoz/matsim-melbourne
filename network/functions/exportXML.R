@@ -74,6 +74,7 @@ exportXML <- function(network4xml, outputFileName = "outputXML"){
   dir.create('./generatedNetworks/', showWarnings = FALSE)
   xml_file <- paste0('./generatedNetworks/',outputFileName,'.xml')
   # Adding the prefix
+  open(file(xml_file), "wt")
   cat("<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE network SYSTEM \"http://www.matsim.org/files/dtd/network_v2.dtd\">\n
 <network>\n
@@ -105,5 +106,5 @@ exportXML <- function(network4xml, outputFileName = "outputXML"){
   cat("</network>\n",file=xml_file,append=TRUE)
   
   echo(paste0('Finished generating the xml output\n'))
-  
+  close(file(xml_file))
 }
