@@ -71,4 +71,5 @@ runexample<- function() {
   writeInterval <- 100 # write to file every so many plans
   
   assignLocationsToActivities(plancsv, outcsv, writeInterval)
+  placeToSpatial(read.csv("output/6.place/plan.csv"),'output/6.place/plan.sqlite')
 }
