@@ -2,13 +2,7 @@
 
 DIR=$(dirname "$0")
 
-FILES=(
-  "distanceMatrix.rds"
-  "distanceMatrixIndex.csv"
-  "sa1_2016_aust.csv.gz"
-  "sa1_attributed.sqlite"
-  "valid_addresses.sqlite"
-)
+FILES=()
 ZIPS=(
   "melbourne-2016-population.zip"
   "VISTA_12_18_CSV.zip"

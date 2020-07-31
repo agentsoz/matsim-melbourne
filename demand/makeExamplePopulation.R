@@ -1,5 +1,10 @@
 runexample<-function() {
  
+  # set any global options
+  
+  # see https://www.tidyverse.org/blog/2020/05/dplyr-1-0-0-last-minute-additions/
+  options(dplyr.summarise.inform = FALSE)
+  
   # create the output dir
   outdir<-'output'
   dir.create(outdir, showWarnings = FALSE, recursive=TRUE)
