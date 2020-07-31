@@ -29,11 +29,11 @@ do
     esac
     shift
 done
-
+ALLFLAGS=$(echo ${FLAGS[*]} | sed -e 's/ /,/g')
 
 read -r -d '' SCRIPT << EOM
 source("MATSimNetworkGenerator.R");
-makeMatsimNetwork(${FLAGS[0]}, ${FLAGS[1]}, ${FLAGS[2]}, ${FLAGS[3]}, ${FLAGS[4]}, F, ${FLAGS[5]}, ${FLAGS[6]})
+makeMatsimNetwork($ALLFLAGS)
 EOM
 
 CMD="Rscript --vanilla --verbose -e '$SCRIPT'"

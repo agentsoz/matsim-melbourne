@@ -56,3 +56,18 @@ to generate this network you want. A list of options for `makeNetwork.sh` and a 
 ```
 
 For further adjustments, such as changing the boundary areas for test area and focus area, edit `./MATSimNetworkGenerator.R`
+
+## Troubleshooting
+### Postgres install on macOS 10.15+
+```
+brew install postgres
+brew install postgis
+brew services start postresql
+/usr/local/opt/postgres/bin/createuser -s postgres
+```
+If you have osgeo-postgis you have may to unlink that and link the newly installed postgis as follows.
+```
+brew unlink osgeo-postgis
+brew link postgis
+```
+Then restart your machine.
