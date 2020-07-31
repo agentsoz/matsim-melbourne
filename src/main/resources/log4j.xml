@@ -46,7 +46,12 @@
   <logger name="org.matsim.replanning">
       <level value="ERROR"/>
   </logger> -->
-  
+
+	<!-- mute too many INFO messages from EmissionUtils. Dhi 20/Mar/20 -->
+	<logger name="org.matsim.contrib.emissions.EmissionUtils">
+		<level value="ERROR"/>
+	</logger>
+
 	<root>
 		<priority value="info"></priority>
 		<appender-ref ref="stdout"/>

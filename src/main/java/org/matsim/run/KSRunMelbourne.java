@@ -47,7 +47,7 @@ public class KSRunMelbourne {
 		
 		{
 			StrategyConfigGroup.StrategySettings stratSets = new StrategyConfigGroup.StrategySettings( ) ;
-			stratSets.setStrategyName( DefaultPlanStrategiesModule.DefaultStrategy.ReRoute.name() );
+			stratSets.setStrategyName( DefaultPlanStrategiesModule.DefaultStrategy.ReRoute );
 			stratSets.setWeight(0.1);
 			config.strategy().addStrategySettings(stratSets);
 		}

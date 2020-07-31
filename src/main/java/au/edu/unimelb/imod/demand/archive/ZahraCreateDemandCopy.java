@@ -11,6 +11,8 @@ import java.util.Random;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.jfree.util.Log;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -30,9 +32,6 @@ import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.core.utils.gis.ShapeFileReader;
 import org.opengis.feature.simple.SimpleFeature;
-
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 
 /**
  * This is probably chain based
@@ -521,7 +520,7 @@ public class ZahraCreateDemandCopy {
 			Plan eachPlan = eachPerson.getSelectedPlan();
 			Leg leg = (Leg) eachPlan.getPlanElements().get(1);
 			if (leg.getMode().equals("pt"))
-				this.scenarioPUS.getPopulation().getPersonAttributes().putAttribute(personId.toString(),"subpopulation", "noCar");
+				this.scenarioPUS.getPopulation().getPersons().get(personId.toString()).getAttributes().putAttribute("subpopulation", "noCar");
 		}
 	}
 	

@@ -37,4 +37,13 @@ hs_err_pid*
 plansCoM.xml.gz
 population-from-latch.xml
 **/output
+
+# macOS files
+.DS_Store
+
+# ignore copies of MATSim
+/matsim-0.*
+
+# R ignores
 .Rproj.user
+packrat/lib*/

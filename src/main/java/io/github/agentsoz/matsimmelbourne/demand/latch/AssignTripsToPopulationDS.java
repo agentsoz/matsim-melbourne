@@ -1,10 +1,10 @@
 package io.github.agentsoz.matsimmelbourne.demand.latch;
 
 
-import com.vividsolutions.jts.geom.Point;
 import io.github.agentsoz.matsimmelbourne.utils.MMUtils;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
+import org.locationtech.jts.geom.Point;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.DefaultActivityTypes;
 import org.matsim.api.core.v01.Id;

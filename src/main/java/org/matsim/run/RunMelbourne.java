@@ -132,7 +132,7 @@ public class RunMelbourne {
 		
 		{
 			StrategySettings stratSets = new StrategySettings( ) ;
-			stratSets.setStrategyName( DefaultStrategy.ReRoute.name() );
+			stratSets.setStrategyName( DefaultStrategy.ReRoute );
 			stratSets.setWeight(0.1);
 			config.strategy().addStrategySettings(stratSets);
 		}
