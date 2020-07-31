@@ -43,3 +43,4 @@ population-from-latch.xml
 
 # ignore copies of MATSim
 /matsim-0.*
+packrat/lib*/
