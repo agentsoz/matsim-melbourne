@@ -15,7 +15,9 @@ removeRedundantUndirectedEdges <- function(nodes_current,edges_current,road_type
            to=max(from_id,to_id)) %>%
     mutate(from_id=from,
            to_id=to) %>%
-    dplyr::select(-from,-to,-oneway)
+    dplyr::select(-from,-to,-oneway) %>%
+    data.frame() %>%
+    st_sf()
   
   edgesDirected <- edges2 %>%
     filter(oneway==2) %>%
@@ -25,6 +27,7 @@ removeRedundantUndirectedEdges <- function(nodes_current,edges_current,road_type
     group_by(from_id,to_id,road_type) %>%
     slice(which.min(length)) %>%
     ungroup() %>%
+    data.frame() %>%
     st_sf() %>%
     st_set_crs(28355)
   return(list(nodes_current,edgesNoRedundancies))

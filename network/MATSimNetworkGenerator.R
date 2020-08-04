@@ -64,14 +64,14 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   if(crop2TestArea)system.time(networkInput <- crop2Poly(networkInput,
                                                                 "city-of-melbourne_victoria"))  
   
-  osm_metadata <- st_read("data/network.sqlite",layer="osm_metadata")
+  osm_metadata <- st_read("data/network.sqlite",layer="osm_metadata",quiet=T)
   defaults_df <- buildDefaultsDF()
   system.time( osmAttributes <- processOsmTags(osm_metadata,defaults_df))
   
   osmAttributeGroups <- osmAttributes %>%
     dplyr::select(osm_id,freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar,modes) %>%
     group_by(freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar) %>%
-    mutate(road_type=group_indices()) %>%
+    mutate(road_type=cur_group_id()) %>%
     ungroup()
   road_types <- osmAttributeGroups %>%
     dplyr::select(road_type,freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar,modes) %>%

@@ -35,9 +35,9 @@ cleanNetwork <- function(networkRestructured, network_modes = "car"){
   #  nodes_df <- nodes_df %>% mutate(id = paste0("p_",id))
   #}
     
-  # Removing repeatitive links
+  # Removing repetitive links
   lines_df <- lines_df %>% 
-    distinct(id, .keep_all = TRUE)
+    distinct(from_id,to_id, .keep_all = TRUE)
   
   if(network_modes!=""){
     lines_df_filtered <- lines_df[0,]
