@@ -18,6 +18,9 @@ cleanNetwork <- function(networkRestructured, network_modes = "car"){
     
     #n_df_filtered <- n_df %>%
     #  filter(id%in%nodes_in_largest_component)
+    # AB 2020-08-14: I think this should be: l_df_filtered <- lines_df %>%
+    # This would include walk paths provided they don't have any walk exclusive
+    # nodes.
     l_df_filtered <- l_df_mode %>%
       filter(from_id%in%nodes_in_largest_component & to_id%in%nodes_in_largest_component)
     

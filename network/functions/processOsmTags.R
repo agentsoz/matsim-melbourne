@@ -1,3 +1,10 @@
+# Bike hierarchy:
+# bikepath           = 4
+# seperated_lane     = 3
+# lane               = 2
+# shared_lane        = 1
+# no_lane/no_cycling = 0
+
 processOsmTags <- function(osm_df,this_defaults_df){
   # osm_df <- osm_metadata[1:10000,]
   # this_defaults_df <- defaults_df
@@ -7,9 +14,8 @@ processOsmTags <- function(osm_df,this_defaults_df){
   tagList <- strsplit(gsub('=>',',', gsub('"', '', osmWithDefaults$other_tags)),',')
   
   osmWithDefaults <- osmWithDefaults %>%
-    mutate(oneway=1, # Assuming 1 means two ways and 2 means two ways
-           bikeway=ifelse(highway=="cycleway","bikepath",NA)) %>%
-    dplyr::select(osm_id,highway,freespeed,permlanes,capacity,oneway,bikeway,isCycle,isWalk,isCar)
+    mutate(bikeway=ifelse(highway=="cycleway",4,0)) %>%
+    dplyr::select(osm_id,highway,freespeed,permlanes,capacity,isOneway,bikeway,isCycle,isWalk,isCar)
 
   getMetadataInfo <- function(i) {
     df <- osmWithDefaults[i,]
@@ -46,30 +52,24 @@ processOsmTags <- function(osm_df,this_defaults_df){
         }
       }
       
-      if(any(oneway_tags=="yes")) df$oneway[1]=2
+      if(any(oneway_tags=="yes")) df$isOneway[1]=1
       #if(any(bicycle_tags %in% c("yes","designated"))) df$bikeway[1]="unmarked"
-      if(any(cycleway_tags=="shared_lane")) df$bikeway[1]="shared_lane"
-      if(any(cycleway_tags=="lane") & df$highway[1]!="cycleway") df$bikeway[1]="lane"
-      if(any(cycleway_tags=="track")& df$highway[1]!="cycleway") df$bikeway[1]="seperated_lane"
+      if(any(cycleway_tags=="shared_lane")) df$bikeway[1]=1
+      if(any(cycleway_tags=="lane") & df$highway[1]!="cycleway") df$bikeway[1]=2
+      if(any(cycleway_tags=="track")& df$highway[1]!="cycleway") df$bikeway[1]=3
       if(any(car_tags=="no")) df$isCar[1]=0
       if(any(foot_tags=="no")) df$isWalk[1]=0
       if(any(foot_tags %in% c("yes","designated"))) df$isWalk[1]=1
-      if(!is.na(df$bikeway[1]) | any(bicycle_tags %in% c("yes","designated"))) df$isCycle[1]=1
+      if(df$bikeway[1]>0 | any(bicycle_tags %in% c("yes","designated"))) df$isCycle[1]=1
       if(any(bicycle_tags %in% "no")) df$isCycle[1]=0
     }
     return(df)
   }
 
-  osmAttributed <- lapply(1:nrow(osmWithDefaults),getMetadataInfo)%>%bind_rows()
-  
-  osmAttributedWithModes <- osmAttributed %>% 
-    mutate(modes=ifelse(                isCar==1,                          "car",    NA)) %>%
-    mutate(modes=ifelse(!is.na(modes)&isCycle==1, paste(modes,"bicycle",sep=","), modes)) %>%
-    mutate(modes=ifelse( is.na(modes)&isCycle==1,                      "bicycle", modes)) %>%
-    mutate(modes=ifelse( !is.na(modes)&isWalk==1,    paste(modes,"walk",sep=","), modes)) %>%
-    mutate(modes=ifelse(  is.na(modes)&isWalk==1,                         "walk", modes)) %>%
+  osmAttributed <- lapply(1:nrow(osmWithDefaults),getMetadataInfo) %>%
+    bind_rows() %>%
     # looks like the ones with no modes are mostly closed walking or cycling tracks
-    filter(!is.na(modes))
+    filter(isCycle+isWalk+isCar>0)
     
   # this code probably isn't needed anymore as it's been implemented in the getMetadataInfo function
     # osmAttributedCleaned  <- osmAttributedWithModes %>%
@@ -77,5 +77,5 @@ processOsmTags <- function(osm_df,this_defaults_df){
     #   mutate(permlanes = replace(permlanes, permlanes == 0.0, 1.0)) %>% 
     #   mutate(capacity = replace(capacity, capacity == 0.0, 100.0))
                     
-  return(osmAttributedWithModes)
+  return(osmAttributed)
 }

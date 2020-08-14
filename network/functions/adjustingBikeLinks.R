@@ -1,7 +1,7 @@
 adjustingBikeLinks <- function(links){
   # OSM don't record two way bikepaths, but most are.
   # As a solution I assume all bikepaths are bi-directional.
-  # This function duplicates a bikepath with revers direction
+  # This function duplicates a bikepath with reverse direction
   # if there only one direction is included.
   
   #links <- networkRestructured[[2]]
