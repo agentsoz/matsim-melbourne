@@ -1,4 +1,4 @@
-runexample<-function() {
+run<-function(percent, num) {
  
   # set any global options
   
@@ -13,8 +13,8 @@ runexample<-function() {
   sink(paste0(outdir,"/makeExamplePopulation.log"), append=FALSE, split=TRUE) # sink to both console and log file
   tryCatch({
     source('setup.R', local=TRUE); runexample()
-    source('sample.R', local=TRUE); runexample()
-    source('plan.R', local=TRUE); runexample()
+    source('sample.R', local=TRUE); runexample(percent)
+    source('plan.R', local=TRUE); runexample(num)
     source('match.R', local=TRUE); runexample()
     source('locate.R', local=TRUE); runexample()
     source('place.R', local=TRUE); runexample()
@@ -25,3 +25,12 @@ runexample<-function() {
     sink() # end the diversion
   })
 }
+
+runexample<-function() {
+  run(0.1, 5000) # 0.1% sample population
+}
+
+runtest<-function() {
+  run(0.01, 500) # 0.01% sample population
+}
+

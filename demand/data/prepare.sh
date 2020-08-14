@@ -2,7 +2,14 @@
 
 DIR=$(dirname "$0")
 
-FILES=()
+FILES=(
+"addresses.sqlite"
+"distanceMatrix.rds"
+"distanceMatrixIndex.csv"
+"sa1_2016_aust.csv.gz"
+"SA1attributed.sqlite"
+"SA1centroids.sqlite"
+)
 ZIPS=(
   "melbourne-2016-population.zip"
   "VISTA_12_18_CSV.zip"
@@ -18,7 +25,7 @@ exists() {
 # get all files
 ALLFILES=("${FILES[@]}" "${ZIPS[@]}")
 for file in ${ALLFILES[*]}; do
-  from="https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fdemand%2F2016&files=$file"
+  from="https://cloudstor.aarnet.edu.au/plus/s/xFhjoeRqwx21aGr/download?path=%2Fdemand%2Fdata&files=$file"
   to="$DIR/$file"
   if [ ! -f "$to" ] ; then
     if ! exists wget ; then

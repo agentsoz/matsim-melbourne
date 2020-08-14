@@ -405,8 +405,8 @@ generatePlans <- function(N, csv, endcsv, binCols, outdir, writeInterval) {
 }
 
 # example usage
-runexample<- function() {
-  N<-5000 # generate 10k VISTA 2012-18 like daily plans
+runexample<- function(num) {
+  N<-num # generate 10k VISTA 2012-18 like daily plans
   csv<-paste0('./output/1.setup/vista_2012_18_extracted_activities_weekday_time_bins.csv.gz')
   endcsv<-paste0('./output/1.setup/vista_2012_18_extracted_activities_weekday_end_dist_for_start_bins.csv.gz')
   binCols<-3:50 # specifies that columns 3-50 correspond to 48 time bins, i.e., 30-mins each

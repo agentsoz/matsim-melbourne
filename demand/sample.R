@@ -93,8 +93,8 @@ sampleMelbourne2016Population <- function(samplePercentage, outcsvgz) {
 }
 
 # example usage
-runexample<- function() {
-  samplesize<-0.1 # percentage
+runexample<- function(percent) {
+  samplesize<-percent
   outdir<-'./output/2.sample'
   dir.create(outdir, showWarnings = FALSE, recursive=TRUE)
   outfile<-paste0(outdir,'/sample.csv.gz')

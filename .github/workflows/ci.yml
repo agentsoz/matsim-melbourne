@@ -1,0 +1,70 @@
+on:
+  push:
+    branches: [ R ]
+  pull_request:
+    branches: [ R ]
+
+name: build
+
+jobs:
+  build:
+
+    runs-on: ubuntu-18.04
+
+    env:
+      R_LIBS_USER: ${{ github.workspace }}/RLibs
+
+    steps:
+
+    - name: Install required packages
+      run: sudo apt-get install libudunits2-dev libgdal-dev
+
+    - name: Clone agentsoz/matsim-melbourne
+      uses: actions/checkout@v2
+      with:
+        repository: agentsoz/matsim-melbourne
+        path: matsim-melbourne
+        ref: R
+
+    - name: Setup dirs and permissions for installing R packages
+      run: |
+        mkdir -p $R_LIBS_USER
+        sudo chown -R $USER:$USER $GITHUB_WORKSPACE/matsim-melbourne
+        sudo chown -R $USER:$USER $R_LIBS_USER
+
+    - name: Cache R packages
+      uses: actions/cache@v2
+      id: cache-packrat
+      env:
+        cache-name: cache-packrat-lib
+      with:
+        path: |
+          ${{ github.workspace }}/matsim-melbourne/packrat/lib
+          ${{ github.workspace }}/matsim-melbourne/demand/data
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-1-${{ hashFiles('**/packrat.lock') }}-${{ hashFiles('**/prepare.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-1-
+
+    - name: Install packrat and project dependencies
+      if: steps.cache-packrat.outputs.cache-hit != 'true'
+      working-directory: matsim-melbourne
+      shell: Rscript {0}
+      run: |
+        version
+        install.packages('packrat')
+        library(packrat)
+        packrat::restore()
+
+    - name: Get demand data
+      if: steps.cache-packrat.outputs.cache-hit != 'true'
+      working-directory: matsim-melbourne/demand/data
+      run: git checkout prepare.sh && ./prepare.sh
+
+    - name: Test demand generation
+      working-directory: matsim-melbourne
+      shell: Rscript {0}
+      run: |
+        library(data.table) # fixme: loads only if in repo root dir
+        setwd('./demand')
+        source('makeExamplePopulation.R')
+        runtest()
