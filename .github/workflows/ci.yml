@@ -1,8 +1,8 @@
 on:
   push:
-    branches: [ R ]
+    branches: [ master, R ]
   pull_request:
-    branches: [ R ]
+    branches: [ master, R ]
 
 name: build
 

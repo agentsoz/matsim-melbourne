@@ -7,25 +7,20 @@ adjustingBikeLinks <- function(links){
   #links <- networkRestructured[[2]]
   #bikePaths <- links %>% 
   #  filter(bikeway=="bikepath") 
-  #test2 <- sapply(1:nrow(bikePaths),checkReverseLink) 
-  links <- purrr::map_dfr(1:nrow(bikePaths),checkReverseLink) %>% 
-    rbind(links)
+  #test2 <- sapply(1:nrow(bikePaths),checkReverseLink)
   
-  return(links)
-}
-
-checkReverseLink <- function(x){
-  bp <- bikePaths[x,]
-  rvs <- bikePaths %>% 
-    filter(from_id%in%bp$to_id && to_id%in%bp$from_id)
-  if(nrow(rvs)==0){
-    bi_bp <- bp %>%
-      #mutate(modes=paste0("reversed_",from_id)) %>% 
-      rename(from_id=to_id, to_id=from_id, toX=fromX, toY=fromY, fromX=toX, fromY=toY) %>% 
-      #mutate(id=paste0("p_",from_id,"_",to_id,"_",row_number())) %>% 
-      dplyr::select(from_id, to_id, fromX, fromY, toX, toY, length, freespeed, permlanes,
-                    capacity, bikeway, isCycle, isWalk, isCar, modes)
-    
-    return(bi_bp)
-  }
+  bikePaths <- links %>% filter(bikeway=="bikepath") 
+  bikepaths_reverse <- bikePaths %>% 
+    rename(from_id=to_id, to_id=from_id, toX=fromX, toY=fromY, fromX=toX, fromY=toY) %>% 
+    #mutate(id=paste0("p_",from_id,"_",to_id,"_",row_number())) %>% 
+    dplyr::select(from_id, to_id, fromX, fromY, toX, toY, length, freespeed, permlanes,
+                  capacity, bikeway, isCycle, isWalk, isCar, modes)
+  
+  links_new <- rbind(links, bikepaths_reverse) %>% 
+    mutate(tempId = paste0(from_id,"_",to_id,bikeway,modes)) %>% 
+    distinct(tempId, .keep_all = T ) %>% 
+    dplyr::select(-tempId)
+  
+    return(links_new)
+  
 }
