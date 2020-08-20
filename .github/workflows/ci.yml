@@ -46,6 +46,16 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-1-
 
+    - name: Get demand data
+      if: steps.cache-packrat.outputs.cache-hit != 'true'
+      working-directory: matsim-melbourne/demand/data
+      run: git checkout prepare.sh && ./prepare.sh
+
+    - name: Get network data
+      if: steps.cache-packrat.outputs.cache-hit != 'true'
+      working-directory: matsim-melbourne/network/data
+      run: git checkout prepare.sh && ./prepare.sh -test
+
     - name: Install packrat and project dependencies
       if: steps.cache-packrat.outputs.cache-hit != 'true'
       working-directory: matsim-melbourne
@@ -56,15 +66,9 @@ jobs:
         library(packrat)
         packrat::restore()
 
-    - name: Get demand data
-      if: steps.cache-packrat.outputs.cache-hit != 'true'
-      working-directory: matsim-melbourne/demand/data
-      run: git checkout prepare.sh && ./prepare.sh
-
-    - name: Get network data
-      if: steps.cache-packrat.outputs.cache-hit != 'true'
-      working-directory: matsim-melbourne/network/data
-      run: git checkout prepare.sh && ./prepare.sh -test
+    - name: Test OSM processing for network generation
+      working-directory: matsim-melbourne/network
+      run: processOSM.sh
 
     - name: Test demand generation
       working-directory: matsim-melbourne
