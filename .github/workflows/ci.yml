@@ -41,6 +41,7 @@ jobs:
         path: |
           ${{ github.workspace }}/matsim-melbourne/packrat/lib
           ${{ github.workspace }}/matsim-melbourne/demand/data
+          ${{ github.workspace }}/matsim-melbourne/network/data
         key: ${{ runner.os }}-build-${{ env.cache-name }}-1-${{ hashFiles('**/packrat.lock') }}-${{ hashFiles('**/prepare.sh') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-1-
@@ -59,6 +60,11 @@ jobs:
       if: steps.cache-packrat.outputs.cache-hit != 'true'
       working-directory: matsim-melbourne/demand/data
       run: git checkout prepare.sh && ./prepare.sh
+
+    - name: Get network data
+      if: steps.cache-packrat.outputs.cache-hit != 'true'
+      working-directory: matsim-melbourne/network/data
+      run: git checkout prepare.sh && ./prepare.sh -test
 
     - name: Test demand generation
       working-directory: matsim-melbourne
