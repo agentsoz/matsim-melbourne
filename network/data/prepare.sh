@@ -17,7 +17,7 @@ do
         -demx10) FILES+=("DEMx10EPSG28355.tif")
                         ;;
         -test) isTest=true
-        	;;                
+        	;;
         -A) FILES=(
               "melbourne.osm"
               "melbourne.sqlite"
@@ -33,7 +33,19 @@ do
     shift
 done
 
-echo "Downlaoding ${FILES[@]} ..."
+if [ "$isTest"=true ] ; then
+  from="https://cloudstor.aarnet.edu.au/plus/s/FzDTSZy6t8PBJ2N/download"
+  to="$DIR/melbourne.osm"
+  if [ ! -f "$to" ] ; then
+    echo 'dowloading the test area'
+    CMD="wget -O \"$to\" \"$from\""; echo "$CMD" && eval "$CMD"
+  else
+    echo "Found $to so will use it"
+  fi
+  exit
+fi
+
+echo "Downloading ${FILES[@]} ..."
 
 for file in ${FILES[*]}; do
   from="https://cloudstor.aarnet.edu.au/plus/s/rLTlQJDRixhyan9/download?path=%2F&files=$file"
@@ -44,10 +56,3 @@ for file in ${FILES[*]}; do
     echo "Found $to so will use it"
   fi
 done
-
-if [ "$isTest"=true ] ; then
-  echo 'dowloading the test area'
-  from="https://cloudstor.aarnet.edu.au/plus/s/FzDTSZy6t8PBJ2N/download"
-  to="$DIR/melbourne.osm"
-  CMD="wget -O \"$to\" \"$from\""; echo "$CMD" && eval "$CMD"
-fi
