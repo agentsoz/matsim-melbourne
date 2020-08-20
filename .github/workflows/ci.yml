@@ -17,7 +17,7 @@ jobs:
     steps:
 
     - name: Install required packages
-      run: sudo apt-get install libudunits2-dev libgdal-dev
+      run: sudo apt-get install libudunits2-dev libgdal-dev postgresql postgresql-contrib
 
     - name: Clone agentsoz/matsim-melbourne
       uses: actions/checkout@v2
