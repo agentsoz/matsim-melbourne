@@ -106,11 +106,18 @@ jobs:
         PGPORT: 5432
 
     - name: Test MATSim network generation
-      working-directory: matsim-melbourne
+      working-directory: matsim-melbourne/network
       shell: Rscript {0}
       run: |
-        library(testthat)
-        testthat::test_dir("./network/tests/testthat", stop_on_failure = TRUE)
+        source("MATSimNetworkGenerator.R")
+        makeMatsimNetwork(F,20,F,F,F,F,T)
+        
+    # - name: Test MATSim network generation
+    #   working-directory: matsim-melbourne
+    #   shell: Rscript {0}
+    #   run: |
+    #     library(testthat)
+    #     testthat::test_dir("./network/tests/testthat", stop_on_failure = TRUE)
 
     - name: Test demand generation
       working-directory: matsim-melbourne
