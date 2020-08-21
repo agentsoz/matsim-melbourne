@@ -17,7 +17,7 @@ jobs:
     steps:
 
     - name: Install required packages
-      run: sudo apt-get install libudunits2-dev libgdal-dev postgresql postgresql-contrib
+      run: sudo apt-get install libudunits2-dev libgdal-dev postgresql postgresql-contrib gdal-bin
 
     - name: Clone agentsoz/matsim-melbourne
       uses: actions/checkout@v2
@@ -68,7 +68,7 @@ jobs:
 
     - name: Test OSM processing for network generation
       working-directory: matsim-melbourne/network
-      run: processOSM.sh
+      run: ./processOSM.sh
 
     - name: Test demand generation
       working-directory: matsim-melbourne
