@@ -106,10 +106,12 @@ jobs:
         PGPORT: 5432
 
     - name: Test MATSim network generation
-      working-directory: matsim-melbourne/network
+      working-directory: matsim-melbourne
       shell: Rscript {0}
       run: |
+        library(packrat)
         packrat::on()
+        setwd('./network')
         source("MATSimNetworkGenerator.R")
         makeMatsimNetwork(F,20,F,F,F,F,T)
 
