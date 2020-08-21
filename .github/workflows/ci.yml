@@ -9,7 +9,9 @@ name: build
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    # Need latest ubuntu for postgresql service container; see
+    # https://docs.github.com/en/actions/configuring-and-managing-workflows/creating-postgresql-service-containers
+    runs-on: ubuntu-latest
 
     env:
       R_LIBS_USER: ${{ github.workspace }}/RLibs
@@ -18,10 +20,11 @@ jobs:
       # Label used to access the service container
       postgres:
         # Docker Hub image
-        image: postgres
+        image: postgis/postgis:11-2.5
         # Provide the password for postgres
         env:
-          POSTGRES_PASSWORD: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: network_test
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -31,11 +34,38 @@ jobs:
         ports:
           # Maps tcp port 5432 on service container to the host
           - 5432:5432
-          
+      # # Label used to access the service container
+      # postgres:
+      #   # Docker Hub image
+      #   image: postgres:10
+      #   # Provide the password for postgres
+      #   env:
+      #       POSTGRES_PASSWORD: postgres
+      #       POSTGRES_DB: network_test
+      #   # Set health checks to wait until postgres has started
+      #   options: >-
+      #     --health-cmd pg_isready
+      #     --health-interval 10s
+      #     --health-timeout 5s
+      #     --health-retries 5
+      #   ports:
+      #     # Maps tcp port 5432 on service container to the host
+      #     - 5432:5432
+
     steps:
 
+    - name: Test postgres setup
+      run: |
+        psql -U postgres -c 'select version();'
+      env:
+        PGHOST: localhost
+        PGPASSWORD: postgres
+        PGPORT: 5432
+
     - name: Install required packages
-      run: sudo apt-get install libudunits2-dev libgdal-dev postgresql postgresql-contrib gdal-bin
+      run: |
+        sudo apt update
+        sudo apt-get install libudunits2-dev libgdal-dev gdal-bin
 
     - name: Clone agentsoz/matsim-melbourne
       uses: actions/checkout@v2
@@ -87,6 +117,10 @@ jobs:
     - name: Test OSM processing for network generation
       working-directory: matsim-melbourne/network
       run: ./processOSM.sh
+      env:
+        PGHOST: localhost
+        PGPASSWORD: postgres
+        PGPORT: 5432
 
     - name: Test demand generation
       working-directory: matsim-melbourne
