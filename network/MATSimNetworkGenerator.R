@@ -32,6 +32,17 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   library(XML)
   library(rgdal)
   library(purrr)
+  # These are needed if addGtfs=T
+  if(addGtfs){
+    library(tidytransit)
+    library(hablar)
+    library(lwgeom)
+    library(hms)
+  }
+  # This is needed if addIvabmPt=T
+  if(addIvabmPt){
+    library(nngeo)
+  }
   
   #functions
   source('./functions/etc/logging.R')

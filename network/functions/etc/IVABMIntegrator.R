@@ -8,11 +8,6 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
   #   - Transit schedule file (.xml)
   #   - PnR lookup file, contains links and parking capacity (.xml)
   
-  library(XML)
-  library(dplyr)
-  library(sf)
-  library(data.table)
-  
   #source('../exportXML.R')
   #source('./logging.R')
   
@@ -134,7 +129,7 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
     dplyr::rename(modes=mode_temp)
   
   # Connecting PnR links to the main network --------------------------------
-  library(nngeo)
+  # library(nngeo)
   # PnR from
   pnr.from.nodes <- net2.nodes.sf %>% filter(id %in% pnr.links.df$from_id) 
   
@@ -225,6 +220,7 @@ integrateIVABM <- function(net1.nodes.df=NULL, net1.links.df=NULL){
     rename(fromX=x,fromY=y) %>% 
     left_join(net2.nodes.final,by =c("to_id"="id")) %>% 
     rename(toX=x,toY=y) %>% 
+    mutate(isOneway=1) %>% 
     mutate(isCar=ifelse(stringr::str_detect(modes,"car"), yes = 1, no = 0)) %>% 
     mutate(isCycle=ifelse(stringr::str_detect(modes,"bicycle"), yes = 1, no = 0)) %>% 
     mutate(isWalk=ifelse(stringr::str_detect(modes,"walk"), yes = 1, no = 0)) %>% 

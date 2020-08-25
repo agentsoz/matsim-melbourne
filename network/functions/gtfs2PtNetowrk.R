@@ -28,10 +28,6 @@ processGtfs <- function(n_df,
   # analysis_start = as.Date("2019-10-11","%Y-%m-%d")
   # analysis_end = as.Date("2019-10-17","%Y-%m-%d")
   # studyRegion=NA   # TODO studyRegion = st_union(st_convex_hull(nodes)) won't work
-  library('tidytransit')
-  library('hablar')
-  library('lwgeom')
-  library('hms')
 
   gtfs <- read_gtfs(gtfs_feed)
   
@@ -320,6 +316,7 @@ processGtfs <- function(n_df,
     mutate(freespeed=11.1) %>% 
     mutate(permlanes=1) %>% 
     mutate(capacity=600) %>% 
+    mutate(isOneway=1) %>% 
     mutate(bikeway=NA) %>% 
     mutate(isCycle=FALSE) %>% 
     mutate(isWalk=FALSE) %>% 
@@ -328,7 +325,9 @@ processGtfs <- function(n_df,
     mutate(id=paste0(from_id,"_",to_id)) %>% 
     st_drop_geometry() %>% 
     #dplyr::select(osm_id, id, from_id, to_id, fromX=from_x, fromY=from_y, toX=to_x, toY=to_y, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
-    dplyr::select(id, from_id, to_id, fromX=from_x, fromY=from_y, toX=to_x, toY=to_y, length, highway, freespeed, permlanes, capacity, bikeway, isCycle, isWalk, isCar, modes) %>% 
+    dplyr::select(id, from_id, to_id, fromX=from_x, fromY=from_y, toX=to_x, toY=to_y,
+                  length, highway, freespeed, permlanes, capacity, isOneway,
+                  bikeway, isCycle, isWalk, isCar, modes) %>% 
     distinct()
     
   return(ptNetworkMATSim)
