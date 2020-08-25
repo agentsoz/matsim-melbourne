@@ -47,7 +47,6 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   source('./functions/removeDangles.R')
   source('./functions/makeEdgesDirect.R')
   source('./functions/restructureData.R')
-  source('./functions/adjustingBikeLinks.R')
   source('./functions/addElevation2Nodes.R')
   source('./functions/gtfs2PtNetowrk.R')
   source('./functions/etc/IVABMIntegrator.R')
@@ -119,7 +118,6 @@ makeMatsimNetwork<-function(crop2TestArea=F, shortLinkLength=20, addElevation=F,
   
   # add mode to edges, add type to nodes, change bikeway from numbers to text
   networkRestructured <- restructureData(networkDirect)
-  system.time(networkRestructured[[2]] <- adjustingBikeLinks(networkRestructured[[2]]))
   if(addElevation) system.time(networkRestructured[[1]] <- addElevation2Nodes(networkRestructured[[1]], 
                                                                         'data/DEMx10EPSG28355.tif'))
   if(addGtfs) system.time(networkRestructured[[2]] <- addGtfsLinks(networkRestructured[[1]], 

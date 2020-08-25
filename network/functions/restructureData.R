@@ -42,8 +42,8 @@ restructureData <- function(networkAttributed){
       mutate(bikeway=ifelse(bikeway==3, "lane"          , bikeway)) %>%
       mutate(bikeway=ifelse(bikeway==4, "shared_lane"   , bikeway)) %>%
       dplyr::select(from_id, to_id, fromX=X_from, fromY=Y_from, toX=X_to, 
-                    toY=Y_to, length, freespeed, permlanes, capacity, bikeway,
-                    isCycle, isWalk, isCar, modes)
+                    toY=Y_to, length, freespeed, permlanes, capacity, isOneway,
+                    bikeway, isCycle, isWalk, isCar, modes)
     
   return(list(nodes,links))
 }

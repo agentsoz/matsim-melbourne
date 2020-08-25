@@ -1,4 +1,6 @@
 exportXML <- function(network4xml, outputFileName = "outputXML"){
+  # network4xml <- networkFinal
+  
   source('./functions/etc/logging.R')
   
   if(class(network4xml[[1]])[1]=="sf"){
@@ -93,6 +95,21 @@ exportXML <- function(network4xml, outputFileName = "outputXML"){
     if(length(add)!=0) data[add] <- NA
     data
   }
+  
+  # Adding a reverse links for bi-directionals
+  bi_links <- l_df %>% 
+    filter(isOneway==0) %>% 
+    rename(from_id=to_id, to_id=from_id, toX=fromX, toY=fromY, fromX=toX, fromY=toY) %>% 
+    #mutate(id=paste0("p_",from_id,"_",to_id,"_",row_number())) %>% 
+    dplyr::select(from_id, to_id, fromX, fromY, toX, toY, length, freespeed, permlanes,
+                  capacity, isOneway, bikeway, isCycle, isWalk, isCar, modes)
+  
+  l_df <- rbind(l_df, bi_links) %>% 
+    mutate(tempId = paste0(from_id,"_",to_id,bikeway,modes)) %>% 
+    distinct(tempId, .keep_all = T ) %>% 
+    dplyr::select(-tempId)
+  
+  # Adding bicycle and extra information
   l_df <-  fncols(l_df, c("id","osm_id", "highway", "bikeway", "bicycleInfrastructureSpeedFactor")) 
   l_df <- l_df %>%
     mutate(id = replace(id, is.na(id), row_number())) %>% 
@@ -101,6 +118,7 @@ exportXML <- function(network4xml, outputFileName = "outputXML"){
     mutate(bikeway = replace(bikeway, is.na(bikeway),"No")) %>% 
     mutate(bicycleInfrastructureSpeedFactor = replace(bicycleInfrastructureSpeedFactor, 
                                                       is.na(bicycleInfrastructureSpeedFactor),1.0))
+  
   purrr::map_dfr(1:nrow(l_df),addMATSimLink)
   cat("</links>\n",file=xml_file,append=TRUE)
   cat("</network>\n",file=xml_file,append=TRUE)
