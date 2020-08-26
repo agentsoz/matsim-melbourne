@@ -17,7 +17,9 @@ jobs:
     steps:
 
     - name: Install required packages
-      run: sudo apt-get install libudunits2-dev libgdal-dev
+      run: |
+        sudo apt update
+        sudo apt-get install libudunits2-dev libgdal-dev
 
     - name: Clone agentsoz/matsim-melbourne
       uses: actions/checkout@v2
