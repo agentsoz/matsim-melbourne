@@ -1,8 +1,8 @@
 on:
   push:
-    branches: [ master, R ]
+    branches: [ master, dev ]
   pull_request:
-    branches: [ master, R ]
+    branches: [ master, dev ]
 
 name: build
 
@@ -56,17 +56,3 @@ jobs:
         install.packages('packrat')
         library(packrat)
         packrat::restore()
-
-    - name: Get demand data
-      if: steps.cache-packrat.outputs.cache-hit != 'true'
-      working-directory: matsim-melbourne/demand/data
-      run: git checkout prepare.sh && ./prepare.sh
-
-    - name: Test demand generation
-      working-directory: matsim-melbourne
-      shell: Rscript {0}
-      run: |
-        library(data.table) # fixme: loads only if in repo root dir
-        setwd('./demand')
-        source('makeExamplePopulation.R')
-        runtest()
