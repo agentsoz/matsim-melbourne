@@ -1,4 +1,4 @@
-# MATSim population for Melbourne
+# MATSim network for Melbourne
 
 The network generation code has now moved to the [MATSim Melbourne Network](https://github.com/matsim-melbourne/network) repository.
 
